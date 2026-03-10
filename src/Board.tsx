@@ -31,17 +31,17 @@ import BoardGameBegin from './BoardGameBegin';
 import React from 'react';
 import { LanguageContext } from './LanguageContextProvider';
 
-const YourTurnSound = require('./assets/sound/ALERT_YourTurn_0v2.ogg').default;
-const DrawCardSound = require('./assets/sound/draw_card_and_add_to_hand_1.ogg').default;
-const NeighSuccessSound = require('./assets/sound/tavern_crowd_play_reaction_very_positive_5.ogg').default;
-const NeighFailureSound = require('./assets/sound/tavern_crowd_play_reaction_quite_positive_2.ogg').default;
-const EndTurnButtonSound = require('./assets/sound/bar_button_A_press.ogg').default;
-const HubMouseOverSound = require('./assets/sound/Hub_Mouseover.ogg').default;
-const FriendlyChallengeSound = require('./assets/sound/friendly_challenge.ogg').default;
-const DestroyedSound = require('./assets/sound/Arrow_Targeted_Explode_01.ogg').default;
-const DiscardSound = require('./assets/sound/play_card_from_hand_1.ogg').default;
-const SacrificeSound = require('./assets/sound/FeignDeath_trigger_1.ogg').default;
-const StealSound = require('./assets/sound/stealth_on.ogg').default;
+const YourTurnSound = require('./assets/sound/ALERT_YourTurn_0v2.ogg');
+const DrawCardSound = require('./assets/sound/draw_card_and_add_to_hand_1.ogg');
+const NeighSuccessSound = require('./assets/sound/tavern_crowd_play_reaction_very_positive_5.ogg');
+const NeighFailureSound = require('./assets/sound/tavern_crowd_play_reaction_quite_positive_2.ogg');
+const EndTurnButtonSound = require('./assets/sound/bar_button_A_press.ogg');
+const HubMouseOverSound = require('./assets/sound/Hub_Mouseover.ogg');
+const FriendlyChallengeSound = require('./assets/sound/friendly_challenge.ogg');
+const DestroyedSound = require('./assets/sound/Arrow_Targeted_Explode_01.ogg');
+const DiscardSound = require('./assets/sound/play_card_from_hand_1.ogg');
+const SacrificeSound = require('./assets/sound/FeignDeath_trigger_1.ogg');
+const StealSound = require('./assets/sound/stealth_on.ogg');
 
 
 type Props = {
@@ -282,6 +282,7 @@ const Board = (props: any) => {
             setC2CArrow(undefined);
         }
     }, [G.uiCardToCard?.id]);
+
 
     if (ctx.phase === "pregame") {
         return (

@@ -9,7 +9,14 @@ const server = Server({ games: [UnstableUnicorns] });
 const PORT = process.env.PORT == null ? 8000 : parseInt(process.env.PORT);
 
 const frontEndAppBuildPath = path.resolve(__dirname, '../build');
-server.app.use(serve(frontEndAppBuildPath))
+server.app.use(serve(frontEndAppBuildPath));
+
+server.app.use(
+  async (ctx: any, next: any) => await serve(frontEndAppBuildPath)(
+    Object.assign(ctx, { path: 'index.html' }),
+    next
+  )
+);
 
 const lobbyConfig = {
   apiPort: 8080,
@@ -17,10 +24,5 @@ const lobbyConfig = {
 };
 
 server.run({port: PORT, lobbyConfig}, () => {
-  server.app.use(
-    async (ctx: any, next: any) => await serve(frontEndAppBuildPath)(
-      Object.assign(ctx, { path: 'index.html' }),
-      next
-    )
-  )
+  console.log(`Server running on port ${PORT}`);
 });

@@ -23,9 +23,10 @@ const BoardGameBegin = (props: Props) => {
                 display: "flex",
                 width: "100%",
                 justifyContent: "center",
-                alignItems: "center",
+                alignItems: "flex-start",
                 borderRadius: "16pt",
-                height: "500px",
+                minHeight: "500px",
+                padding: "2em 0",
                 color: "white"
             }}>
                 <div style={{
@@ -51,8 +52,10 @@ const BoardGameBegin = (props: Props) => {
                     <h1>Choose your baby unicorn</h1>
                     <div style={{
                         display: "flex",
+                        flexWrap: "wrap",
                         justifyContent: "center",
-                        marginTop: "1em"
+                        marginTop: "1em",
+                        overflow: "auto"
                     }}>
                         {props.babyCards.map(card => {
                             let style = {}
@@ -72,7 +75,7 @@ const BoardGameBegin = (props: Props) => {
                                 }  
                             } 
 
-                            return (<div style={{ margin: "0.5em" }} key={card.id}>
+                            return (<div style={{ margin: "0.5em", width: "80px", flexShrink: 0 }} key={card.id}>
                                 <img style={{ cursor: "pointer", ...style, borderRadius: "16px" }} src={ImageLoader.load(card.image)} width="100%" onClick={() => {
                                     if (props.G.babyStarter.find(s => s.owner === props.playerID)) {
                                         return;
@@ -109,7 +112,7 @@ const Wrapper = styled.div`
     background-image: url(${BG});
     background-size: cover;
     position: relative;
-    overflow: hidden;
+    overflow: auto;
     display: flex;
     flex-direction: column;
     align-items: center;

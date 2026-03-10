@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import useSound from 'use-sound';
 import { LanguageContext } from '../LanguageContextProvider';
 import { cardDescription } from '../BoardUtil';
-const MouseClickSound = require('../assets/sound/board_common_dirt_poke_1.ogg').default;
+const MouseClickSound = require('../assets/sound/board_common_dirt_poke_1.ogg');
 
 
 type Props = {

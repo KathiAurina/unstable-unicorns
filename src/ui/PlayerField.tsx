@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import useSound from 'use-sound';
 import { cardDescription } from '../BoardUtil';
 import { LanguageContext } from '../LanguageContextProvider';
-const HubMouseOverSound = require('../assets/sound/Hub_Mouseover.ogg').default;
+const HubMouseOverSound = require('../assets/sound/Hub_Mouseover.ogg');
 
 type Props = {
     players: Player[];

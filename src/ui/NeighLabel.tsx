@@ -10,8 +10,8 @@ import { _typeToColor } from './util';
 import useSound from 'use-sound';
 import { LanguageContext } from '../LanguageContextProvider';
 import { cardDescription } from '../BoardUtil';
-const MouseClickSound = require('../assets/sound/UI_MouseClick_01.ogg').default;
-const HubMouseOverSound = require('../assets/sound/Hub_Mouseover.ogg').default;
+const MouseClickSound = require('../assets/sound/UI_MouseClick_01.ogg');
+const HubMouseOverSound = require('../assets/sound/Hub_Mouseover.ogg');
 
 type Props = {
     card: Card;

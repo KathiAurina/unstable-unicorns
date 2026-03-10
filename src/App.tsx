@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
+import { BrowserRouter as Router, Switch, Route, Redirect } from "react-router-dom";
 import Client from './Client';
 
 const App = () => {
@@ -11,6 +11,9 @@ const App = () => {
           </Route>
           <Route path="/:matchID/:numPlayers/:playerID">
               <Client />
+          </Route>
+          <Route exact path="/">
+            <Redirect to="/test" />
           </Route>
         </Switch>
       </Router>

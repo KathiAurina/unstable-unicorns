@@ -8,7 +8,7 @@ import CardHover from './CardHover';
 import useSound from 'use-sound';
 import { LanguageContext } from '../LanguageContextProvider';
 import { cardDescription } from '../BoardUtil';
-const HubMouseOverSound = require('../assets/sound/Hub_Mouseover.ogg').default;
+const HubMouseOverSound = require('../assets/sound/Hub_Mouseover.ogg');
 
 type Props = {
     cards: Card[];
