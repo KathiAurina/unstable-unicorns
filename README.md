@@ -35,11 +35,77 @@ This game was developed using [boardgame.io](boardgame.io), React and Typescript
 
 *To-Do: describe architecture, etc...*
 
-## Building and Employment
+## Getting Started
 
-Type `npm run start` to start the client.
+To run this project locally on your machine, follow these steps:
 
-Type `tsc src/server.ts --outDir server_build` to compile the Typescript code into Javascript and type `npm run serve` to start the server from the server_build directory.
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) installed on your machine.
+- Git to clone the repository.
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/unstable-unicorns.git
+    cd unstable-unicorns
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+### Running in Development Mode
+
+For the best development experience (with hot-reloading), you need two terminal windows.
+
+**Terminal 1: The Game Server (Backend)**
+
+This runs the game logic and API.
+
+1.  Build the server code:
+    ```bash
+    npm run build:server
+    ```
+2.  Start the server:
+    ```bash
+    npm run serve
+    ```
+    You should see output indicating the API is running on port 8080 and the App on port 8000.
+
+**Terminal 2: The Client (Frontend)**
+
+This runs the React frontend.
+
+1.  Start the development server:
+    ```bash
+    npm start
+    ```
+2.  This will automatically open your browser at [http://localhost:3000](http://localhost:3000). You should see the Lobby.
+
+### How to Play
+
+1.  Go to the **Lobby** running at `http://localhost:3000`.
+2.  Under **Create New Game**, verify the number of players (default is 2) and optionally give your game a name.
+3.  Click **Create Game**.
+4.  The game will appear in the **Existing Games** list below.
+5.  Click **Join as Player 0** to join the game. This will open the game board in a new tab.
+6.  To play with yourself for testing (or friends locally), open another tab/window for `http://localhost:3000` and join the same game as **Player 1**.
+
+### Building for Production
+
+If you want to run the optimized production build locally:
+
+1.  Build the frontend: `npm run build`
+2.  Build the backend: `npm run build:server`
+3.  Start the server: `npm run serve`
+4.  Access the game at [http://localhost:8000](http://localhost:8000).
+
+## Implementation Details
+
+This game was developed using [boardgame.io](boardgame.io), React and Typescript.
 
 ## To-Do
 
