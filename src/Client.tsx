@@ -1,6 +1,6 @@
 import { Client } from 'boardgame.io/react';
 import { SocketIO } from 'boardgame.io/multiplayer';
-import { useParams } from 'react-router-dom';
+import { useParams, useHistory } from 'react-router-dom';
 import Board from './Board';
 import UnstableUnicorns from './game/game';
 
@@ -14,8 +14,17 @@ type Props = {
     debug?: string;
 }
 
+interface LocationState {
+    credentials?: string;
+}
+
 const UnstableUnicornsClient = ({ debug }: Props) => {
     const { numPlayers, playerID, matchID } = useParams<RouteParam>();
+    const history = useHistory();
+    const locationState = history.location.state as LocationState;
+    const searchParams = new URLSearchParams(history.location.search);
+    const credParam = searchParams.get("credentials");
+    const credentials = (locationState?.credentials !== undefined ? locationState.credentials : (credParam !== null ? credParam : undefined)) as string | undefined;
 
     if (debug === "test") {
         const UnstableUnicornsClient = Client({
@@ -33,6 +42,7 @@ const UnstableUnicornsClient = ({ debug }: Props) => {
         UnstableUnicornsClient = Client({
             game: UnstableUnicorns,
             board: Board,
+            debug: false,
             numPlayers: parseInt(numPlayers),
             multiplayer: SocketIO({ server: `http://localhost:8000` }),
             //multiplayer: SocketIO({ server: `https://${window.location.hostname}` }),
@@ -41,7 +51,7 @@ const UnstableUnicornsClient = ({ debug }: Props) => {
         return (<h1>Num players argument is missing</h1>);
     }
     
-    return <UnstableUnicornsClient matchID={matchID} playerID={playerID} />
+    return <UnstableUnicornsClient matchID={matchID} playerID={playerID} credentials={credentials} />
 }
 
 export default UnstableUnicornsClient;

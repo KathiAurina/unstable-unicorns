@@ -7,10 +7,9 @@ import PlayerField, { PlayerFieldHandle } from './ui/PlayerField';
 import useSound from 'use-sound';
 import { motion, AnimateSharedLayout, AnimatePresence } from "framer-motion";
 // game
-import { UnstableUnicornsGame, Ctx, _findOpenScenesWithProtagonist, Instruction, Scene, canDraw, canPlayCard, _findInProgressScenesWithProtagonist, _findInstruction } from './game/game';
+import { UnstableUnicornsGame, Ctx, _findOpenScenesWithProtagonist, Instruction, Scene, canPlayCard, _findInProgressScenesWithProtagonist, _findInstruction } from './game/game';
 // assets
 import BG from './assets/ui/board-background.jpg';
-import UpgradeDowngradeStable from './ui/UpgradeDowngradeStable';
 import DrawPile from './ui/DrawPile';
 import Nursery from './ui/Nursery';
 import DiscardPile from './ui/DiscardPile';
@@ -24,7 +23,7 @@ import { BoardState, getBoardState } from './BoardStateManager';
 import GameLabel from './ui/GameLabel';
 import NeighLabel, { NeighLabelRole } from './ui/NeighLabel';
 import CardPopupSingleAction from './ui/CardPopupSingleAction';
-import { AddFromDiscardPileToHandTarget, BringToStableTarget, DiscardTarget, DoDestroy, DoDiscard, findDestroyTargets, findDiscardTargets, ReviveTarget, SearchTarget } from './game/do';
+import { AddFromDiscardPileToHandTarget, BringToStableTarget, DiscardTarget, ReviveTarget, SearchTarget } from './game/do';
 import InfoLabel from './ui/InfoLabel';
 import Finder from './ui/Finder';
 import BoardGameBegin from './BoardGameBegin';
@@ -49,6 +48,7 @@ type Props = {
     ctx: Ctx;
     playerID: string;
     moves: any;
+    isActive: boolean;
 }
 
 type CardInteraction = {
@@ -174,6 +174,7 @@ const Board = (props: any) => {
         }
     }, [G.uiExecuteDo?.id]);
 
+
     const [showDeckFinder, setShowDeckFinder] = useState<SearchTarget[] | undefined>(undefined);
     const [showPlayerHand, setShowPlayerHand] = useState<PlayerID | undefined>(undefined);
     const [showBlatantThievery, setShowBlatantThievery] = useState<PlayerID | undefined>(undefined);
@@ -190,7 +191,7 @@ const Board = (props: any) => {
     if (openScenes.length === 0) {
         openScenes = _findOpenScenesWithProtagonist(G, playerID);
     }
-    const glowingCardIDs = openScenes.map(([instr, sce]) => instr.ui.info?.source).filter(c => c !== undefined) as number[];
+    const glowingCardIDs = openScenes.map(([instr]) => instr.ui.info?.source).filter(c => c !== undefined) as number[];
 
     const wrapperOnMouseMove = (evt: React.MouseEvent<HTMLDivElement>) => {
         // track mouse movement for card to card interaction
@@ -339,7 +340,7 @@ const Board = (props: any) => {
                         onBackClick={() => 0}
                         onCardClick={cardID => {
                             const boardState = boardStates.find(o => o.type === "search__single_action_popup")!;
-                            const [instruction, action, scene] = _findInstruction(G, boardState.info?.instructionID)!;
+                            const [instruction] = _findInstruction(G, boardState.info?.instructionID)!;
                             moves.executeDo(instruction.id, {
                                 protagonist: playerID,
                                 cardID
@@ -581,9 +582,9 @@ const Board = (props: any) => {
                         }}
                         onStableItemMouseEnter={cardID => {
                             playHubMouseOverSound();
-                            const o = openScenes.filter(([instr, scene]) => instr.ui.info?.source === cardID);
+                            const o = openScenes.filter(([instr]) => instr.ui.info?.source === cardID);
                             let targets: HoverTarget[] = [];
-                            o.forEach(([instruction, scene]) => {
+                            o.forEach(([instruction]) => {
                                 targets = [...targets, ...findUITargets(G, ctx, instruction)];
                             });
 
@@ -635,7 +636,7 @@ const Board = (props: any) => {
 
                             boardState = boardStates.find(s => (s.type === "shakeUp" || s.type === "reset" || s.type === "shuffleDiscardPileIntoDrawPile") && s.info?.sourceCardID === cardID);
                             if (boardState) {
-                                const [instruction, action, scene] = _findInstruction(G, boardState.info?.instructionID)!;
+                                const [instruction] = _findInstruction(G, boardState.info?.instructionID)!;
                                 // this if condition is just for typescript interference
                                 if ((instruction.do.key === "shakeUp" || instruction.do.key === "reset" || instruction.do.key === "shuffleDiscardPileIntoDrawPile") && instruction.ui.type === "single_action_popup") {
                                     return (
@@ -651,7 +652,7 @@ const Board = (props: any) => {
 
                             boardState = boardStates.find(s => (s.type === "revive") && s.info?.sourceCardID === cardID);
                             if (boardState) {
-                                const [instruction, action, scene] = _findInstruction(G, boardState.info?.instructionID)!;
+                                const [instruction] = _findInstruction(G, boardState.info?.instructionID)!;
                                 // this if condition is just for typescript interference
                                 if ((instruction.do.key === "revive") && instruction.ui.type === "single_action_popup") {
                                     return (
@@ -667,7 +668,7 @@ const Board = (props: any) => {
 
                             boardState = boardStates.find(s => (s.type === "reviveFromNursery") && s.info?.sourceCardID === cardID);
                             if (boardState) {
-                                const [instruction, action, scene] = _findInstruction(G, boardState.info?.instructionID)!;
+                                const [instruction] = _findInstruction(G, boardState.info?.instructionID)!;
                                 // this if condition is just for typescript interference
                                 if ((instruction.do.key === "reviveFromNursery") && instruction.ui.type === "single_action_popup") {
                                     return (
@@ -683,7 +684,7 @@ const Board = (props: any) => {
 
                             boardState = boardStates.find(s => (s.type === "addFromDiscardPileToHand__single_action_popup") && s.info?.sourceCardID === cardID);
                             if (boardState) {
-                                const [instruction, action, scene] = _findInstruction(G, boardState.info?.instructionID)!;
+                                const [instruction] = _findInstruction(G, boardState.info?.instructionID)!;
                                 // this if condition is just for typescript interference
                                 if ((instruction.do.key === "addFromDiscardPileToHand") && instruction.ui.type === "single_action_popup") {
                                     return (
@@ -699,7 +700,7 @@ const Board = (props: any) => {
 
                             boardState = boardStates.find(s => (s.type === "search__single_action_popup") && s.info?.sourceCardID === cardID);
                             if (boardState) {
-                                const [instruction, action, scene] = _findInstruction(G, boardState.info?.instructionID)!;
+                                const [instruction] = _findInstruction(G, boardState.info?.instructionID)!;
                                 // this if condition is just for typescript interference
                                 if ((instruction.do.key === "search") && instruction.ui.type === "single_action_popup") {
                                     return (

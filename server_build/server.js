@@ -28,10 +28,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 // src/server.js
 const path = __importStar(require("path"));
+const game_1 = __importDefault(require("./game/game"));
 const serve = require('koa-static');
 const { Server } = require('boardgame.io/server');
-const game_1 = __importDefault(require("./game/game"));
-const server = Server({ games: [game_1.default] });
+const server = Server({
+    games: [game_1.default],
+    origins: ['http://localhost:3000', 'http://localhost:8000'],
+});
 const PORT = process.env.PORT == null ? 8000 : parseInt(process.env.PORT);
 const frontEndAppBuildPath = path.resolve(__dirname, '../build');
 server.app.use(serve(frontEndAppBuildPath));

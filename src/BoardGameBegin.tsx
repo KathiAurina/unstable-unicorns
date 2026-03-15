@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import ImageLoader from './assets/card/imageLoader';
 import BG from './assets/ui/board-background.jpg';
-import { Card, CardID } from './game/card';
+import { Card } from './game/card';
 import { UnstableUnicornsGame } from './game/game';
 import { PlayerID } from './game/player';
 
@@ -15,7 +15,7 @@ type Props = {
 
 const BoardGameBegin = (props: Props) => {
 
-    const [playerName, setPlayerName] = useState<string>("Spieler");
+    const [playerName, setPlayerName] = useState<string>("Player");
 
     return (
         <Wrapper>
@@ -36,19 +36,25 @@ const BoardGameBegin = (props: Props) => {
                     borderRadius: "16px"
                 }}>
                     <h1>My name:</h1>
-                    <input type="text" name="name" value={playerName} onChange={(evt) => {
-                        setPlayerName(evt.target.value)
-                    }} style={{
-                        padding: "1em",
-                        backgroundColor: "rgba(255,255,255,0.2)",
-                        border: "none",
-                        marginBottom: "2em",
-                        fontSize: "16pt",
-                        color: "white"
-                    }} />
-                    <button onClick={() => {
-                        props.moves.changeName(props.playerID, playerName);
-                    }}>Change name</button>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: "2em" }}>
+                        <input type="text" name="name" value={playerName} onChange={(evt) => {
+                            setPlayerName(evt.target.value)
+                        }} onKeyDown={(evt) => {
+                            if (evt.key === 'Enter') {
+                                props.moves.changeName(props.playerID, playerName);
+                            }
+                        }} style={{
+                            padding: "1em",
+                            backgroundColor: "rgba(255,255,255,0.2)",
+                            border: "none",
+                            fontSize: "16pt",
+                            color: "white",
+                            marginRight: "1em"
+                        }} />
+                        <StyledButton onClick={() => {
+                            props.moves.changeName(props.playerID, playerName);
+                        }} style={{ marginBottom: 0 }}>Change name</StyledButton>
+                    </div>
                     <h1>Choose your baby unicorn</h1>
                     <div style={{
                         display: "flex",
@@ -76,7 +82,7 @@ const BoardGameBegin = (props: Props) => {
                             } 
 
                             return (<div style={{ margin: "0.5em", width: "80px", flexShrink: 0 }} key={card.id}>
-                                <img style={{ cursor: "pointer", ...style, borderRadius: "16px" }} src={ImageLoader.load(card.image)} width="100%" onClick={() => {
+                                <img alt={`Baby Unicorn ${card.id}`} style={{ cursor: "pointer", ...style, borderRadius: "16px" }} src={ImageLoader.load(card.image)} width="100%" onClick={() => {
                                     if (props.G.babyStarter.find(s => s.owner === props.playerID)) {
                                         return;
                                     }
@@ -116,6 +122,24 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
+`;
+
+const StyledButton = styled.button`
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    margin-bottom: 2em;
+    display: block;
+
+    &:hover {
+        background-color: #0056b3;
+    }
 `;
 
 export default BoardGameBegin;

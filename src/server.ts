@@ -1,11 +1,14 @@
 // src/server.js
 import * as path from 'path';
+import UnstableUnicorns from './game/game';
 const serve = require('koa-static');
 const { Server } = require('boardgame.io/server');
-import UnstableUnicorns from './game/game';
 
 
-const server = Server({ games: [UnstableUnicorns] });
+const server = Server({
+  games: [UnstableUnicorns],
+  origins: ['http://localhost:3000', 'http://localhost:8000'],
+});
 const PORT = process.env.PORT == null ? 8000 : parseInt(process.env.PORT);
 
 const frontEndAppBuildPath = path.resolve(__dirname, '../build');
