@@ -38,14 +38,14 @@ const UnstableUnicornsClient = ({ debug }: Props) => {
     }
 
     let UnstableUnicornsClient = null;
+    const serverUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
     if (numPlayers) {
         UnstableUnicornsClient = Client({
             game: UnstableUnicorns,
             board: Board,
             debug: false,
             numPlayers: parseInt(numPlayers),
-            multiplayer: SocketIO({ server: `http://localhost:8000` }),
-            //multiplayer: SocketIO({ server: `https://${window.location.hostname}` }),
+            multiplayer: SocketIO({ server: serverUrl }),
         });
     } else {
         return (<h1>Num players argument is missing</h1>);
