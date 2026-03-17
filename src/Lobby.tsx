@@ -102,7 +102,7 @@ const Lobby = () => {
             <Content>
                 <Title>Unstable Unicorns</Title>
                 <Section>
-                    <h2>Create A New Game</h2>
+                    <h2>Create A New Game!</h2>
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                         <Label>
                             Game Name:
