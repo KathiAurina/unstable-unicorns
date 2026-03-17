@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install dependencies first (layer-cached unless package files change)
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy source and build both frontend and backend
 COPY . .
@@ -22,7 +22,7 @@ ENV API_PORT=8082
 
 # Only install production dependencies
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # Copy compiled artifacts from the builder stage
 COPY --from=builder /app/build ./build
