@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import BG from './assets/ui/board-background.jpg';
 
-const API_PORT = 8080;
-const API_URL = `http://localhost:${API_PORT}`;
+// In production this is set to https://uu-lobby.clicque.de via REACT_APP_LOBBY_URL.
+// In local dev it falls back to the current origin (the server serves the API on the same host).
+const API_URL = process.env.REACT_APP_LOBBY_URL || window.location.origin;
 
 interface Match {
     gameID: string;

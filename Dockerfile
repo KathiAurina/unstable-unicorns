@@ -9,6 +9,8 @@ RUN npm ci --legacy-peer-deps
 
 # Copy source and build both frontend and backend
 COPY . .
+ARG REACT_APP_LOBBY_URL=https://uu-lobby.clicque.de
+ENV REACT_APP_LOBBY_URL=$REACT_APP_LOBBY_URL
 RUN npm run build && npm run build:server
 
 # ── Stage 2: Production image ────────────────────────────────────────────────
