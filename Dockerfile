@@ -19,6 +19,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8000
 ENV API_PORT=8082
+ENV LOBBY_HOST=0.0.0.0
+ENV CORS_ORIGIN=https://uu.clicque.de
+ENV LOBBY_ORIGIN=https://uu-lobby.clicque.de
 
 # Only install production dependencies
 COPY package.json package-lock.json ./

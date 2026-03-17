@@ -5,13 +5,15 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8001:8000"   # Frontend + game server (reverse proxy only)
-      - "127.0.0.1:8081:8082"   # Lobby API (reverse proxy only)
+      - "8082:8082"             # Lobby API — exposed for Cloudflare tunnel
     environment:
       - NODE_ENV=production
       - PORT=8000
 
       - API_PORT=8082
+      - LOBBY_HOST=0.0.0.0
       - CORS_ORIGIN=https://uu.clicque.de
+      - LOBBY_ORIGIN=https://uu-lobby.clicque.de
 
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
