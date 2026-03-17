@@ -1,0 +1,30 @@
+services:
+  app:
+    image: ghcr.io/kathiaurina/unstable-unicorns:latest
+    container_name: unstable-unicorns
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8001:8000"   # Frontend + game server (reverse proxy only)
+      - "127.0.0.1:8081:8082"   # Lobby API (reverse proxy only)
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+
+      - API_PORT=8082
+      - CORS_ORIGIN=https://uu.clicque.de
+
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker/config.json:/config.json:ro   # GHCR credentials for pulling
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300        # Check every 5 minutes
+      - WATCHTOWER_CLEANUP=true             # Remove old images after update
+      - WATCHTOWER_LABEL_ENABLE=true        # Only watch containers with the label above
+      - WATCHTOWER_INCLUDE_RESTARTING=true  # Also watch containers that are restarting

@@ -7,7 +7,7 @@ const { Server } = require('boardgame.io/server');
 
 const server = Server({
   games: [UnstableUnicorns],
-  origins: ['http://localhost:3000', 'http://localhost:8000'],
+  origins: ['http://localhost:8000', 'https://uu.clicque.de'],
 });
 const PORT = process.env.PORT == null ? 8000 : parseInt(process.env.PORT);
 
@@ -21,9 +21,11 @@ server.app.use(
   )
 );
 
+const API_PORT = process.env.API_PORT == null ? 8082 : parseInt(process.env.API_PORT);
+
 const lobbyConfig = {
-  apiPort: 8080,
-  apiCallback: () => console.log('Running Lobby API on port 8080...'),
+  apiPort: API_PORT,
+  apiCallback: () => console.log(`Running Lobby API on port ${API_PORT}...`),
 };
 
 server.run({port: PORT, lobbyConfig}, () => {
