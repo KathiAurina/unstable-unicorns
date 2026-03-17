@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8001:8000"   # Frontend + game server (reverse proxy only)
-      - "8082:8082"             # Lobby API — exposed for Cloudflare tunnel
+      - "127.0.0.1:8082:8082"   # Lobby API — Cloudflare tunnel connects to this
     environment:
       - NODE_ENV=production
       - PORT=8000
