@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import BG from './assets/ui/board-background.jpg';
 
-// In production this is set to https://uu-lobby.clicque.de via REACT_APP_LOBBY_URL.
-// In local dev it falls back to the current origin (the server serves the API on the same host).
 const API_URL = process.env.REACT_APP_LOBBY_URL || window.location.origin;
 
 interface Match {
@@ -103,7 +101,7 @@ const Lobby = () => {
             <Content>
                 <Title>Unstable Unicorns</Title>
                 <Section>
-                    <h2>Create A New Game!</h2>
+                    <h2>Create A New Games</h2>
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                         <Label>
                             Game Name:
