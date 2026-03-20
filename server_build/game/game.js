@@ -134,6 +134,25 @@ const UnstableUnicorns = {
                 }
             }
         }
+    },
+    endIf: (G, ctx) => {
+        for (const player of G.players) {
+            // Check for Pandamonium
+            const hasPandamonium = G.playerEffects[player.id].some(e => e.effect.key === "pandamonium");
+            if (hasPandamonium) {
+                // Cannot win if all unicorns are pandas
+                continue;
+            }
+            let unicornCount = G.stable[player.id].length;
+            // Check for Ginormous Unicorn (counts as 2)
+            const hasGinormous = G.playerEffects[player.id].some(e => e.effect.key === "count_as_two");
+            if (hasGinormous) {
+                unicornCount += 1; // It's already counted once in length
+            }
+            if (unicornCount >= constants_1.CONSTANTS.stableSeats) {
+                return { winner: player.id };
+            }
+        }
     }
 };
 function initializeGame(G, ctx) {

@@ -4,24 +4,21 @@ const serve = require('koa-static');
 const cors = require('@koa/cors');
 const { Server } = require('boardgame.io/server');
 
-// 1. CORS — allow the frontend and the dedicated lobby subdomain
+// 1. CORS — allow the frontend origin and localhost for development
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://uu.clicque.de';
-const LOBBY_ORIGIN = process.env.LOBBY_ORIGIN || 'https://uu-lobby.clicque.de';
 
 const server = Server({
   games: [UnstableUnicorns],
-  origins: [CORS_ORIGIN, LOBBY_ORIGIN, 'http://localhost:3000', 'http://localhost:8000'],
+  origins: [CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:8000'],
 });
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8000;
-const API_PORT = process.env.API_PORT ? parseInt(process.env.API_PORT) : 8082;
 
-// 2. Attach explicit CORS middleware so /games/* responses always carry the header,
-//    regardless of which origin the request comes from (covers the lobby subdomain).
+// 2. Attach explicit CORS middleware so /games/* responses always carry the header.
 server.app.use(cors({
   origin: (ctx: any) => {
     const requestOrigin = ctx.get('Origin');
-    const allowed = [CORS_ORIGIN, LOBBY_ORIGIN, 'http://localhost:3000', 'http://localhost:8000'];
+    const allowed = [CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:8000'];
     return allowed.includes(requestOrigin) ? requestOrigin : allowed[0];
   },
   credentials: true,
@@ -39,13 +36,7 @@ server.app.use(
     )
 );
 
-// 5. Start Server — lobby API runs on a separate internal port but is proxied
-//    through the main port via Cloudflare tunnel on uu-lobby.clicque.de → localhost:8082
-const lobbyConfig = {
-  apiPort: API_PORT,
-  apiCallback: () => console.log(`Running Lobby API on port ${API_PORT}...`),
-};
-
-server.run({ port: PORT, lobbyConfig }, () => {
+// 5. Start Server — lobby API is mounted on the same port as the game server
+server.run({ port: PORT }, () => {
   console.log(`Game Server running on port ${PORT}`);
 });

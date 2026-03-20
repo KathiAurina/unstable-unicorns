@@ -26,23 +26,33 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/server.js
 const path = __importStar(require("path"));
 const game_1 = __importDefault(require("./game/game"));
 const serve = require('koa-static');
+const cors = require('@koa/cors');
 const { Server } = require('boardgame.io/server');
+// 1. CORS — allow the frontend origin and localhost for development
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://uu.clicque.de';
 const server = Server({
     games: [game_1.default],
-    origins: ['http://localhost:3000', 'http://localhost:8000'],
+    origins: [CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:8000'],
 });
-const PORT = process.env.PORT == null ? 8000 : parseInt(process.env.PORT);
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8000;
+// 2. Attach explicit CORS middleware so /games/* responses always carry the header.
+server.app.use(cors({
+    origin: (ctx) => {
+        const requestOrigin = ctx.get('Origin');
+        const allowed = [CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:8000'];
+        return allowed.includes(requestOrigin) ? requestOrigin : allowed[0];
+    },
+    credentials: true,
+}));
+// 3. Serve Frontend Build
 const frontEndAppBuildPath = path.resolve(__dirname, '../build');
 server.app.use(serve(frontEndAppBuildPath));
+// 4. Fallback for React Router
 server.app.use(async (ctx, next) => await serve(frontEndAppBuildPath)(Object.assign(ctx, { path: 'index.html' }), next));
-const lobbyConfig = {
-    apiPort: 8080,
-    apiCallback: () => console.log('Running Lobby API on port 8080...'),
-};
-server.run({ port: PORT, lobbyConfig }, () => {
-    console.log(`Server running on port ${PORT}`);
+// 5. Start Server — lobby API is mounted on the same port as the game server
+server.run({ port: PORT }, () => {
+    console.log(`Game Server running on port ${PORT}`);
 });
