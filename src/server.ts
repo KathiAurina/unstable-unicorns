@@ -28,13 +28,16 @@ server.app.use(cors({
 const frontEndAppBuildPath = path.resolve(__dirname, '../build');
 server.app.use(serve(frontEndAppBuildPath));
 
-// 4. Fallback for React Router
-server.app.use(
-    async (ctx: any, next: any) => await serve(frontEndAppBuildPath)(
+// 4. Fallback for React Router (skip boardgame.io lobby API routes)
+server.app.use(async (ctx: any, next: any) => {
+    if (ctx.path.startsWith('/games/')) {
+        return await next();
+    }
+    return await serve(frontEndAppBuildPath)(
         Object.assign(ctx, { path: 'index.html' }),
         next
-    )
-);
+    );
+});
 
 // 5. Start Server — lobby API is mounted on the same port as the game server
 server.run({ port: PORT }, () => {
