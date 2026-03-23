@@ -2,10 +2,11 @@ import { UnstableUnicornsGame, Ctx, _findOpenScenesWithProtagonist, _findInProgr
 import type { PlayerID } from "./game/player";
 import _ from 'underscore';
 import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets } from "./game/do";
+import type { BoardStateInfo } from "./game/types";
 
 export type BoardState = {
     type: BoardStateKey;
-    info?: { [key: string]: any };
+    info?: BoardStateInfo;
 }
 
 type BoardStateKey = "playCard" | "drawCard" | "steal__cardToCard" | "destroy__cardToCard" | "destroy__click_on_card_in_stable" | "sacrifice__cardToCard" | "sacrifice__clickOnCardInStable" | "draw__clickOnDrawPile" | "endTurn" | "neigh__playNeigh" | "neigh__wait" | "discard__popup__committed" | "discard__popup__ask" | "bring__popup__committed" | "bring__popup__ask" | "discard" | "swapHands__cardToPlayer" | "shakeUp" | "move__cardToCard" | "move2__cardToPlayer" | "unicornswap1" | "unicornswap2" | "reset" | "shuffleDiscardPileIntoDrawPile" | "wait_for_other_players" | "revive" | "reviveFromNursery" | "pullRandom__cardToPlayer" | "backKick__card_to_card" | "blatantThievery1" | "addFromDiscardPileToHand__single_action_popup" | "search__single_action_popup" | "returnToHand__cardToCard" | "makeSomeoneDiscard__cardToPlayer";

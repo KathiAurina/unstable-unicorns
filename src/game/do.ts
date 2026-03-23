@@ -1,8 +1,28 @@
 import { Card, CardID, isUnicorn, OnEnter, OnEnterAddEffect, OnEnterAddScene } from "./card";
-import { UnstableUnicornsGame, Ctx, Scene, Instruction, Action, _addSceneFromDo } from "./game";
+import { UnstableUnicornsGame, Ctx, Scene, Instruction, Action, _addSceneFromDo, _findInstruction } from "./game";
 import type { PlayerID } from "./player";
+import { isCardBasicDueToEffect } from "./effect";
 import _ from 'underscore';
 import { CONSTANTS } from "./constants";
+
+/** Injects `newAction` before the current in-progress instruction, or appends a
+ *  new mandatory scene when no instruction is in progress. */
+function injectActionOrCreateScene(G: UnstableUnicornsGame, newAction: Action): void {
+    const found = _findInstructionInProgress(G);
+    if (found === null) {
+        const newScene: Scene = {
+            id: _.uniqueId(),
+            mandatory: true,
+            endTurnImmediately: false,
+            actions: [newAction]
+        };
+        G.script.scenes = [...G.script.scenes, newScene];
+    } else {
+        const [scene, , instruction] = found;
+        const index = scene.actions.findIndex(ac => ac.instructions.find(ins => ins.id === instruction.id));
+        scene.actions.splice(index, 0, newAction);
+    }
+}
 
 type ParamLeave = {
     playerID: PlayerID;
@@ -20,15 +40,8 @@ function leave(G: UnstableUnicornsGame, ctx: Ctx, param: ParamLeave) {
     // inject action after the current action
     const on = [...G.stable[param.playerID], ...G.upgradeDowngradeStable[param.playerID]].map(c => G.deck[c]).filter(s => s.on && s.on.filter(o => o.trigger === "unicorn_leaves_your_stable").length > 0);
     on.forEach(card => {
-        // all unicorns are basic
-        // trigger no effect
-        if (G.playerEffects[param.playerID].find(s => s.effect.key === "my_unicorns_are_basic")) {
-            if (G.playerEffects[param.playerID].find(s => s.effect.key === "pandamonium") === undefined) {
-                if (card.type === "narwhal" || card.type === "unicorn") {
-                    return;
-                }
-            }
-        }
+        // all unicorns are basic — trigger no effect
+        if (isCardBasicDueToEffect(G.playerEffects[param.playerID], card)) return;
 
         const on = card.on?.find(o => o.trigger === "unicorn_leaves_your_stable")!;
         if (on.do.type === "inject_action") {
@@ -42,25 +55,7 @@ function leave(G: UnstableUnicornsGame, ctx: Ctx, param: ParamLeave) {
                     ui: { ...on.do.info.instruction.ui, info: { source: card.id, ...on.do.info.instruction.ui.info } },
                 }]
             };
-
-            if (_findInstructionInProgress(G) === null) {
-                // no active scene
-                // thus create a mandatory scene
-                const newScene: Scene = {
-                    id: _.uniqueId(),
-                    mandatory: true,
-                    endTurnImmediately: false,
-                    actions: [newAction]
-                };
-
-                G.script.scenes = [...G.script.scenes, newScene];
-            } else {
-                // found active scene
-                const [scene, action, instruction] = _findInstructionInProgress(G)!;
-                const index = scene.actions.findIndex(ac => ac.instructions.find(ins => ins.id === instruction.id));
-
-                scene.actions.splice(index, 0, newAction);
-            }
+            injectActionOrCreateScene(G, newAction);
         }
     });
 }
@@ -84,15 +79,8 @@ export function enter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
     const cardOnEnter = <OnEnter[] | undefined>card.on?.filter(c => c.trigger === "enter");
 
     if (cardOnEnter) {
-        // all unicorns are basic
-        // trigger no effect
-        if (G.playerEffects[param.playerID].find(s => s.effect.key === "my_unicorns_are_basic")) {
-            if (G.playerEffects[param.playerID].find(s => s.effect.key === "pandamonium") === undefined) {
-                if (card.type === "narwhal" || card.type === "unicorn") {
-                    return;
-                }
-            }
-        }
+        // all unicorns are basic — trigger no effect
+        if (isCardBasicDueToEffect(G.playerEffects[param.playerID], card)) return;
 
         _addSceneFromDo(G, ctx, param.cardID, param.playerID, "enter");
 
@@ -129,32 +117,11 @@ export function enter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
                         id: _.uniqueId(),
                         protagonist: param.playerID,
                         state: "open",
-                        do: {
-                            key: "sacrifice",
-                            info: {type: "unicorn"}
-                        },
-                        ui: { type: "click_on_card_in_stable" } ,
+                        do: { key: "sacrifice", info: { type: "unicorn" } },
+                        ui: { type: "click_on_card_in_stable" },
                     }]
                 };
-    
-                if (_findInstructionInProgress(G) === null) {
-                    // no active scene
-                    // thus create a mandatory scene
-                    const newScene: Scene = {
-                        id: _.uniqueId(),
-                        mandatory: true,
-                        endTurnImmediately: false,
-                        actions: [newAction]
-                    };
-    
-                    G.script.scenes = [...G.script.scenes, newScene];
-                } else {
-                    // found active scene
-                    const [scene, action, instruction] = _findInstructionInProgress(G)!;
-                    const index = scene.actions.findIndex(ac => ac.instructions.find(ins => ins.id === instruction.id));
-    
-                    scene.actions.splice(index, 0, newAction);
-                } 
+                injectActionOrCreateScene(G, newAction);
             }
         }
     }
@@ -163,15 +130,8 @@ export function enter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
     // inject action after the current action
     const on = [...G.stable[param.playerID], ...G.upgradeDowngradeStable[param.playerID]].map(c => G.deck[c]).filter(s => s.on && s.on.filter(o => o.trigger === "unicorn_enters_your_stable").length > 0);
     on.forEach(card => {
-        // all unicorns are basic
-        // trigger no effect
-        if (G.playerEffects[param.playerID].find(s => s.effect.key === "my_unicorns_are_basic")) {
-            if (G.playerEffects[param.playerID].find(s => s.effect.key === "pandamonium") === undefined) {
-                if (card.type === "narwhal" || card.type === "unicorn") {
-                    return;
-                }
-            }
-        }
+        // all unicorns are basic — trigger no effect
+        if (isCardBasicDueToEffect(G.playerEffects[param.playerID], card)) return;
 
         const on = card.on?.find(o => o.trigger === "unicorn_enters_your_stable")!;
         if (on.do.type === "inject_action") {
@@ -185,25 +145,7 @@ export function enter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
                     ui: { ...on.do.info.instruction.ui, info: { source: card.id, ...on.do.info.instruction.ui.info } },
                 }]
             };
-
-            if (_findInstructionInProgress(G) === null) {
-                // no active scene
-                // thus create a mandatory scene
-                const newScene: Scene = {
-                    id: _.uniqueId(),
-                    mandatory: true,
-                    endTurnImmediately: false,
-                    actions: [newAction]
-                };
-
-                G.script.scenes = [...G.script.scenes, newScene];
-            } else {
-                // found active scene
-                const [scene, action, instruction] = _findInstructionInProgress(G)!;
-                const index = scene.actions.findIndex(ac => ac.instructions.find(ins => ins.id === instruction.id));
-
-                scene.actions.splice(index, 0, newAction);
-            }
+            injectActionOrCreateScene(G, newAction);
         }
     });
 }
@@ -242,10 +184,10 @@ export function canEnter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
 
 /////////////////////////////////////////////////
 
-export type Do = DoSteal | DoPull | DoPullRandom | DoDiscard | DoDestroy | DoSacrifice | DoSearch | DoRevive | DoDraw | DoAddFromDiscardPileToHand | DoReviveFromNursery | DoReturnToHand | DoBringToStable | /*DoPeekAddReorder |*/ DoMakeSomeoneDiscard | DoSwapHands | DoShakeUp | DoReset | DoMove | DoMove2 | DoBackKick | DoShuffleDiscardPileIntoDrawPile | DoUnicornSwap1 | DoUnicornSwap2 |DoBlatantThievery1 ;
+export type Do = DoSteal | DoPull | DoPullRandom | DoDiscard | DoDestroy | DoSacrifice | DoSearch | DoRevive | DoDraw | DoAddFromDiscardPileToHand | DoReviveFromNursery | DoReturnToHand | DoBringToStable | DoMakeSomeoneDiscard | DoSwapHands | DoShakeUp | DoReset | DoMove | DoMove2 | DoBackKick | DoShuffleDiscardPileIntoDrawPile | DoUnicornSwap1 | DoUnicornSwap2 |DoBlatantThievery1 ;
 
 export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: string, param: { protagonist: PlayerID }) {
-    const [scene, action, instruction] = _findInstructionWithID(G, instructionID)!;
+    const { scene, action, instruction } = _findInstruction(G, instructionID)!;
 
     if (scene.endTurnImmediately) {
         G.mustEndTurnImmediately = true;
@@ -258,32 +200,10 @@ export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: stri
 
     // execute instruction
     if (instruction.do.key === "destroy") {
-        // intervention
         const paramDestroy = <ParamDestroy>param;
         const targetPlayer = findOwnerOfCard(G, paramDestroy.cardID)!;
 
-        // check if it contains the save_mate_by_sacrifice effect
         if (G.playerEffects[targetPlayer].find(eff => eff.effect.key === "save_mate_by_sacrifice")) {
-            /*
-            const idx = action.instructions.findIndex(ac => ac.id === instruction.id);
-            scene.actions.splice(idx + 1, 0, {
-                type: "action",
-                instructions: [{
-                    id: _.uniqueId(),
-                    protagonist: targetPlayer,
-                    state: "open",
-                    do: {
-                        key: "interveneDestroyBySacrifice",
-                        info: {
-                            cardToSave: paramDestroy.cardID,
-                            paramDestroy
-                        }
-                    },
-                    ui: {
-                        type: "single_action_popup",
-                    }
-                }]
-            });*/
         } else {
             KeyToFunc[instruction.do.key](G, ctx, param);
         }
@@ -392,16 +312,6 @@ export function findStealTargets(G: UnstableUnicornsGame, ctx: Ctx, protagonist:
     return targets;
 }
 
-function canSteal(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, info: DoStealInfo) {
-    if (info.type === "unicorn") {
-        if (G.stable[protagonist].length === CONSTANTS.stableSeats) {
-            return false;
-        }
-    }
-
-    return findStealTargets(G, ctx, protagonist, info).length > 0;
-}
-
 /////////////////////////////////////////////////
 
 interface DoPullRandom {
@@ -434,10 +344,6 @@ export function pull(G: UnstableUnicornsGame, ctx: Ctx, param: ParamPull) {
     const cardToPull = G.hand[param.from][param.handIndex]
     G.hand[param.from] = _.without(G.hand[param.from], cardToPull);
     G.hand[param.protagonist] = [...G.hand[param.protagonist], cardToPull];
-}
-
-function canPull(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
-    return findPullTargets(G, ctx, protagonist).length > 0;
 }
 
 type PullTarget = {
@@ -535,15 +441,8 @@ export function destroy(G: UnstableUnicornsGame, ctx: Ctx, param: ParamDestroy) 
 
     const ons = card.on?.filter(on => on.trigger === "this_destroyed_or_sacrificed");
     ons?.forEach(on => {
-        // all unicorns are basic
-        // trigger no effect
-        if (G.playerEffects[targetPlayer].find(s => s.effect.key === "my_unicorns_are_basic")) {
-            if (G.playerEffects[targetPlayer].find(s => s.effect.key === "pandamonium") === undefined) {
-                if (card.type === "narwhal" || card.type === "unicorn") {
-                    return;
-                }
-            }
-        }
+        // all unicorns are basic — trigger no effect
+        if (isCardBasicDueToEffect(G.playerEffects[targetPlayer], card)) return;
 
         if (on.do.type === "return_to_hand") {
             G.discardPile = _.without(G.discardPile, param.cardID);
@@ -659,15 +558,8 @@ function sacrifice(G: UnstableUnicornsGame, ctx: Ctx, param: ParamSacrifice) {
 
     const ons = card.on?.filter(on => on.trigger === "this_destroyed_or_sacrificed");
     ons?.forEach(on => {
-        // all unicorns are basic
-        // trigger no effect
-        if (G.playerEffects[param.protagonist].find(s => s.effect.key === "my_unicorns_are_basic")) {
-            if (G.playerEffects[param.protagonist].find(s => s.effect.key === "pandamonium") === undefined) {
-                if (card.type === "narwhal" || card.type === "unicorn") {
-                    return;
-                }
-            }
-        }
+        // all unicorns are basic — trigger no effect
+        if (isCardBasicDueToEffect(G.playerEffects[param.protagonist], card)) return;
 
         if (on.do.type === "return_to_hand") {
             G.discardPile = _.without(G.discardPile, param.cardID);
@@ -676,10 +568,6 @@ function sacrifice(G: UnstableUnicornsGame, ctx: Ctx, param: ParamSacrifice) {
             _addSceneFromDo(G, ctx, card.id, param.protagonist, "any");
         }
     });
-}
-
-function canSacrifice(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, info: DoSacrificeInfo, source?: CardID) {
-    return findSacrificeTargets(G, ctx, protagonist, info).length > 0;
 }
 
 type SacrificeTarget = {
@@ -739,10 +627,6 @@ function search(G: UnstableUnicornsGame, ctx: Ctx, param: ParamSearch) {
     G.hand[param.protagonist] = [...G.hand[param.protagonist], param.cardID];
 }
 
-function canSearch(G: UnstableUnicornsGame, ctx: Ctx, protagonist: string, info: DoSearchInfo) {
-    return findSearchTargets(G, ctx, protagonist, info).length > 0;
-}
-
 export type SearchTarget = {
     cardID: CardID;
 }
@@ -792,10 +676,6 @@ type ParamRevive = {
 function revive(G: UnstableUnicornsGame, ctx: Ctx, param: ParamRevive) {
     G.discardPile = _.without(G.discardPile, param.cardID);
     enter(G, ctx, { playerID: param.protagonist, cardID: param.cardID });
-}
-
-function canRevive(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, info: DoReviveInfo) {
-    return findReviveTarget(G, ctx, protagonist, info).length > 0;
 }
 
 export type ReviveTarget = {
@@ -863,10 +743,6 @@ function addFromDiscardPileToHand(G: UnstableUnicornsGame, ctx: Ctx, param: AddF
     G.hand[param.protagonist].push(param.cardID);
 }
 
-function canAddFromDiscardPileToHand(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, info: DoAddFromDiscardPileToHandInfo) {
-    return findAddFromDiscardPileToHand(G, ctx, protagonist, info).length > 0;
-}
-
 export type AddFromDiscardPileToHandTarget = {
     cardID: CardID
 }
@@ -899,10 +775,6 @@ type ParamReviveFromNursery = {
 function reviveFromNursery(G: UnstableUnicornsGame, ctx: Ctx, param: ParamReviveFromNursery) {
     G.nursery = _.without(G.nursery, param.cardID);
     enter(G, ctx, { playerID: param.protagonist, cardID: param.cardID });
-}
-
-function canReviveFromNursery(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
-    return G.stable[protagonist].length < CONSTANTS.stableSeats;
 }
 
 /////////////////////////////////////////////////
@@ -949,10 +821,6 @@ export function findReturnToHandTargets(G: UnstableUnicornsGame, ctx: Ctx, prota
     }
 
     return targets;
-}
-
-function canReturnToHand(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, info: ReturnToHandInfo) {
-    return findReturnToHandTargets(G, ctx, protagonist, info).length > 0;
 }
 
 /////////////////////////////////////////////////
@@ -1084,7 +952,7 @@ type DoMove2 = {
 
 
 function move2(G: UnstableUnicornsGame, ctx: Ctx, param: {playerID: PlayerID}) {
-    enter(G, ctx, { playerID: param.playerID, cardID: G.clipboard.move.cardID });
+    enter(G, ctx, { playerID: param.playerID, cardID: G.clipboard.move!.cardID });
 }
 
 type MoveTarget2 = {
@@ -1097,7 +965,7 @@ export function findMoveTargets2(G: UnstableUnicornsGame, ctx: Ctx, protagonist:
     let targets: MoveTarget2[] = [];
 
     G.players.forEach(pl => {
-        if (pl.id !== G.clipboard.move.from && pl.id !== protagonist) {
+        if (pl.id !== G.clipboard.move!.from && pl.id !== protagonist) {
             targets.push({playerID: pl.id})
         }
     })
@@ -1111,7 +979,7 @@ type DoShuffleDiscardPileIntoDrawPile = {
     key: "shuffleDiscardPileIntoDrawPile"
 }
 
-function shuffleDiscardPileIntoDrawPile(G: UnstableUnicornsGame, ctx: Ctx, param: any) {
+function shuffleDiscardPileIntoDrawPile(G: UnstableUnicornsGame, ctx: Ctx, _param: unknown) {
     G.drawPile = _.shuffle([...G.drawPile, ...G.discardPile]); 
     G.discardPile = [];
 }
@@ -1179,7 +1047,8 @@ type DoUnicornSwap2 = {
 }
 
 function unicornSwap2(G: UnstableUnicornsGame, ctx:Ctx, param: {protagonist: PlayerID, playerID: PlayerID}) {
-    enter(G, ctx, { playerID: param.playerID, cardID: G.clipboard.unicornSwap.cardIDToMove });
+    // unicornSwap1 always runs before unicornSwap2, guaranteeing clipboardID is set
+    enter(G, ctx, { playerID: param.playerID, cardID: G.clipboard.unicornSwap!.cardIDToMove! });
     G.clipboard.unicornSwap = {targetPlayer: param.playerID}
 }
 
@@ -1207,12 +1076,6 @@ function blatantThievery1(G: UnstableUnicornsGame, ctx:Ctx, param: {protagonist:
 }
 
 /////////////////////////////////////////////////
-
-/*
-interface DoPeekAddReorder {
-    key: "peek_add_reorder";
-}
-*/
 
 /////////////////////////////////////////////////
 
@@ -1256,40 +1119,12 @@ export function findMakeSomeoneDiscardTarget(G: UnstableUnicornsGame, ctx: Ctx, 
     return G.players.filter(pl => pl.id !== protagonist && canDiscard(G, ctx, pl.id, { count: 1, type: "any" })).map(pl => ({ playerID: pl.id }));
 }
 
-function canMakeSomeoneDiscard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
-    return findMakeSomeoneDiscardTarget(G, ctx, protagonist).length > 0;
-}
-
 /////////////////////////////////////////////////
 
-/*
-interface InterventionDestroyBySacrifice {
-    key: "interveneDestroyBySacrifice";
-    info: {
-        cardToSave: CardID;
-        paramDestroy: ParamDestroy;
-    }
-}
-
-type ParamInterventionDestroyBySacrifice = {
-    success: false;
-    paramDestroy: ParamDestroy;
-} | {
-    success: true;
-    paramSacrifice: ParamSacrifice;
-}
-
-function interveneDestroyBySacrifice(G: UnstableUnicornsGame, ctx: Ctx, param: ParamInterventionDestroyBySacrifice) {
-    if (param.success) {
-        sacrifice(G, ctx, param.paramSacrifice);
-    } else {
-        destroy(G, ctx, param.paramDestroy);
-    }
-}
-*/
-
-/////////////////////////////////////////////////
-
+// KeyToFunc is a runtime dispatch table keyed on Do.key.
+// The param type is intentionally loose — callers (executeDo) cast before passing.
+// The public move APIs (steal, destroy, etc.) are each fully typed above.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const KeyToFunc: { [key: string]: (G: UnstableUnicornsGame, ctx: Ctx, param: any) => void } = {
     steal, pull, pullRandom, discard, destroy, sacrifice, search, revive, draw, addFromDiscardPileToHand, reviveFromNursery, returnToHand, bringToStable, makeSomeoneDiscard, swapHands, shakeUp, move, move2, reset, shuffleDiscardPileIntoDrawPile, backKick, unicornSwap1, unicornSwap2, blatantThievery1,
 }
@@ -1299,30 +1134,6 @@ const KeyToFunc: { [key: string]: (G: UnstableUnicornsGame, ctx: Ctx, param: any
 //
 // Helper
 //
-
-export const _findInstructionWithID = (G: UnstableUnicornsGame, instructionID: string): [Scene, Action, Instruction] | null => {
-    let scene: Scene | null = null;
-    let action: Action | null = null;
-    let instruction: Instruction | null = null;
-
-    G.script.scenes.forEach(sc => {
-        sc.actions.forEach(ac => {
-            ac.instructions.forEach(ins => {
-                if (ins.id === instructionID) {
-                    instruction = ins;
-                    action = ac;
-                    scene = sc;
-                }
-            });
-        });
-    });
-
-    if (scene && action && instruction) {
-        return [scene, action, instruction];
-    }
-
-    return null;
-}
 
 const _findInstructionInProgress = (G: UnstableUnicornsGame): [Scene, Action, Instruction] | null => {
     let scene: Scene | null = null;

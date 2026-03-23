@@ -1,13 +1,14 @@
 import type { Game, Ctx } from 'boardgame.io';
 import type { Player, PlayerID } from './player';
 import type { CardID, Card, CardUI, OnEnterAddEffect } from './card';
-import { canEnter, Do, enter, _findInstructionWithID } from './do';
+import { canEnter, Do, enter } from './do';
 import { initializeDeck } from './card';
 import { CONSTANTS } from './constants';
 import { executeDo } from './do';
-import { Effect } from './effect';
+import { Effect, isCardBasicDueToEffect } from './effect';
 import _ from 'underscore';
 import type { NeighDiscussion } from './neigh';
+import type { Clipboard, SetupData } from './types';
 
 export type { Ctx };
 
@@ -26,7 +27,7 @@ export interface UnstableUnicornsGame extends Game {
     mustEndTurnImmediately: boolean;
     countPlayedCardsInActionPhase: number;
     neighDiscussion?: NeighDiscussion;
-    clipboard: {[key: string]: any};
+    clipboard: Clipboard;
     endGame: boolean;
     babyStarter: { cardID: CardID, owner: PlayerID }[];
     ready: { [key: string]: boolean };
@@ -81,7 +82,7 @@ export interface Instruction {
 
 const UnstableUnicorns = {
     name: "unstable_unicorns",
-    setup: (ctx: Ctx, setupData: any): UnstableUnicornsGame => {
+    setup: (ctx: Ctx, _setupData: SetupData): UnstableUnicornsGame => {
         const players: Player[] = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
@@ -168,15 +169,8 @@ const UnstableUnicorns = {
                 [...G.stable[ctx.currentPlayer], ...G.upgradeDowngradeStable[ctx.currentPlayer]].forEach(c => {
                     const card = G.deck[c];
                     const cardOnBegin = card.on?.filter(c => c.trigger === "begin_of_turn");
-                    // all unicorns are basic
-                    // trigger no effect
-                    if (G.playerEffects[ctx.currentPlayer].find(s => s.effect.key === "my_unicorns_are_basic")) {
-                        if (G.playerEffects[ctx.currentPlayer].find(s => s.effect.key === "pandamonium") === undefined) {
-                            if (card.type === "narwhal" || card.type === "unicorn") {
-                                return;
-                            }
-                        }
-                    }
+                    // all unicorns are basic — trigger no effect
+                    if (isCardBasicDueToEffect(G.playerEffects[ctx.currentPlayer], card)) return;
 
                     if (cardOnBegin) {
                         cardOnBegin.filter(on => on.do.type === "add_effect").forEach(on => {
@@ -426,61 +420,43 @@ function drawAndEnd(G: UnstableUnicornsGame, ctx: Ctx) {
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
 }
 
+function _createDiscardOverLimitScene(G: UnstableUnicornsGame, protagonist: PlayerID): void {
+    const newScene: Scene = {
+        id: _.uniqueId(),
+        mandatory: true,
+        endTurnImmediately: false,
+        actions: [{
+            type: "action",
+            instructions: [{
+                id: _.uniqueId(),
+                protagonist,
+                state: "open",
+                do: {
+                    key: "discard",
+                    info: { count: G.hand[protagonist].length - 7, type: "any" }
+                },
+                ui: { type: "click_on_own_card_in_hand" }
+            }]
+        }]
+    };
+    G.script.scenes = [...G.script.scenes, newScene];
+}
+
 function end(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
     if (G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck")) {
         G.playerEffects[protagonist] = G.playerEffects[protagonist].filter(o => o.effect.key !== "change_of_luck");
 
         if (G.hand[protagonist].length > 7) {
-            const newScene: Scene = {
-                id: _.uniqueId(),
-                mandatory: true,
-                endTurnImmediately: false,
-                actions: [{
-                    type: "action",
-                    instructions: [{
-                        id: _.uniqueId(),
-                            protagonist,
-                            state: "open",
-                            do: {
-                                key: "discard",
-                                info: {count: G.hand[protagonist].length - 7, type: "any"}
-                            },
-                            ui: { type: "click_on_own_card_in_hand" }
-                    }]
-                }]
-            };
-
-            G.script.scenes = [...G.script.scenes, newScene];
+            _createDiscardOverLimitScene(G, protagonist);
         } else {
             ctx.events?.endTurn!({next: protagonist});
         }
-
     } else {
         if (G.hand[protagonist].length > 7) {
-            const newScene: Scene = {
-                id: _.uniqueId(),
-                mandatory: true,
-                endTurnImmediately: false,
-                actions: [{
-                    type: "action",
-                    instructions: [{
-                        id: _.uniqueId(),
-                            protagonist,
-                            state: "open",
-                            do: {
-                                key: "discard",
-                                info: {count: G.hand[protagonist].length - 7, type: "any"}
-                            },
-                            ui: { type: "click_on_own_card_in_hand" }
-                    }]
-                }]
-            };
-
-            G.script.scenes = [...G.script.scenes, newScene];
+            _createDiscardOverLimitScene(G, protagonist);
         } else {
             ctx.events?.endTurn!();
         }
-
     }
 }
 
@@ -489,10 +465,9 @@ function commit(G: UnstableUnicornsGame, ctx: Ctx, sceneID: string) {
 }
 
 function skipExecuteDo(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, instructionID: string) {
-    if (_findInstructionWithID(G, instructionID) !== null) {
-        const [scene, action, instruction] = _findInstructionWithID(G, instructionID)!;
-        console.log("cc")
-        action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
+    const found = _findInstruction(G, instructionID);
+    if (found !== undefined) {
+        found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
     }
 }
 
@@ -525,15 +500,8 @@ export function _addSceneFromDo(G: UnstableUnicornsGame, ctx: Ctx, cardID: CardI
         return;
     }
 
-    // all unicorns are basic
-    // trigger no effect
-    if (G.playerEffects[owner].find(s => s.effect.key === "my_unicorns_are_basic")) {
-        if (G.playerEffects[owner].find(s => s.effect.key === "pandamonium") === undefined) {
-            if (card.type === "narwhal" || card.type === "unicorn") {
-                return;
-            }
-        }
-    }
+    // all unicorns are basic — trigger no effect
+    if (isCardBasicDueToEffect(G.playerEffects[owner], card)) return;
 
     card.on.forEach(on => {
         if (on.do.type === "add_scene" && (on.trigger === trigger || trigger === "any")) {
@@ -638,8 +606,10 @@ export function _findInProgressScenesWithProtagonist(G: UnstableUnicornsGame, pr
     return scenes;
 }
 
-export function _findInstruction(G: UnstableUnicornsGame, instructionID: string): [Instruction, Action, Scene] | undefined {
-    let instruction, action, scene = undefined;
+export function _findInstruction(G: UnstableUnicornsGame, instructionID: string): { instruction: Instruction; action: Action; scene: Scene } | undefined {
+    let instruction: Instruction | undefined;
+    let action: Action | undefined;
+    let scene: Scene | undefined;
 
     G.script.scenes.forEach(sc => {
         sc.actions.forEach(ac => {
@@ -657,6 +627,6 @@ export function _findInstruction(G: UnstableUnicornsGame, instructionID: string)
         return undefined;
     }
 
-    return [instruction, action, scene];
+    return { instruction, action, scene };
 }
 
