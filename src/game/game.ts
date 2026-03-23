@@ -31,15 +31,6 @@ export interface UnstableUnicornsGame extends Game {
     endGame: boolean;
     babyStarter: { cardID: CardID, owner: PlayerID }[];
     ready: { [key: string]: boolean };
-    uiHoverHandIndex: number | undefined;
-    uiExecuteDo: {id: string, cardID: CardID | undefined, do: Do} | undefined;
-    uiCardToCard: {
-        protagonist: PlayerID,
-        sourceCardID: CardID,
-        instructionID: string,
-        targetCardID: CardID,
-        id: string,
-    } | undefined;
     lastNeighResult: {id: string, result: "cardWasPlayed" | "cardWasNeighed"} | undefined;
 }
 
@@ -129,9 +120,6 @@ const UnstableUnicorns = {
             endGame: false,
             babyStarter: [],
             ready,
-            uiHoverHandIndex: undefined,
-            uiExecuteDo: undefined,
-            uiCardToCard: undefined,
             lastNeighResult: undefined,
         };
     },
@@ -196,11 +184,11 @@ const UnstableUnicorns = {
                 moves: { ready, selectBaby, changeName }
             },
             beginning: {
-                moves: { drawAndAdvance, executeDo, end, commit, skipExecuteDo, setUIHoverHandIndex, setUICardToCard }
+                moves: { drawAndAdvance, executeDo, end, commit, skipExecuteDo }
             },
             action_phase: {
                 moves: {
-                    commit, executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, setUIHoverHandIndex, setUICardToCard
+                    commit, executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo
                 }
             }
         }
@@ -468,22 +456,6 @@ function skipExecuteDo(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID,
     const found = _findInstruction(G, instructionID);
     if (found !== undefined) {
         found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
-    }
-}
-
-//
-
-function setUIHoverHandIndex(G: UnstableUnicornsGame, ctx: Ctx, index: number | undefined) {
-    if (index === undefined || G.hand[ctx.currentPlayer].length > index) {
-        G.uiHoverHandIndex = index;
-    }
-}
-
-function setUICardToCard(G: UnstableUnicornsGame, ctx: Ctx, param: {protagonist: PlayerID, sourceCardID: CardID, instructionID: string, targetCardID: CardID} | undefined) {
-    if (param !== undefined) {
-        G.uiCardToCard = {...param, id: _.uniqueId()};
-    } else {
-        G.uiCardToCard = undefined;
     }
 }
 

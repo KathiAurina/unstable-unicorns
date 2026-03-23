@@ -14,5 +14,15 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// Legacy re-export — all logic lives in src/game/operations/
-__exportStar(require("./operations"), exports);
+__exportStar(require("./enter"), exports);
+__exportStar(require("./steal"), exports);
+__exportStar(require("./discard"), exports);
+__exportStar(require("./destroy"), exports);
+__exportStar(require("./sacrifice"), exports);
+__exportStar(require("./draw"), exports);
+__exportStar(require("./search"), exports);
+__exportStar(require("./revive"), exports);
+__exportStar(require("./move"), exports);
+__exportStar(require("./swap"), exports);
+__exportStar(require("./misc"), exports);
+__exportStar(require("./executeDo"), exports);

@@ -62,13 +62,6 @@ export type Moves = {
     end: (protagonist: PlayerID) => void;
     commit: (sceneID: string) => void;
     skipExecuteDo: (protagonist: PlayerID, instructionID: string) => void;
-    setUIHoverHandIndex: (index: number | undefined) => void;
-    setUICardToCard: (param: {
-        protagonist: PlayerID;
-        sourceCardID: CardID;
-        instructionID: string;
-        targetCardID: CardID;
-    } | undefined) => void;
     // action_phase only
     /** Board.tsx passes playerID as arg (ignored by game.ts), so typed as optional. */
     drawAndEnd: (_protagonist?: PlayerID) => void;

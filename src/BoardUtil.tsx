@@ -3,6 +3,43 @@ import { findBackKickTargets, findDestroyTargets, findMoveTargets, findReturnToH
 import type { Ctx, Instruction, UnstableUnicornsGame } from "./game/game";
 import { PlayerID } from "./game/player";
 
+// ─── CardInteraction ──────────────────────────────────────────────────────────
+// Shared by Board, StableSection, OverlayManager.
+
+export type CardInteraction = {
+    key: "card_to_card",
+    info: {
+        sourceCardID: CardID,
+        instructionID: string,
+        currentMousePosition: { x: number, y: number },
+        startingMousePosition: { x: number, y: number },
+        targets: { cardID: CardID }[]
+    }
+} | {
+    key: "card_to_player",
+    info: {
+        sourceCardID: CardID,
+        instructionID: string,
+        currentMousePosition: { x: number, y: number },
+        startingMousePosition: { x: number, y: number },
+        targets: { playerID: PlayerID }[]
+    }
+} | {
+    key: "click_on_other_stable_card",
+    info: {
+        instructionID: string,
+        targets: { cardID: CardID }[],
+    }
+} | {
+    key: "play_upgradeDowngradeCardFromHand__choose_target",
+    info: {
+        instructionID: "____________",
+        currentMousePosition: { x: number, y: number },
+        startingMousePosition: { x: number, y: number },
+        cardID: CardID,
+    }
+};
+
 export type HoverTarget = {
     type: "stable_card",
     info: { cardID: CardID }
