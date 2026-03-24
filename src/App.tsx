@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Switch, Route, Redirect } from "react-router-dom";
 import Client from './Client';
-import Lobby from './Lobby';
+import LobbyPage from './components/lobby/LobbyPage';
 
 const App = () => {
   return (
@@ -11,7 +11,7 @@ const App = () => {
             <Client debug={"test"}/>
           </Route>
           <Route path="/lobby">
-            <Lobby />
+            <LobbyPage />
           </Route>
           <Route path="/:matchID/:numPlayers/:playerID">
               <Client />

@@ -61,9 +61,6 @@ const UnstableUnicorns = {
             endGame: false,
             babyStarter: [],
             ready,
-            uiHoverHandIndex: undefined,
-            uiExecuteDo: undefined,
-            uiCardToCard: undefined,
             lastNeighResult: undefined,
         };
     },
@@ -123,11 +120,11 @@ const UnstableUnicorns = {
                 moves: { ready, selectBaby, changeName }
             },
             beginning: {
-                moves: { drawAndAdvance, executeDo: do_2.executeDo, end, commit, skipExecuteDo, setUIHoverHandIndex, setUICardToCard }
+                moves: { drawAndAdvance, executeDo: do_2.executeDo, end, commit, skipExecuteDo }
             },
             action_phase: {
                 moves: {
-                    commit, executeDo: do_2.executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, setUIHoverHandIndex, setUICardToCard
+                    commit, executeDo: do_2.executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo
                 }
             }
         }
@@ -365,20 +362,6 @@ function skipExecuteDo(G, ctx, protagonist, instructionID) {
     const found = _findInstruction(G, instructionID);
     if (found !== undefined) {
         found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
-    }
-}
-//
-function setUIHoverHandIndex(G, ctx, index) {
-    if (index === undefined || G.hand[ctx.currentPlayer].length > index) {
-        G.uiHoverHandIndex = index;
-    }
-}
-function setUICardToCard(G, ctx, param) {
-    if (param !== undefined) {
-        G.uiCardToCard = { ...param, id: underscore_1.default.uniqueId() };
-    }
-    else {
-        G.uiCardToCard = undefined;
     }
 }
 exports.default = UnstableUnicorns;

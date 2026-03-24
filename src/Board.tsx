@@ -20,7 +20,7 @@ import { BoardState, getBoardState } from './BoardStateManager';
 import type { Moves } from './game/types';
 import GameLabel from './ui/GameLabel';
 import { SearchTarget } from './game/do';
-import BoardGameBegin from './BoardGameBegin';
+import CharacterSelectionPage from './components/pregame/CharacterSelectionPage';
 import React from 'react';
 import { LanguageContext } from './LanguageContextProvider';
 import { useSoundEffects } from './hooks/useSoundEffects';
@@ -115,7 +115,7 @@ const Board = (props: Props) => {
 
     if (ctx.phase === "pregame") {
         return (
-            <BoardGameBegin G={G} babyCards={_.first(G.deck, 13)} playerID={playerID} moves={moves} />
+            <CharacterSelectionPage G={G} babyCards={_.first(G.deck, 13)} playerID={playerID} moves={moves} />
         );
     }
 

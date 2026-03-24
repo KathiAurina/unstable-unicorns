@@ -29,8 +29,6 @@ function executeDo(G, ctx, instructionID, param) {
         G.mustEndTurnImmediately = true;
     }
     instruction.state = "in_progress";
-    // ui sound
-    G.uiExecuteDo = { id: underscore_1.default.uniqueId(), cardID: instruction.ui.info?.source, do: instruction.do };
     // execute instruction
     if (instruction.do.key === "destroy") {
         const paramDestroy = param;

@@ -38,7 +38,7 @@ function reset(G, ctx, param) {
             (0, sacrifice_1.sacrifice)(G, ctx, { protagonist: pl.id, cardID });
         });
     });
-    shuffleDiscardPileIntoDrawPile(G, ctx, param);
+    G.drawPile = underscore_1.default.shuffle([...G.drawPile, ...G.discardPile]);
 }
 function shuffleDiscardPileIntoDrawPile(G, ctx, _param) {
     G.drawPile = underscore_1.default.shuffle([...G.drawPile, ...G.discardPile]);

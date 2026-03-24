@@ -55,6 +55,8 @@ function findStealTargets(G, ctx, protagonist, info) {
 }
 function pull(G, ctx, param) {
     const cardToPull = G.hand[param.from][param.handIndex];
+    if (cardToPull === undefined)
+        return;
     G.hand[param.from] = underscore_1.default.without(G.hand[param.from], cardToPull);
     G.hand[param.protagonist] = [...G.hand[param.protagonist], cardToPull];
 }
