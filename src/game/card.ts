@@ -41,7 +41,7 @@ export type CardUI = {
     info: { singleActionText: string; };
 } | {
     type: "card_to_card" | "card_to_handcard" | "card_to_player"  | "click_on_own_card_in_hand"  | "yes_no_popup" | "click_on_card_in_stable" | "click_on_drawPile" | "custom";
-    info?: any;
+    info?: { source?: CardID; singleActionText?: string };
 }
 
 export type OnEnterAddScene = {
@@ -326,21 +326,7 @@ const Cards: CardDefinition[] = [{
         en: "When this card enters your Stable, you may force another player to DISCARD a card. 👼 If this card is sacrificed or destroyed, return it to your hand.",
         de: "Wenn diese Karte deinen Stall betritt, darfst du einen Mitspieler auswählen. Dieser Mitspieler muss eine Karte abwerfen. 👼 Wenn diese Karte geopfert oder zerstört wird, kommt sie stattdessen auf deine Hand zurück."
     }
-},  /*{
-    title: "Black Knight Unicorn",
-    type: "unicorn",
-    image: "black_knight_unicorn",
-    count: 1,
-    on: [{
-        trigger: "enter",
-        do: {
-            type: "add_effect",
-            info: { key: "save_mate_by_sacrifice" },
-            ui: { type: "yes_no_popup" }
-        }
-    }],
-    description: "If a Unicorn card in your Stable would be destroyed, you may SACRIFICE this card instead."
-},*/ {
+}, {
     title: "Chainsaw Unicorn",
     type: "unicorn",
     image: "chainsaw_unicorn",
@@ -439,36 +425,7 @@ const Cards: CardDefinition[] = [{
         en: "When this card enters your Stable, you may SACRIFICE a Unicorn card, then bring a Unicorn card from the discard pile into your Stable.",
         de: "Wenn diese Karte deinen Stall betritt, darfst du eine Einhornkarte 🦄 opfern. Du darfst dann ein Einhorn aus dem Friedhof in deinen Stall legen."
     }
-}/*, {
-    title: "Extremely Destructive Unicorn",
-    type: "unicorn",
-    image: "extremely_destructive_unicorn",
-    count: 1,
-    on: [{
-        trigger: "enter",
-        do: {
-            type: "add_scene",
-            info: {
-                actions: [{
-                    instructions: [{ 
-                        protagonist: "all",
-                        do: {
-                            key: "sacrifice",
-                            info: { type: "unicorn" }
-                        },
-                        ui: { type: "click_on_card_in_stable" }
-                    }]
-                }],
-                mandatory: true,
-                endTurnImmediately: false
-            }
-        }
-    }],
-    description: {
-        en: "When this card enters your Stable, each player (including you) must SACRIFICE a Unicorn card.",
-        de: "Wenn diese Karte deinen Stall betritt, muss jeder Spieler (auch du) ein Einhorn opfern."
-    }
-}*/, {
+}, {
     title: "Ginormous Unicorn",
     type: "unicorn",
     image: "ginormous_unicorn",
@@ -1003,70 +960,7 @@ const Cards: CardDefinition[] = [{
         en: "If this card is in your Stable at the beginning of your turn, you may DISCARD a Unicorn card. If you do, choose a Unicorn card from the discard pile and bring it directly into your Stable.",
         de: "Wenn diese Karte am Anfang deiner Runde in deinem Stall ist, darfst du ein Einhorn von deiner Hand abwerfen. Belebe ein Einhorn vom Friedhof wieder und lege es in deinem Stall."
     }
-}, /*{
-    title: "Shark With a Horn",
-    type: "unicorn",
-    image: "shark_with_a_horn",
-    count: 1,
-    on: [{
-        trigger: "enter",
-        do: {
-            type: "add_scene",
-            info: {
-                actions: [{
-                    instructions: [{ 
-                        protagonist: "owner",
-                        do: {
-                            key: "sacrifice",
-                            info: { type: "this" }
-                        },
-                        ui: { type: "single_action_popup", info:{singleActionText: "Sacrifice"}}
-                    }]
-                }, {
-                    instructions: [{ 
-                        protagonist: "owner",
-                        do: {
-                            key: "destroy",
-                            info: { type: "unicorn" }
-                        },
-                        ui: { type: "click_on_card_in_stable" }
-                    }]
-                }],
-                mandatory: false,
-                endTurnImmediately: false
-            }
-        }
-    }],
-    description: "When this card enters your Stable, you may SACRIFICE this card, then DESTROY a Unicorn card.",
 }, {
-    title: "Stabby the Unicorn",
-    type: "unicorn",
-    image: "stabby_the_unicorn",
-    count: 1,
-    on: [{
-        trigger: "this_destroyed_or_sacrificed",
-        do: {
-            type: "add_scene",
-            info: {
-                actions: [{
-                    instructions: [{ 
-                        protagonist: "owner",
-                        do: {
-                            key: "destroy",
-                            info: { type: "unicorn" }
-                        },
-                        ui: { type: "click_on_card_in_stable" }
-                    }]
-                }],
-                mandatory: true,
-                endTurnImmediately: false
-            }
-        }
-    }],
-    description: {
-        en: "If this card is sacrificed or destroyed, you may DESTROY a Unicorn card.",
-        de: "Wenn diese Karte geopfert oder zerstört wird, darfst"
-}*/ {
     title: "Swift Flying Unicorn",
     type: "unicorn",
     image: "swift_flying_unicorn",
@@ -1170,30 +1064,7 @@ const Cards: CardDefinition[] = [{
         en: "When this card enters your Stable, DRAW 2 cards and DISCARD a card.",
         de: "Wenn diese Karte deinen Stall betritt, ziehe zwei Karten und werfe eine Karte von deiner Hand ab."
     }
-}, /*{
-    title: "Unicorn Oracle",
-    type: "unicorn",
-    count: 1,
-    on: [{
-        trigger: "enter",
-        do: {
-            type: "add_scene",
-            info: {
-                actions: [{
-                    instructions: [{
-                        protagonist: "owner",
-                        do: {
-                            key: "peek_add_reorder",
-                        }
-                    }]
-                }],
-                mandatory: false,
-                endTurnImmediately: false
-            }
-        }
-    }]
-}*/
-{
+}, {
     title: "Neigh",
     type: "neigh",
     image: "neigh",
@@ -1359,22 +1230,7 @@ const Cards: CardDefinition[] = [{
         en: "If this card is in your Stable at the beginning of your turn, you may SACRIFICE a card, then DESTROY a card.",
         de: "Wenn diese Karte am Anfang deiner Runde in deinem Stall ist, darfst du eine Karte opfern. Zerstöre dann eine Karte."
     }
-} /*{
-    title: "Nanny Cam",
-    type: "downgrade",
-    image: "nanny_cam",
-    count: 1, 
-    on: [{
-        trigger: "enter",
-        do: {
-            type: "add_effect",
-            info: { key: "your_hand_is_visible" },
-            ui: { type: "none" }
-        }
-    }],
-    description: {
-        en: "Your hand must be visible to all players."
-}*/, {
+}, {
     title: "Double Dutch",
     type: "upgrade",
     image: "double_dutch",
@@ -1558,45 +1414,7 @@ const Cards: CardDefinition[] = [{
         en: "All of your Unicorns are considered Pandas. Cards that affect Unicorn cards do not affect your Pandas.",
         de: "All deine Einhörner gelten als Pandas. Karten, die Einhörner betreffen, betreffen nicht deine Pandas."
     }
-}, /*{
-    title: "Sadistic Ritual",
-    type: "downgrade",
-    image: "sadistic_ritual",
-    count: 1, 
-    on: [{
-        trigger: "begin_of_turn",
-        do: {
-            type: "add_scene",
-            info: {
-                actions: [{
-                    instructions: [{
-                        protagonist: "owner",
-                        do: {
-                            key: "sacrifice",
-                            info: { type: "any" }
-                        },
-                        ui: { type: "card_to_card" }
-                    }]
-                }, {
-                    instructions: [{
-                        protagonist: "owner",
-                        do: {
-                            key: "draw",
-                            info: {count: 1}
-                        },
-                        ui: { type: "click_on_drawPile" }
-                    }]
-                }],
-                mandatory: true,
-                endTurnImmediately: false,
-            }
-        }
-    }],
-    description: {
-        en: "If this card is in your Stable at the beginning of your turn, SACRIFICE a Unicorn card, then DRAW a card.",
-        de: "Wenn diese Karte am Anfang deiner Runde in deinem Stall ist, opfere"
-    }
-},*/ {
+}, {
     title: "Slowdown",
     type: "downgrade",
     image: "slowdown",
@@ -1845,44 +1663,7 @@ const Cards: CardDefinition[] = [{
         en: "Each player (including you) must SACRIFICE all Upgrade and Downgrade cards in their Stable. Shuffle the discard pile into the deck.",
         de: "Jeder Spieler (auch du) muss alle Upgrade und Downgradekarten opfern. Mische den Friedhof in das Deck."
     }
-}, /*{
-    title: "Re-Target",
-    type: "magic",
-    image: "re-target",
-    count: 2, 
-    on: [{
-        trigger: "enter",
-        do: {
-            type: "add_scene",
-            info: {
-                actions: [{
-                    instructions: [{
-                        protagonist: "owner",
-                        do: {
-                            key: "move",
-                            info: {type: "upgradeAndDowngrade"}
-                        },
-                        ui: { type: "card_to_card" }
-                    }]
-                }, {
-                    instructions: [{
-                        protagonist: "owner",
-                        do: {
-                            key: "move2",
-                        },
-                        ui: { type: "card_to_player" }
-                    }]
-                }],
-                mandatory: true,
-                endTurnImmediately: false,
-            }
-        }
-    }],
-    description: {
-        en: "Move an Upgrade or Downgrade card from any player's Stable to any other player's Stable.",
-        de: ""
-    }
-},*/ {
+}, {
     title: "Mystical Vortex",
     type: "magic",
     image: "mystical_vortex",
@@ -2052,80 +1833,7 @@ const Cards: CardDefinition[] = [{
         en: "Return a card in another player's Stable to their hand. That player must DISCARD a card.",
         de: "Schicke eine Karte zurück auf die Hand des Besitzers. Der Besitzer muss eine Karte abwerfen."
     }
-}, /*{
-    title: "Unicorn Swap",
-    type: "magic",
-    image: "unicorn_swap",
-    count: 2, 
-    on: [{
-        trigger: "enter",
-        do: {
-            type: "add_scene",
-            info: {
-                actions: [{
-                    instructions: [{
-                        protagonist: "owner",
-                        do: {
-                            key: "unicornSwap1",
-                        },
-                        ui: { type: "card_to_card" }
-                    }]
-                }, {
-                    instructions: [{
-                        protagonist: "owner",
-                        do: {
-                            key: "unicornSwap2",
-                        },
-                        ui: { type: "card_to_player" }
-                    }]
-                }, {
-                    instructions: [{
-                        protagonist: "owner",
-                        do: {
-                            key: "steal",
-                            info: { type: "unicorn", unicornSwap: true }
-                        },
-                        ui: { type: "card_to_card" }
-                    }]
-                }],
-                mandatory: true,
-                endTurnImmediately: false,
-            }
-        }
-    }],
-    description: {
-        en: "Move a Unicorn card in your Stable to any other player's Stable, then STEAL a Unicorn card from that player's Stable.",
-        de: ""
-    }
 }, {
-    title: "Blatant Thievery",
-    type: "magic",
-    image: "blatant_thievery",
-    count: 1, 
-    on: [{
-        trigger: "enter",
-        do: {
-            type: "add_scene",
-            info: {
-                actions: [{
-                    instructions: [{
-                        protagonist: "owner",
-                        do: {
-                            key: "blatantThievery1",
-                        },
-                        ui: { type: "card_to_player" }
-                    }]
-                }],
-                mandatory: true,
-                endTurnImmediately: false,
-            }
-        }
-    }],
-    description: {
-        en: "Move a Unicorn card in your Stable to any other player's Stable, then STEAL a Unicorn card from that player's Stable.",
-        de: ""
-    }
-}*/ {
     title: "Basic Unicorn",
     type: "basic",
     image: "basic0",

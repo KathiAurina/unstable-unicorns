@@ -3,15 +3,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports._findInstruction = exports._findInProgressScenesWithProtagonist = exports._findOpenScenesWithProtagonist = exports._addSceneFromDo = exports.canDraw = exports.canPlayCard = void 0;
+exports.canPlayCard = canPlayCard;
+exports.canDraw = canDraw;
+exports._addSceneFromDo = _addSceneFromDo;
+exports._findOpenScenesWithProtagonist = _findOpenScenesWithProtagonist;
+exports._findInProgressScenesWithProtagonist = _findInProgressScenesWithProtagonist;
+exports._findInstruction = _findInstruction;
 const do_1 = require("./do");
 const card_1 = require("./card");
 const constants_1 = require("./constants");
 const do_2 = require("./do");
+const effect_1 = require("./effect");
 const underscore_1 = __importDefault(require("underscore"));
 const UnstableUnicorns = {
     name: "unstable_unicorns",
-    setup: (ctx, setupData) => {
+    setup: (ctx, _setupData) => {
         const players = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
@@ -65,8 +71,7 @@ const UnstableUnicorns = {
         pregame: {
             start: true,
             onBegin: (G, ctx) => {
-                var _a;
-                (_a = ctx.events) === null || _a === void 0 ? void 0 : _a.setActivePlayers({ all: "pregame" });
+                ctx.events?.setActivePlayers({ all: "pregame" });
             }
         },
         main: {
@@ -77,7 +82,6 @@ const UnstableUnicorns = {
     },
     turn: {
         onBegin: (G, ctx) => {
-            var _a, _b;
             if (ctx.phase === "pregame") {
                 return;
             }
@@ -91,18 +95,11 @@ const UnstableUnicorns = {
                 [...G.stable[ctx.currentPlayer], ...G.upgradeDowngradeStable[ctx.currentPlayer]].forEach(c => _addSceneFromDo(G, ctx, c, ctx.currentPlayer, "begin_of_turn"));
                 // begin of turn: add effect
                 [...G.stable[ctx.currentPlayer], ...G.upgradeDowngradeStable[ctx.currentPlayer]].forEach(c => {
-                    var _a;
                     const card = G.deck[c];
-                    const cardOnBegin = (_a = card.on) === null || _a === void 0 ? void 0 : _a.filter(c => c.trigger === "begin_of_turn");
-                    // all unicorns are basic
-                    // trigger no effect
-                    if (G.playerEffects[ctx.currentPlayer].find(s => s.effect.key === "my_unicorns_are_basic")) {
-                        if (G.playerEffects[ctx.currentPlayer].find(s => s.effect.key === "pandamonium") === undefined) {
-                            if (card.type === "narwhal" || card.type === "unicorn") {
-                                return;
-                            }
-                        }
-                    }
+                    const cardOnBegin = card.on?.filter(c => c.trigger === "begin_of_turn");
+                    // all unicorns are basic — trigger no effect
+                    if ((0, effect_1.isCardBasicDueToEffect)(G.playerEffects[ctx.currentPlayer], card))
+                        return;
                     if (cardOnBegin) {
                         cardOnBegin.filter(on => on.do.type === "add_effect").forEach(on => {
                             const doAddEffect = on.do;
@@ -113,12 +110,12 @@ const UnstableUnicorns = {
                         });
                     }
                 });
-                (_a = ctx.events) === null || _a === void 0 ? void 0 : _a.setActivePlayers({ all: "beginning" });
+                ctx.events?.setActivePlayers({ all: "beginning" });
             }
             else {
                 // no cards to draw
                 // need to end the game
-                (_b = ctx.events) === null || _b === void 0 ? void 0 : _b.setPhase("end");
+                ctx.events?.setPhase("end");
             }
         },
         stages: {
@@ -172,11 +169,10 @@ function changeName(G, ctx, protagonist, name) {
     G.players[parseInt(protagonist)].name = name;
 }
 function ready(G, ctx, protagonist) {
-    var _a;
     G.ready[protagonist] = true;
     if (underscore_1.default.every(underscore_1.default.values(G.ready), bo => bo)) {
         initializeGame(G, ctx);
-        (_a = ctx.events) === null || _a === void 0 ? void 0 : _a.setPhase("main");
+        ctx.events?.setPhase("main");
     }
 }
 function selectBaby(G, ctx, protagonist, cardID) {
@@ -185,10 +181,9 @@ function selectBaby(G, ctx, protagonist, cardID) {
     });
 }
 function drawAndAdvance(G, ctx) {
-    var _a;
     G.hand[ctx.currentPlayer].push(underscore_1.default.first(G.drawPile));
     G.drawPile = underscore_1.default.rest(G.drawPile, 1);
-    (_a = ctx.events) === null || _a === void 0 ? void 0 : _a.setActivePlayers({ all: "action_phase" });
+    ctx.events?.setActivePlayers({ all: "action_phase" });
     G.script = { scenes: [] };
 }
 function canPlayCard(G, ctx, protagonist, cardID) {
@@ -197,7 +192,6 @@ function canPlayCard(G, ctx, protagonist, cardID) {
     }
     return false;
 }
-exports.canPlayCard = canPlayCard;
 function playCard(G, ctx, protagonist, cardID) {
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
     G.hand[protagonist] = underscore_1.default.without(G.hand[protagonist], cardID);
@@ -318,66 +312,49 @@ function canDraw(G, ctx) {
     }
     return false;
 }
-exports.canDraw = canDraw;
 function drawAndEnd(G, ctx) {
     G.script = { scenes: [] };
     G.hand[ctx.currentPlayer].push(underscore_1.default.first(G.drawPile));
     G.drawPile = underscore_1.default.rest(G.drawPile, 1);
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
 }
+function _createDiscardOverLimitScene(G, protagonist) {
+    const newScene = {
+        id: underscore_1.default.uniqueId(),
+        mandatory: true,
+        endTurnImmediately: false,
+        actions: [{
+                type: "action",
+                instructions: [{
+                        id: underscore_1.default.uniqueId(),
+                        protagonist,
+                        state: "open",
+                        do: {
+                            key: "discard",
+                            info: { count: G.hand[protagonist].length - 7, type: "any" }
+                        },
+                        ui: { type: "click_on_own_card_in_hand" }
+                    }]
+            }]
+    };
+    G.script.scenes = [...G.script.scenes, newScene];
+}
 function end(G, ctx, protagonist) {
-    var _a, _b;
     if (G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck")) {
         G.playerEffects[protagonist] = G.playerEffects[protagonist].filter(o => o.effect.key !== "change_of_luck");
         if (G.hand[protagonist].length > 7) {
-            const newScene = {
-                id: underscore_1.default.uniqueId(),
-                mandatory: true,
-                endTurnImmediately: false,
-                actions: [{
-                        type: "action",
-                        instructions: [{
-                                id: underscore_1.default.uniqueId(),
-                                protagonist,
-                                state: "open",
-                                do: {
-                                    key: "discard",
-                                    info: { count: G.hand[protagonist].length - 7, type: "any" }
-                                },
-                                ui: { type: "click_on_own_card_in_hand" }
-                            }]
-                    }]
-            };
-            G.script.scenes = [...G.script.scenes, newScene];
+            _createDiscardOverLimitScene(G, protagonist);
         }
         else {
-            (_a = ctx.events) === null || _a === void 0 ? void 0 : _a.endTurn({ next: protagonist });
+            ctx.events?.endTurn({ next: protagonist });
         }
     }
     else {
         if (G.hand[protagonist].length > 7) {
-            const newScene = {
-                id: underscore_1.default.uniqueId(),
-                mandatory: true,
-                endTurnImmediately: false,
-                actions: [{
-                        type: "action",
-                        instructions: [{
-                                id: underscore_1.default.uniqueId(),
-                                protagonist,
-                                state: "open",
-                                do: {
-                                    key: "discard",
-                                    info: { count: G.hand[protagonist].length - 7, type: "any" }
-                                },
-                                ui: { type: "click_on_own_card_in_hand" }
-                            }]
-                    }]
-            };
-            G.script.scenes = [...G.script.scenes, newScene];
+            _createDiscardOverLimitScene(G, protagonist);
         }
         else {
-            (_b = ctx.events) === null || _b === void 0 ? void 0 : _b.endTurn();
+            ctx.events?.endTurn();
         }
     }
 }
@@ -385,10 +362,9 @@ function commit(G, ctx, sceneID) {
     G.script.scenes.find(sc => sc.id === sceneID).mandatory = true;
 }
 function skipExecuteDo(G, ctx, protagonist, instructionID) {
-    if ((0, do_1._findInstructionWithID)(G, instructionID) !== null) {
-        const [scene, action, instruction] = (0, do_1._findInstructionWithID)(G, instructionID);
-        console.log("cc");
-        action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
+    const found = _findInstruction(G, instructionID);
+    if (found !== undefined) {
+        found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
     }
 }
 //
@@ -412,15 +388,9 @@ function _addSceneFromDo(G, ctx, cardID, owner, trigger) {
     if (!card.on) {
         return;
     }
-    // all unicorns are basic
-    // trigger no effect
-    if (G.playerEffects[owner].find(s => s.effect.key === "my_unicorns_are_basic")) {
-        if (G.playerEffects[owner].find(s => s.effect.key === "pandamonium") === undefined) {
-            if (card.type === "narwhal" || card.type === "unicorn") {
-                return;
-            }
-        }
-    }
+    // all unicorns are basic — trigger no effect
+    if ((0, effect_1.isCardBasicDueToEffect)(G.playerEffects[owner], card))
+        return;
     card.on.forEach(on => {
         if (on.do.type === "add_scene" && (on.trigger === trigger || trigger === "any")) {
             const newScene = {
@@ -458,7 +428,6 @@ function _addSceneFromDo(G, ctx, cardID, owner, trigger) {
         }
     });
 }
-exports._addSceneFromDo = _addSceneFromDo;
 // find all scenes that have already started and are not finished
 // or all scenes that have not started yet
 function _findOpenScenesWithProtagonist(G, protagonist) {
@@ -480,7 +449,6 @@ function _findOpenScenesWithProtagonist(G, protagonist) {
     });
     return scenes;
 }
-exports._findOpenScenesWithProtagonist = _findOpenScenesWithProtagonist;
 // a scene is in progress if its first action is finished
 function _findInProgressScenesWithProtagonist(G, protagonist) {
     let scenes = [];
@@ -512,9 +480,10 @@ function _findInProgressScenesWithProtagonist(G, protagonist) {
     });
     return scenes;
 }
-exports._findInProgressScenesWithProtagonist = _findInProgressScenesWithProtagonist;
 function _findInstruction(G, instructionID) {
-    let instruction, action, scene = undefined;
+    let instruction;
+    let action;
+    let scene;
     G.script.scenes.forEach(sc => {
         sc.actions.forEach(ac => {
             ac.instructions.forEach(ic => {
@@ -529,6 +498,5 @@ function _findInstruction(G, instructionID) {
     if (instruction === undefined || action === undefined || scene === undefined) {
         return undefined;
     }
-    return [instruction, action, scene];
+    return { instruction, action, scene };
 }
-exports._findInstruction = _findInstruction;

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isUnicorn = exports.initializeDeck = void 0;
+exports.initializeDeck = initializeDeck;
+exports.isUnicorn = isUnicorn;
 const Cards = [{
         title: "Baby Unicorn",
         type: "baby",
@@ -223,8 +224,7 @@ const Cards = [{
             en: "When this card enters your Stable, you may force another player to DISCARD a card. 👼 If this card is sacrificed or destroyed, return it to your hand.",
             de: "Wenn diese Karte deinen Stall betritt, darfst du einen Mitspieler auswählen. Dieser Mitspieler muss eine Karte abwerfen. 👼 Wenn diese Karte geopfert oder zerstört wird, kommt sie stattdessen auf deine Hand zurück."
         }
-    },
-    {
+    }, {
         title: "Chainsaw Unicorn",
         type: "unicorn",
         image: "chainsaw_unicorn",
@@ -323,37 +323,7 @@ const Cards = [{
             en: "When this card enters your Stable, you may SACRIFICE a Unicorn card, then bring a Unicorn card from the discard pile into your Stable.",
             de: "Wenn diese Karte deinen Stall betritt, darfst du eine Einhornkarte 🦄 opfern. Du darfst dann ein Einhorn aus dem Friedhof in deinen Stall legen."
         }
-    } /*, {
-        title: "Extremely Destructive Unicorn",
-        type: "unicorn",
-        image: "extremely_destructive_unicorn",
-        count: 1,
-        on: [{
-            trigger: "enter",
-            do: {
-                type: "add_scene",
-                info: {
-                    actions: [{
-                        instructions: [{
-                            protagonist: "all",
-                            do: {
-                                key: "sacrifice",
-                                info: { type: "unicorn" }
-                            },
-                            ui: { type: "click_on_card_in_stable" }
-                        }]
-                    }],
-                    mandatory: true,
-                    endTurnImmediately: false
-                }
-            }
-        }],
-        description: {
-            en: "When this card enters your Stable, each player (including you) must SACRIFICE a Unicorn card.",
-            de: "Wenn diese Karte deinen Stall betritt, muss jeder Spieler (auch du) ein Einhorn opfern."
-        }
-    }*/,
-    {
+    }, {
         title: "Ginormous Unicorn",
         type: "unicorn",
         image: "ginormous_unicorn",
@@ -888,8 +858,7 @@ const Cards = [{
             en: "If this card is in your Stable at the beginning of your turn, you may DISCARD a Unicorn card. If you do, choose a Unicorn card from the discard pile and bring it directly into your Stable.",
             de: "Wenn diese Karte am Anfang deiner Runde in deinem Stall ist, darfst du ein Einhorn von deiner Hand abwerfen. Belebe ein Einhorn vom Friedhof wieder und lege es in deinem Stall."
         }
-    },
-    {
+    }, {
         title: "Swift Flying Unicorn",
         type: "unicorn",
         image: "swift_flying_unicorn",
@@ -993,8 +962,7 @@ const Cards = [{
             en: "When this card enters your Stable, DRAW 2 cards and DISCARD a card.",
             de: "Wenn diese Karte deinen Stall betritt, ziehe zwei Karten und werfe eine Karte von deiner Hand ab."
         }
-    },
-    {
+    }, {
         title: "Neigh",
         type: "neigh",
         image: "neigh",
@@ -1160,23 +1128,7 @@ const Cards = [{
             en: "If this card is in your Stable at the beginning of your turn, you may SACRIFICE a card, then DESTROY a card.",
             de: "Wenn diese Karte am Anfang deiner Runde in deinem Stall ist, darfst du eine Karte opfern. Zerstöre dann eine Karte."
         }
-    } /*{
-        title: "Nanny Cam",
-        type: "downgrade",
-        image: "nanny_cam",
-        count: 1,
-        on: [{
-            trigger: "enter",
-            do: {
-                type: "add_effect",
-                info: { key: "your_hand_is_visible" },
-                ui: { type: "none" }
-            }
-        }],
-        description: {
-            en: "Your hand must be visible to all players."
-    }*/,
-    {
+    }, {
         title: "Double Dutch",
         type: "upgrade",
         image: "double_dutch",
@@ -1360,8 +1312,7 @@ const Cards = [{
             en: "All of your Unicorns are considered Pandas. Cards that affect Unicorn cards do not affect your Pandas.",
             de: "All deine Einhörner gelten als Pandas. Karten, die Einhörner betreffen, betreffen nicht deine Pandas."
         }
-    },
-    {
+    }, {
         title: "Slowdown",
         type: "downgrade",
         image: "slowdown",
@@ -1610,8 +1561,7 @@ const Cards = [{
             en: "Each player (including you) must SACRIFICE all Upgrade and Downgrade cards in their Stable. Shuffle the discard pile into the deck.",
             de: "Jeder Spieler (auch du) muss alle Upgrade und Downgradekarten opfern. Mische den Friedhof in das Deck."
         }
-    },
-    {
+    }, {
         title: "Mystical Vortex",
         type: "magic",
         image: "mystical_vortex",
@@ -1781,8 +1731,7 @@ const Cards = [{
             en: "Return a card in another player's Stable to their hand. That player must DISCARD a card.",
             de: "Schicke eine Karte zurück auf die Hand des Besitzers. Der Besitzer muss eine Karte abwerfen."
         }
-    },
-    {
+    }, {
         title: "Basic Unicorn",
         type: "basic",
         image: "basic0",
@@ -1880,9 +1829,7 @@ function initializeDeck() {
     });
     return deck.map((c, idx) => ({ ...c, id: idx }));
 }
-exports.initializeDeck = initializeDeck;
 // Helper
 function isUnicorn(card) {
     return card.type === "baby" || card.type === "basic" || card.type === "unicorn" || card.type === "narwhal";
 }
-exports.isUnicorn = isUnicorn;

@@ -29,7 +29,7 @@ const UnstableUnicornsClient = ({ debug }: Props) => {
     if (debug === "test") {
         const UnstableUnicornsClient = Client({
             game: UnstableUnicorns,
-            board: Board,
+            board: Board as any,
             numPlayers: 3,
             //multiplayer: SocketIO({ server: `localhost:8000` }),
         });
@@ -42,7 +42,7 @@ const UnstableUnicornsClient = ({ debug }: Props) => {
     if (numPlayers) {
         UnstableUnicornsClient = Client({
             game: UnstableUnicorns,
-            board: Board,
+            board: Board as any,
             debug: false,
             numPlayers: parseInt(numPlayers),
             multiplayer: SocketIO({ server: serverUrl }),

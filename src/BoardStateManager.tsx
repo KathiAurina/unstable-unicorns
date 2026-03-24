@@ -2,10 +2,12 @@ import { UnstableUnicornsGame, Ctx, _findOpenScenesWithProtagonist, _findInProgr
 import type { PlayerID } from "./game/player";
 import _ from 'underscore';
 import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets } from "./game/do";
+import type { DoDraw, DoSteal, DoDestroy, DoSacrifice, DoDiscard, DoBringToStable, DoReturnToHand, DoRevive, DoSearch, DoAddFromDiscardPileToHand, DoMove } from "./game/do";
+import type { BoardStateInfo } from "./game/types";
 
 export type BoardState = {
     type: BoardStateKey;
-    info?: { [key: string]: any };
+    info?: BoardStateInfo;
 }
 
 type BoardStateKey = "playCard" | "drawCard" | "steal__cardToCard" | "destroy__cardToCard" | "destroy__click_on_card_in_stable" | "sacrifice__cardToCard" | "sacrifice__clickOnCardInStable" | "draw__clickOnDrawPile" | "endTurn" | "neigh__playNeigh" | "neigh__wait" | "discard__popup__committed" | "discard__popup__ask" | "bring__popup__committed" | "bring__popup__ask" | "discard" | "swapHands__cardToPlayer" | "shakeUp" | "move__cardToCard" | "move2__cardToPlayer" | "unicornswap1" | "unicornswap2" | "reset" | "shuffleDiscardPileIntoDrawPile" | "wait_for_other_players" | "revive" | "reviveFromNursery" | "pullRandom__cardToPlayer" | "backKick__card_to_card" | "blatantThievery1" | "addFromDiscardPileToHand__single_action_popup" | "search__single_action_popup" | "returnToHand__cardToCard" | "makeSomeoneDiscard__cardToPlayer";
@@ -146,350 +148,127 @@ export function getBoardState(G: UnstableUnicornsGame, ctx: Ctx, playerID: Playe
     return [];
 }
 
+type InstructionHandler = (G: UnstableUnicornsGame, ctx: Ctx, playerID: PlayerID, instruction: Instruction, scene: Scene) => BoardState[];
+
+const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
+    draw: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "click_on_drawPile") return [];
+        return [{ type: "draw__clickOnDrawPile", info: { instructionID: ins.id, count: (ins.do as DoDraw).info.count } }];
+    },
+    steal: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "card_to_card") return [];
+        return [{ type: "steal__cardToCard", info: { targets: findStealTargets(G, ctx, playerID, (ins.do as DoSteal).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    destroy: (G, ctx, playerID, ins) => {
+        const doInfo = (ins.do as DoDestroy).info;
+        if (ins.ui.type === "card_to_card") {
+            return [{ type: "destroy__cardToCard", info: { targets: findDestroyTargets(G, ctx, playerID, doInfo, ins.ui.info?.source), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+        }
+        if (ins.ui.type === "click_on_card_in_stable") {
+            return [{ type: "destroy__click_on_card_in_stable", info: { targets: findDestroyTargets(G, ctx, playerID, doInfo, ins.ui.info?.source), instructionID: ins.id } }];
+        }
+        return [];
+    },
+    sacrifice: (G, ctx, playerID, ins) => {
+        const doInfo = (ins.do as DoSacrifice).info;
+        if (ins.ui.type === "card_to_card") {
+            return [{ type: "sacrifice__cardToCard", info: { targets: findSacrificeTargets(G, ctx, playerID, doInfo), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+        }
+        if (ins.ui.type === "click_on_card_in_stable") {
+            return [{ type: "sacrifice__clickOnCardInStable", info: { targets: findSacrificeTargets(G, ctx, playerID, doInfo), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+        }
+        return [];
+    },
+    returnToHand: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "card_to_card") return [];
+        return [{ type: "returnToHand__cardToCard", info: { targets: findReturnToHandTargets(G, ctx, playerID, (ins.do as DoReturnToHand).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    discard: (G, ctx, playerID, ins, scene) => {
+        const doInfo = (ins.do as DoDiscard).info;
+        if (ins.ui.type === "single_action_popup") {
+            const targets = findDiscardTargets(G, ctx, playerID, doInfo);
+            const base = { targets, instructionID: ins.id, sourceCardID: ins.ui.info?.source, singleActionText: ins.ui.info?.singleActionText };
+            return [{ type: scene.mandatory === false ? "discard__popup__ask" : "discard__popup__committed", info: base }];
+        }
+        if (ins.ui.type === "click_on_own_card_in_hand") {
+            return [{ type: "discard", info: { targets: findDiscardTargets(G, ctx, playerID, doInfo), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+        }
+        return [];
+    },
+    bringToStable: (G, ctx, playerID, ins, scene) => {
+        if (ins.ui.type !== "single_action_popup") return [];
+        const doInfo = (ins.do as DoBringToStable).info;
+        if (!canBringToStableTargets(G, ctx, playerID, doInfo)) return [];
+        const base = { targets: findBringToStableTargets(G, ctx, playerID, doInfo), instructionID: ins.id, sourceCardID: ins.ui.info?.source, singleActionText: ins.ui.info?.singleActionText };
+        return [{ type: scene.mandatory === false ? "bring__popup__ask" : "bring__popup__committed", info: base }];
+    },
+    swapHands: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "card_to_player") return [];
+        return [{ type: "swapHands__cardToPlayer", info: { targets: findSwapHandsTargets(G, ctx, playerID), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    shakeUp: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "single_action_popup") return [];
+        return [{ type: "shakeUp", info: { instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    shuffleDiscardPileIntoDrawPile: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "single_action_popup") return [];
+        return [{ type: "shuffleDiscardPileIntoDrawPile", info: { instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    reset: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "single_action_popup") return [];
+        return [{ type: "reset", info: { instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    move: (G, ctx, playerID, ins) => {
+        return [{ type: "move__cardToCard", info: { targets: findMoveTargets(G, ctx, playerID, (ins.do as DoMove).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    move2: (G, ctx, playerID, ins) => {
+        return [{ type: "move2__cardToPlayer", info: { targets: findMoveTargets2(G, ctx, playerID), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    revive: (G, ctx, playerID, ins) => {
+        return [{ type: "revive", info: { targets: findReviveTarget(G, ctx, playerID, (ins.do as DoRevive).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    reviveFromNursery: (G, ctx, playerID, ins) => {
+        return [{ type: "reviveFromNursery", info: { targets: G.nursery.map(c => ({ cardID: c })), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    backKick: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "card_to_card") return [];
+        return [{ type: "backKick__card_to_card", info: { targets: findBackKickTargets(G, ctx, playerID), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    unicornSwap1: (G, ctx, playerID, ins) => {
+        return [{ type: "unicornswap1", info: { targets: findUnicornSwap1Targets(G, ctx, playerID), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    unicornSwap2: (G, ctx, playerID, ins) => {
+        return [{ type: "unicornswap2", info: { targets: findUnicornSwap2Targets(G, ctx, playerID), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    blatantThievery1: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "card_to_player") return [];
+        return [{ type: "blatantThievery1", info: { instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    pullRandom: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "card_to_player") return [];
+        return [{ type: "pullRandom__cardToPlayer", info: { targets: findPullRandomTargets(G, ctx, playerID), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    makeSomeoneDiscard: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "card_to_player") return [];
+        return [{ type: "makeSomeoneDiscard__cardToPlayer", info: { targets: findMakeSomeoneDiscardTarget(G, ctx, playerID), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    search: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "single_action_popup") return [];
+        return [{ type: "search__single_action_popup", info: { targets: findSearchTargets(G, ctx, playerID, (ins.do as DoSearch).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    addFromDiscardPileToHand: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "single_action_popup") return [];
+        return [{ type: "addFromDiscardPileToHand__single_action_popup", info: { targets: findAddFromDiscardPileToHand(G, ctx, playerID, (ins.do as DoAddFromDiscardPileToHand).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+};
+
 function getExecutionDoState(G: UnstableUnicornsGame, ctx: Ctx, playerID: PlayerID, openScenes: Array<[Instruction, Scene]>): BoardState[] {
-    let states: BoardState[] = [];
+    const states: BoardState[] = [];
     openScenes.forEach(([instruction, scene]) => {
-
-        if (instruction.do.key === "draw") {
-            if (instruction.ui.type === "click_on_drawPile") {
-                states.push({
-                    type: "draw__clickOnDrawPile",
-                    info: { instructionID: instruction.id, count: instruction.do.info.count },
-                });
-            }
+        const handler = doKeyHandlers[instruction.do.key];
+        if (handler) {
+            states.push(...handler(G, ctx, playerID, instruction, scene));
         }
-
-        if (instruction.do.key === "steal") {
-            if (instruction.ui.type === "card_to_card") {
-                states.push({
-                    type: "steal__cardToCard",
-                    info: {
-                        targets: findStealTargets(G, ctx, playerID, instruction.do.info),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "destroy") {
-            if (instruction.ui.type === "card_to_card") {
-                states.push({
-                    type: "destroy__cardToCard",
-                    info: {
-                        targets: findDestroyTargets(G, ctx, playerID, instruction.do.info, instruction.ui.info?.source),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            } else if (instruction.ui.type === "click_on_card_in_stable") {
-                states.push({
-                    type: "destroy__click_on_card_in_stable", info: {
-                        targets: findDestroyTargets(G, ctx, playerID, instruction.do.info, instruction.ui.info?.source),
-                        instructionID: instruction.id
-                    }
-                })
-            }
-        }
-
-        if (instruction.do.key === "sacrifice") {
-            if (instruction.ui.type === "card_to_card") {
-                states.push({
-                    type: "sacrifice__cardToCard",
-                    info: {
-                        targets: findSacrificeTargets(G, ctx, playerID, instruction.do.info),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            } else if (instruction.ui.type === "click_on_card_in_stable") {
-                states.push({
-                    type: "sacrifice__clickOnCardInStable",
-                    info: {
-                        targets: findSacrificeTargets(G, ctx, playerID, instruction.do.info),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "returnToHand") {
-            if (instruction.ui.type === "card_to_card") {
-                states.push({
-                    type: "returnToHand__cardToCard",
-                    info: {
-                        targets: findReturnToHandTargets(G, ctx, playerID, instruction.do.info),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "discard") {
-            if (instruction.ui.type === "single_action_popup") {
-                // if a single action popup is not mandatory, the user may decide to discard a card or not 
-                // if a user decides to discard a card, this scene becomes mandatory
-                // and the user must discard a card.
-                // this is called comitting
-                if (scene.mandatory === false) {
-                    states.push({
-                        type: "discard__popup__ask", info: {
-                            targets: findDiscardTargets(G, ctx, playerID, instruction.do.info),
-                            instructionID: instruction.id,
-                            sourceCardID: instruction.ui.info?.source,
-                            singleActionText: instruction.ui.info?.singleActionText
-                        }
-                    });
-                } else {
-                    states.push({
-                        type: "discard__popup__committed", info: {
-                            targets: findDiscardTargets(G, ctx, playerID, instruction.do.info),
-                            instructionID: instruction.id,
-                            sourceCardID: instruction.ui.info?.source,
-                            singleActionText: instruction.ui.info?.singleActionText
-                        }
-                    });
-                }
-            }
-
-            if (instruction.ui.type === "click_on_own_card_in_hand") {
-                states.push({
-                    type: "discard", info: {
-                        targets: findDiscardTargets(G, ctx, playerID, instruction.do.info),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "bringToStable") {
-            if (instruction.ui.type === "single_action_popup") {
-                // if a single action popup is not mandatory, the user may decide to discard a card or not 
-                // if a user decides to discard a card, this scene becomes mandatory
-                // and the user must discard a card.
-                // this is called comitting
-                if (scene.mandatory === false) {
-                    if (canBringToStableTargets(G, ctx, playerID, instruction.do.info)) {
-                        states.push({
-                            type: "bring__popup__ask", info: {
-                                targets: findBringToStableTargets(G, ctx, playerID, instruction.do.info),
-                                instructionID: instruction.id,
-                                sourceCardID: instruction.ui.info?.source,
-                                singleActionText: instruction.ui.info?.singleActionText
-                            }
-                        });
-                    }
-                } else {
-                    if (canBringToStableTargets(G, ctx, playerID, instruction.do.info)) {
-                        states.push({
-                            type: "bring__popup__committed", info: {
-                                targets: findBringToStableTargets(G, ctx, playerID, instruction.do.info),
-                                instructionID: instruction.id,
-                                sourceCardID: instruction.ui.info?.source,
-                                singleActionText: instruction.ui.info?.singleActionText
-                            }
-                        });
-                    }
-                }
-            }
-        }
-
-        if (instruction.do.key === "swapHands") {
-            if (instruction.ui.type === "card_to_player") {
-                states.push({
-                    type: "swapHands__cardToPlayer",
-                    info: {
-                        targets: findSwapHandsTargets(G, ctx, playerID),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "shakeUp") {
-            if (instruction.ui.type === "single_action_popup") {
-                states.push({
-                    type: "shakeUp",
-                    info: {
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "shuffleDiscardPileIntoDrawPile") {
-            if (instruction.ui.type === "single_action_popup") {
-                states.push({
-                    type: "shuffleDiscardPileIntoDrawPile",
-                    info: {
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "reset") {
-            if (instruction.ui.type === "single_action_popup") {
-                states.push({
-                    type: "reset",
-                    info: {
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "move") {
-            states.push({
-                type: "move__cardToCard",
-                info: {
-                    targets: findMoveTargets(G, ctx, playerID, instruction.do.info),
-                    instructionID: instruction.id,
-                    sourceCardID: instruction.ui.info?.source,
-                }
-            });
-        }
-
-        if (instruction.do.key === "move2") {
-            states.push({
-                type: "move2__cardToPlayer",
-                info: {
-                    targets: findMoveTargets2(G, ctx, playerID),
-                    instructionID: instruction.id,
-                    sourceCardID: instruction.ui.info?.source,
-                }
-            });
-        }
-
-        if (instruction.do.key === "revive") {
-            states.push({
-                type: "revive",
-                info: {
-                    targets: findReviveTarget(G, ctx, playerID, instruction.do.info),
-                    instructionID: instruction.id,
-                    sourceCardID: instruction.ui.info?.source,
-                }
-            });
-        }
-
-        if (instruction.do.key === "reviveFromNursery") {
-            states.push({
-                type: "reviveFromNursery",
-                info: {
-                    targets: G.nursery.map(c => ({ cardID: c })),
-                    instructionID: instruction.id,
-                    sourceCardID: instruction.ui.info?.source,
-                }
-            });
-        }
-
-        if (instruction.do.key === "backKick") {
-            if (instruction.ui.type === "card_to_card") {
-                states.push({
-                    type: "backKick__card_to_card",
-                    info: {
-                        targets: findBackKickTargets(G, ctx, playerID),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "unicornSwap1") {
-            states.push({
-                type: "unicornswap1",
-                info: {
-                    targets: findUnicornSwap1Targets(G, ctx, playerID),
-                    instructionID: instruction.id,
-                    sourceCardID: instruction.ui.info?.source,
-                }
-            });
-        }
-
-        if (instruction.do.key === "unicornSwap2") {
-            states.push({
-                type: "unicornswap2",
-                info: {
-                    targets: findUnicornSwap2Targets(G, ctx, playerID),
-                    instructionID: instruction.id,
-                    sourceCardID: instruction.ui.info?.source,
-                }
-            });
-        }
-
-        if (instruction.do.key === "blatantThievery1") {
-            if (instruction.ui.type === "card_to_player") {
-                states.push({
-                    type: "blatantThievery1",
-                    info: {
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "pullRandom") {
-            if (instruction.ui.type === "card_to_player") {
-                states.push({
-                    type: "pullRandom__cardToPlayer",
-                    info: {
-                        targets: findPullRandomTargets(G, ctx, playerID),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "makeSomeoneDiscard") {
-            if (instruction.ui.type === "card_to_player") {
-                states.push({
-                    type: "makeSomeoneDiscard__cardToPlayer",
-                    info: {
-                        targets: findMakeSomeoneDiscardTarget(G, ctx, playerID),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "search") {
-            if (instruction.ui.type === "single_action_popup") {
-                states.push({
-                    type: "search__single_action_popup",
-                    info: {
-                        targets: findSearchTargets(G, ctx, playerID, instruction.do.info),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-
-        if (instruction.do.key === "addFromDiscardPileToHand") {
-            if (instruction.ui.type === "single_action_popup") {
-                states.push({
-                    type: "addFromDiscardPileToHand__single_action_popup",
-                    info: {
-                        targets: findAddFromDiscardPileToHand(G, ctx, playerID, instruction.do.info),
-                        instructionID: instruction.id,
-                        sourceCardID: instruction.ui.info?.source,
-                    }
-                });
-            }
-        }
-    })
-
-
+    });
     return states;
 }
