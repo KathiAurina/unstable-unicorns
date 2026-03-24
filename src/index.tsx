@@ -1,15 +1,21 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { ThemeProvider } from 'styled-components';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { LanguageContextProvider } from './LanguageContextProvider';
+import { theme } from './theme/theme';
+import GlobalStyle from './theme/GlobalStyle';
 
 ReactDOM.render(
   <React.StrictMode>
-    <LanguageContextProvider>
-      <App />
-    </LanguageContextProvider>
+    <ThemeProvider theme={theme}>
+      <GlobalStyle />
+      <LanguageContextProvider>
+        <App />
+      </LanguageContextProvider>
+    </ThemeProvider>
   </React.StrictMode>,
   document.getElementById('root')
 );
