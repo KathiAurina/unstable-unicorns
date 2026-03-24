@@ -8,8 +8,8 @@ interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     children: React.ReactNode;
 }
 
-const RainbowButton = ({ variant = 'rainbow', children, ...rest }: Props) => {
-    return <StyledButton $variant={variant} {...rest}>{children}</StyledButton>;
+const RainbowButton = ({ variant = 'rainbow', type = 'button', children, ...rest }: Props) => {
+    return <StyledButton $variant={variant} type={type} {...rest}>{children}</StyledButton>;
 };
 
 const StyledButton = styled.button<{ $variant: Variant }>`
