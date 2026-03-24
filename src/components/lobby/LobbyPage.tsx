@@ -96,7 +96,11 @@ const LobbyPage = () => {
 
 const PageWrapper = styled.div`
     min-height: 100vh;
-    background-color: #F8F9FA;
+    background-image: url(${require('../../assets/lobby-background.png')});
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     display: flex;
     justify-content: center;
     align-items: flex-start;
