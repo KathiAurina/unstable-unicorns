@@ -64,7 +64,10 @@ const LobbyPage = () => {
                 const queryParams = new URLSearchParams();
                 queryParams.append('credentials', data.playerCredentials);
                 const url = `/${match.matchID}/${match.players.length}/${playerID}?${queryParams.toString()}`;
-                window.open(url, '_blank');
+                const newWindow = window.open(url, '_blank');
+                if (newWindow) {
+                    newWindow.opener = null;
+                }
             } else {
                 const errorText = await response.text();
                 alert(`Failed to join: ${errorText}`);
