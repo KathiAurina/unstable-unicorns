@@ -341,7 +341,7 @@ const StableSection = ({
                 }}
             />
             <Hand
-                cards={G.hand[playerID].map(c => G.deck[c])}
+                cards={G.hand[playerID].map(c => G.deck[c]).filter(c => c !== undefined)}
                 glowingCards={glowingCards}
                 onClick={onHandCardClick}
                 onMouseEnterHandCard={(idx) => {

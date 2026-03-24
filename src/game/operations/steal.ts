@@ -74,7 +74,8 @@ export type ParamPull = {
 }
 
 export function pull(G: UnstableUnicornsGame, ctx: Ctx, param: ParamPull) {
-    const cardToPull = G.hand[param.from][param.handIndex]
+    const cardToPull = G.hand[param.from][param.handIndex];
+    if (cardToPull === undefined) return;
     G.hand[param.from] = _.without(G.hand[param.from], cardToPull);
     G.hand[param.protagonist] = [...G.hand[param.protagonist], cardToPull];
 }
