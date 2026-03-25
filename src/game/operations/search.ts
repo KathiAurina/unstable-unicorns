@@ -1,18 +1,10 @@
 import { CardID, isUnicorn } from "../card";
-import { UnstableUnicornsGame, Ctx } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
 
-export interface DoSearch {
-    key: "search";
-    info: {
-        type: "any" | "unicorn" | "upgrade" | "downgrade" | "narwhal";
-    }
-}
-
-export type DoSearchInfo = {
-    type: "any" | "unicorn" | "upgrade" | "downgrade" | "narwhal";
-}
+import type { DoSearchInfo } from '../do-types';
+export type { DoSearch, DoSearchInfo } from '../do-types';
 
 export type ParamSearch = {
     protagonist: PlayerID;

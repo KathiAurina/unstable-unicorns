@@ -14,5 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// Legacy re-export — all logic lives in src/game/operations/
+// Legacy re-export barrel — kept for any imports that haven't been migrated yet.
+// Canonical sources: do-types.ts (types), operations/index.ts (functions), state.ts (game state)
+__exportStar(require("./do-types"), exports);
 __exportStar(require("./operations"), exports);

@@ -1,4 +1,4 @@
-import type { Do } from "./do";
+import type { Do } from "./do-types";
 import type { Effect } from "./effect";
 
 export type CardID = number;

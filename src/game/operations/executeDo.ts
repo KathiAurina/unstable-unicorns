@@ -1,18 +1,19 @@
-import { UnstableUnicornsGame, Ctx, _findInstruction } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
+import { _findInstruction } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
-import { steal, pull, DoSteal, DoPull } from "./steal";
-import { discard, ParamDiscard, DoDiscard } from "./discard";
-import { destroy, findOwnerOfCard, DoDestroy } from "./destroy";
-import { sacrifice, DoSacrifice } from "./sacrifice";
-import { search, DoSearch } from "./search";
-import { revive, addFromDiscardPileToHand, reviveFromNursery, DoRevive, DoAddFromDiscardPileToHand, DoReviveFromNursery } from "./revive";
-import { draw, DoDraw } from "./draw";
-import { returnToHand, bringToStable, move, move2, backKick, DoReturnToHand, DoBringToStable, DoMove, DoMove2, DoBackKick } from "./move";
-import { makeSomeoneDiscard, blatantThievery1, pullRandom, DoPullRandom, DoMakeSomeoneDiscard, DoBlatantThievery1 } from "./misc";
-import { swapHands, shakeUp, reset, shuffleDiscardPileIntoDrawPile, unicornSwap1, unicornSwap2, DoSwapHands, DoShakeUp, DoReset, DoShuffleDiscardPileIntoDrawPile, DoUnicornSwap1, DoUnicornSwap2 } from "./swap";
+import { steal, pull } from "./steal";
+import { discard, ParamDiscard } from "./discard";
+import { destroy, findOwnerOfCard } from "./destroy";
+import { sacrifice } from "./sacrifice";
+import { search } from "./search";
+import { revive, addFromDiscardPileToHand, reviveFromNursery } from "./revive";
+import { draw } from "./draw";
+import { returnToHand, bringToStable, move, move2, backKick } from "./move";
+import { makeSomeoneDiscard, blatantThievery1, pullRandom } from "./misc";
+import { swapHands, shakeUp, reset, shuffleDiscardPileIntoDrawPile, unicornSwap1, unicornSwap2 } from "./swap";
 import { CardID } from "../card";
-export type Do = DoSteal | DoPull | DoPullRandom | DoDiscard | DoDestroy | DoSacrifice | DoSearch | DoRevive | DoDraw | DoAddFromDiscardPileToHand | DoReviveFromNursery | DoReturnToHand | DoBringToStable | DoMakeSomeoneDiscard | DoSwapHands | DoShakeUp | DoReset | DoMove | DoMove2 | DoBackKick | DoShuffleDiscardPileIntoDrawPile | DoUnicornSwap1 | DoUnicornSwap2 | DoBlatantThievery1;
+export type { Do } from '../do-types';
 
 
 // KeyToFunc is a runtime dispatch table keyed on Do.key.

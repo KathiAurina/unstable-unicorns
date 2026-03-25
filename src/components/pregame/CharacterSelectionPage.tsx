@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { UnstableUnicornsGame } from '../../game/game';
+import type { UnstableUnicornsGame } from '../../game/state';
 import type { Card } from '../../game/card';
 import { PlayerID } from '../../game/player';
 import RainbowButton from '../shared/RainbowButton';

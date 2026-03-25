@@ -5,7 +5,8 @@ import Stable, { StableHandle } from './ui/Stable';
 import PlayerField, { PlayerFieldHandle } from './ui/PlayerField';
 import { motion, AnimateSharedLayout, AnimatePresence } from "framer-motion";
 // game
-import { UnstableUnicornsGame, Ctx, _findInProgressScenesWithProtagonist, _findOpenScenesWithProtagonist, Instruction, Scene } from './game/game';
+import type { UnstableUnicornsGame, Ctx, Instruction, Scene } from './game/state';
+import { _findInProgressScenesWithProtagonist, _findOpenScenesWithProtagonist } from './game/state';
 // assets
 import BG from './assets/ui/board-background.jpg';
 import DrawPile from './ui/DrawPile';
@@ -19,7 +20,7 @@ import { PlayerID } from './game/player';
 import { BoardState, getBoardState } from './BoardStateManager';
 import type { Moves } from './game/types';
 import GameLabel from './ui/GameLabel';
-import { SearchTarget } from './game/do';
+import type { SearchTarget } from './game/operations';
 import CharacterSelectionPage from './components/pregame/CharacterSelectionPage';
 import React from 'react';
 import { LanguageContext } from './LanguageContextProvider';

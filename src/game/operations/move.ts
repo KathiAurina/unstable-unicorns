@@ -1,19 +1,13 @@
 import { CardID } from "../card";
-import { UnstableUnicornsGame, Ctx } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
 import { enter, canEnter, leave } from "./enter";
 import { findOwnerOfCard } from "./destroy";
 import { makeSomeoneDiscard } from "./misc";
 
-export interface DoReturnToHand {
-    key: "returnToHand";
-    info: ReturnToHandInfo;
-}
-
-export type ReturnToHandInfo = {
-    who: "another"
-}
+import type { ReturnToHandInfo, BringToStableInfo, DoMoveInfo } from '../do-types';
+export type { DoReturnToHand, ReturnToHandInfo, DoBringToStable, BringToStableInfo, DoMove, DoMove2, DoBackKick } from '../do-types';
 
 export type ParamReturnToHand = {
     protagonist: PlayerID;
@@ -51,15 +45,6 @@ export function findReturnToHandTargets(G: UnstableUnicornsGame, ctx: Ctx, prota
 }
 
 // player may bring a card from their hand directly to their stable
-export interface DoBringToStable {
-    key: "bringToStable";
-    info: BringToStableInfo;
-}
-
-export type BringToStableInfo = {
-    type: "basic_unicorn"
-}
-
 type ParamBringToStable = {
     protagonist: PlayerID;
     cardID: CardID;
@@ -88,15 +73,6 @@ export function canBringToStableTargets(G: UnstableUnicornsGame, ctx: Ctx, prota
     return findBringToStableTargets(G, ctx, protagonist, info).length > 0;
 }
 
-export type DoMove = {
-    key: "move";
-    info: DoMoveInfo;
-}
-
-type DoMoveInfo = {
-    type: "upgradeAndDowngrade";
-}
-
 export function move(G: UnstableUnicornsGame, ctx: Ctx, param: {cardID: CardID, protagonist: PlayerID}) {
     const from = findOwnerOfCard(G, param.cardID)!;
     leave(G, ctx, { playerID: from, cardID: param.cardID });
@@ -116,10 +92,6 @@ export function findMoveTargets(G: UnstableUnicornsGame, ctx: Ctx, protagonist: 
     })
 
     return targets;
-}
-
-export type DoMove2 = {
-    key: "move2";
 }
 
 export function move2(G: UnstableUnicornsGame, ctx: Ctx, param: {playerID: PlayerID}) {
@@ -142,10 +114,6 @@ export function findMoveTargets2(G: UnstableUnicornsGame, ctx: Ctx, protagonist:
     })
 
     return targets;
-}
-
-export type DoBackKick = {
-    key: "backKick"
 }
 
 export function backKick(G: UnstableUnicornsGame, ctx: Ctx, param: {protagonist: PlayerID, cardID: CardID}) {

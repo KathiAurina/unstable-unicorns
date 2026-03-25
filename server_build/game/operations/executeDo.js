@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.executeDo = executeDo;
-const game_1 = require("../game");
+const state_1 = require("../state");
 const underscore_1 = __importDefault(require("underscore"));
 const steal_1 = require("./steal");
 const discard_1 = require("./discard");
@@ -24,7 +24,7 @@ const KeyToFunc = {
     steal: steal_1.steal, pull: steal_1.pull, pullRandom: misc_1.pullRandom, discard: discard_1.discard, destroy: destroy_1.destroy, sacrifice: sacrifice_1.sacrifice, search: search_1.search, revive: revive_1.revive, draw: draw_1.draw, addFromDiscardPileToHand: revive_1.addFromDiscardPileToHand, reviveFromNursery: revive_1.reviveFromNursery, returnToHand: move_1.returnToHand, bringToStable: move_1.bringToStable, makeSomeoneDiscard: misc_1.makeSomeoneDiscard, swapHands: swap_1.swapHands, shakeUp: swap_1.shakeUp, move: move_1.move, move2: move_1.move2, reset: swap_1.reset, shuffleDiscardPileIntoDrawPile: swap_1.shuffleDiscardPileIntoDrawPile, backKick: move_1.backKick, unicornSwap1: swap_1.unicornSwap1, unicornSwap2: swap_1.unicornSwap2, blatantThievery1: misc_1.blatantThievery1,
 };
 function executeDo(G, ctx, instructionID, param) {
-    const { scene, action, instruction } = (0, game_1._findInstruction)(G, instructionID);
+    const { scene, action, instruction } = (0, state_1._findInstruction)(G, instructionID);
     if (scene.endTurnImmediately) {
         G.mustEndTurnImmediately = true;
     }

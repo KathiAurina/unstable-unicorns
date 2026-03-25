@@ -7,7 +7,7 @@ exports.findOwnerOfCard = findOwnerOfCard;
 exports.destroy = destroy;
 exports.findDestroyTargets = findDestroyTargets;
 const card_1 = require("../card");
-const game_1 = require("../game");
+const state_1 = require("../state");
 const effect_1 = require("../effect");
 const underscore_1 = __importDefault(require("underscore"));
 const enter_1 = require("./enter");
@@ -40,7 +40,7 @@ function destroy(G, ctx, param) {
             G.hand[targetPlayer] = [...G.hand[targetPlayer], param.cardID];
         }
         else if (on.do.type === "add_scene") {
-            (0, game_1._addSceneFromDo)(G, ctx, card.id, targetPlayer, "any");
+            (0, state_1._addSceneFromDo)(G, ctx, card.id, targetPlayer, "any");
         }
     });
 }

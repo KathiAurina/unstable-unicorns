@@ -1,6 +1,6 @@
 import type { Card, CardID } from "./game/card";
-import { findBackKickTargets, findDestroyTargets, findMoveTargets, findReturnToHandTargets, findSacrificeTargets, findStealTargets, findUnicornSwap1Targets } from "./game/do";
-import type { Ctx, Instruction, UnstableUnicornsGame } from "./game/game";
+import { findBackKickTargets, findDestroyTargets, findMoveTargets, findReturnToHandTargets, findSacrificeTargets, findStealTargets, findUnicornSwap1Targets } from "./game/operations";
+import type { Ctx, Instruction, UnstableUnicornsGame } from "./game/state";
 import { PlayerID } from "./game/player";
 
 // ─── CardInteraction ──────────────────────────────────────────────────────────

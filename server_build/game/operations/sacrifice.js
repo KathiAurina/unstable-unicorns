@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sacrifice = sacrifice;
 exports.findSacrificeTargets = findSacrificeTargets;
 const card_1 = require("../card");
-const game_1 = require("../game");
+const state_1 = require("../state");
 const effect_1 = require("../effect");
 const underscore_1 = __importDefault(require("underscore"));
 const enter_1 = require("./enter");
@@ -29,7 +29,7 @@ function sacrifice(G, ctx, param) {
             G.hand[param.protagonist] = [...G.hand[param.protagonist], param.cardID];
         }
         else if (on.do.type === "add_scene") {
-            (0, game_1._addSceneFromDo)(G, ctx, card.id, param.protagonist, "any");
+            (0, state_1._addSceneFromDo)(G, ctx, card.id, param.protagonist, "any");
         }
     });
 }

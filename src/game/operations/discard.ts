@@ -1,18 +1,10 @@
 import { CardID, isUnicorn } from "../card";
-import { UnstableUnicornsGame, Ctx } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
 
-export interface DoDiscard {
-    key: "discard";
-    info: DoDiscardInfo;
-}
-
-export type DoDiscardInfo = {
-    count: number;
-    type: "any" | "unicorn";
-    changeOfLuck?: boolean;
-}
+import type { DoDiscardInfo } from '../do-types';
+export type { DoDiscard, DoDiscardInfo } from '../do-types';
 
 export type ParamDiscard = {
     protagonist: PlayerID;

@@ -1,8 +1,10 @@
-import { UnstableUnicornsGame, Ctx, _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist, canDraw, Instruction, Scene } from "./game/game";
+import type { UnstableUnicornsGame, Ctx, Instruction, Scene } from "./game/state";
+import { _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist } from "./game/state";
+import { canDraw } from "./game/game";
 import type { PlayerID } from "./game/player";
 import _ from 'underscore';
-import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets } from "./game/do";
-import type { DoDraw, DoSteal, DoDestroy, DoSacrifice, DoDiscard, DoBringToStable, DoReturnToHand, DoRevive, DoSearch, DoAddFromDiscardPileToHand, DoMove } from "./game/do";
+import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets } from "./game/operations";
+import type { DoDraw, DoSteal, DoDestroy, DoSacrifice, DoDiscard, DoBringToStable, DoReturnToHand, DoRevive, DoSearch, DoAddFromDiscardPileToHand, DoMove } from "./game/do-types";
 import type { BoardStateInfo } from "./game/types";
 
 export type BoardState = {

@@ -1,5 +1,6 @@
 import { CardID, OnEnter, OnEnterAddEffect } from "../card";
-import { UnstableUnicornsGame, Ctx, Scene, Action, Instruction, _addSceneFromDo } from "../game";
+import type { UnstableUnicornsGame, Ctx, Scene, Action, Instruction } from "../state";
+import { _addSceneFromDo } from "../state";
 import type { PlayerID } from "../player";
 import { isCardBasicDueToEffect } from "../effect";
 import _ from 'underscore';

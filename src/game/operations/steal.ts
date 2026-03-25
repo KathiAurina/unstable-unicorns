@@ -1,16 +1,12 @@
 import { CardID } from "../card";
-import { UnstableUnicornsGame, Ctx } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
 import { enter, canEnter, leave } from "./enter";
 import { findOwnerOfCard } from "./destroy";
 
-export interface DoSteal {
-    key: "steal";
-    info: DoStealInfo;
-}
-
-export type DoStealInfo = { type: "unicorn" | "upgrade"; unicornSwap?: boolean }
+import type { DoStealInfo } from '../do-types';
+export type { DoSteal, DoStealInfo, DoPull } from '../do-types';
 
 type ParamSteal = {
     protagonist: PlayerID;
@@ -61,10 +57,6 @@ export function findStealTargets(G: UnstableUnicornsGame, ctx: Ctx, protagonist:
     }
 
     return targets;
-}
-
-export interface DoPull {
-    key: "pull";
 }
 
 export type ParamPull = {

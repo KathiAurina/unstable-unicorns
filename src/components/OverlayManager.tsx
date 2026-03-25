@@ -1,6 +1,7 @@
 import { CardInteraction, HoverTarget } from '../BoardUtil';
-import { SearchTarget, AddFromDiscardPileToHandTarget, ReviveTarget } from '../game/do';
-import { _findInstruction, UnstableUnicornsGame } from '../game/game';
+import type { SearchTarget, AddFromDiscardPileToHandTarget, ReviveTarget } from '../game/operations';
+import type { UnstableUnicornsGame } from '../game/state';
+import { _findInstruction } from '../game/state';
 import { CardID } from '../game/card';
 import type { Moves } from '../game/types';
 import Finder from '../ui/Finder';

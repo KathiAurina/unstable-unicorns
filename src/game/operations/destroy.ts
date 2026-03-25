@@ -1,9 +1,13 @@
 import { CardID, isUnicorn } from "../card";
-import { UnstableUnicornsGame, Ctx, _addSceneFromDo } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
+import { _addSceneFromDo } from "../state";
 import type { PlayerID } from "../player";
 import { isCardBasicDueToEffect } from "../effect";
 import _ from 'underscore';
 import { leave } from "./enter";
+
+import type { DoDestroyInfo } from '../do-types';
+export type { DoDestroy } from '../do-types';
 
 export function findOwnerOfCard(G: UnstableUnicornsGame, cardID: CardID): PlayerID | null {
     let playerID: PlayerID | null = null;
@@ -15,16 +19,6 @@ export function findOwnerOfCard(G: UnstableUnicornsGame, cardID: CardID): Player
     });
 
     return playerID;
-}
-
-export interface DoDestroy {
-    key: "destroy";
-    info: DoDestroyInfo;
-}
-
-type DoDestroyInfo = {
-    type: "unicorn" | "upgrade" | "any" | "my_downgrade_other_upgrade";
-    count?: number;
 }
 
 type ParamDestroy = {

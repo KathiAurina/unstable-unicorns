@@ -31,7 +31,7 @@ const Wrapper = styled.div<{isGlowing: boolean}>`
     background-size: cover;
     background-repeat: no-repeat;
     cursor: pointer;
-    animation: ${props => props.isGlowing ? css`${glow} 1s infinite alternate` : 'null'};
+    animation: ${props => props.isGlowing ? css`${glow} 1s infinite alternate` : 'none'};
     border-radius: 16px;
     border: 4px solid black;
     transform: rotate(4deg);

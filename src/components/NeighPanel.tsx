@@ -1,6 +1,6 @@
 import _ from 'underscore';
 import styled from 'styled-components';
-import { UnstableUnicornsGame, Ctx } from '../game/game';
+import type { UnstableUnicornsGame, Ctx } from '../game/state';
 import type { Moves } from '../game/types';
 import NeighLabel, { NeighLabelRole } from '../ui/NeighLabel';
 

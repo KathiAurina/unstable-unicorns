@@ -1,17 +1,11 @@
 import { CardID, isUnicorn } from "../card";
-import { UnstableUnicornsGame, Ctx } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
 import { enter, canEnter } from "./enter";
 
-export interface DoRevive {
-    key: "revive";
-    info: DoReviveInfo;
-}
-
-export type DoReviveInfo = {
-    type: "unicorn" | "basic_unicorn";
-}
+import type { DoReviveInfo, DoAddFromDiscardPileToHandInfo } from '../do-types';
+export type { DoRevive, DoReviveInfo, DoAddFromDiscardPileToHand, DoAddFromDiscardPileToHandInfo, DoReviveFromNursery } from '../do-types';
 
 export type ParamRevive = {
     protagonist: PlayerID;
@@ -47,15 +41,6 @@ export function findReviveTarget(G: UnstableUnicornsGame, ctx: Ctx, protagonist:
     return targets;
 }
 
-export interface DoAddFromDiscardPileToHand {
-    key: "addFromDiscardPileToHand";
-    info: DoAddFromDiscardPileToHandInfo;
-}
-
-export type DoAddFromDiscardPileToHandInfo = {
-    type: "magic" | "unicorn" | "neigh";
-}
-
 export type AddFromDiscardPileToHandParam = {
     protagonist: PlayerID;
     cardID: CardID;
@@ -82,10 +67,6 @@ export function findAddFromDiscardPileToHand(G: UnstableUnicornsGame, ctx: Ctx, 
     }
 
     return targets;
-}
-
-export interface DoReviveFromNursery {
-    key: "reviveFromNursery";
 }
 
 export type ParamReviveFromNursery = {

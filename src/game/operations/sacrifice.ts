@@ -1,18 +1,13 @@
 import { CardID, isUnicorn } from "../card";
-import { UnstableUnicornsGame, Ctx, _addSceneFromDo } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
+import { _addSceneFromDo } from "../state";
 import type { PlayerID } from "../player";
 import { isCardBasicDueToEffect } from "../effect";
 import _ from 'underscore';
 import { leave } from "./enter";
 
-export interface DoSacrifice {
-    key: "sacrifice";
-    info: DoSacrificeInfo;
-}
-
-export type DoSacrificeInfo = {
-    type: "unicorn" | "downgrade" | "this" | "any";
-}
+import type { DoSacrificeInfo } from '../do-types';
+export type { DoSacrifice, DoSacrificeInfo } from '../do-types';
 
 export type ParamSacrifice = {
     protagonist: PlayerID;

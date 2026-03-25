@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import useSound from 'use-sound';
-import { UnstableUnicornsGame, Ctx } from '../game/game';
+import type { UnstableUnicornsGame, Ctx } from '../game/state';
 
 const YourTurnSound = require('../assets/sound/ALERT_YourTurn_0v2.ogg');
 const DrawCardSound = require('../assets/sound/draw_card_and_add_to_hand_1.ogg');

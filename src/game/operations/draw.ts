@@ -1,13 +1,8 @@
-import { UnstableUnicornsGame, Ctx } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
 
-export interface DoDraw {
-    key: "draw";
-    info: {
-        count: number;
-    }
-}
+export type { DoDraw } from '../do-types';
 
 export type ParamDraw = {
     protagonist: PlayerID;

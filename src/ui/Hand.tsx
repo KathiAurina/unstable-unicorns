@@ -102,8 +102,8 @@ const CardWrapper = styled.div<{ bringToForeground: boolean, borderColor: string
     border: 8px solid ${props => props.borderColor};
     transform: translate(${props => props.transform.x}px, ${props => props.transform.y}px) rotate(${props => props.transform.rotate});
     box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
-    animation: ${props => props.isGlowing ? css`${glow} 1s infinite alternate` : 'null'};
+    transition: transform 0.3s cubic-bezier(.25,.8,.25,1), box-shadow 0.3s cubic-bezier(.25,.8,.25,1);
+    animation: ${props => props.isGlowing ? css`${glow} 1s infinite alternate` : 'none'};
     :hover {
         transform: translate(${props => props.transform.x}px, -90%) scale(1.5);
     }

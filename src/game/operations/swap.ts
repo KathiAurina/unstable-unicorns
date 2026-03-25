@@ -1,13 +1,11 @@
 import { CardID, isUnicorn } from "../card";
-import { UnstableUnicornsGame, Ctx } from "../game";
+import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
 import { enter, leave } from "./enter";
 import { sacrifice } from "./sacrifice";
 
-export type DoSwapHands = {
-    key: "swapHands"
-};
+export type { DoSwapHands, DoShakeUp, DoReset, DoShuffleDiscardPileIntoDrawPile, DoUnicornSwap1, DoUnicornSwap2 } from '../do-types';
 
 type SwapHandsTargets = {
     playerID: PlayerID
@@ -25,19 +23,11 @@ export function findSwapHandsTargets(G: UnstableUnicornsGame, ctx: Ctx, protagon
     return targets;
 }
 
-export type DoShakeUp = {
-    key: "shakeUp";
-}
-
 export function shakeUp(G: UnstableUnicornsGame, ctx: Ctx, param: {protagonist: PlayerID, sourceCardID: CardID}) {
     G.drawPile = _.shuffle([...G.drawPile, param.sourceCardID, ...G.hand[param.protagonist], ...G.discardPile]);
     G.discardPile = [];
     G.hand[param.protagonist] = _.first(G.drawPile, 5);
     G.drawPile = _.rest(G.drawPile, 5);
-}
-
-export type DoReset = {
-    key: "reset";
 }
 
 export function reset(G: UnstableUnicornsGame, ctx: Ctx, param: {protagonist: PlayerID}) {
@@ -50,17 +40,9 @@ export function reset(G: UnstableUnicornsGame, ctx: Ctx, param: {protagonist: Pl
     G.drawPile = _.shuffle([...G.drawPile, ...G.discardPile]);
 }
 
-export type DoShuffleDiscardPileIntoDrawPile = {
-    key: "shuffleDiscardPileIntoDrawPile"
-}
-
 export function shuffleDiscardPileIntoDrawPile(G: UnstableUnicornsGame, ctx: Ctx, _param: unknown) {
     G.drawPile = _.shuffle([...G.drawPile, ...G.discardPile]);
     G.discardPile = [];
-}
-
-export type DoUnicornSwap1 = {
-    key: "unicornSwap1"
 }
 
 export function unicornSwap1(G: UnstableUnicornsGame, ctx:Ctx, param: {protagonist: PlayerID, cardID: CardID}) {
@@ -81,10 +63,6 @@ export function findUnicornSwap1Targets(G:UnstableUnicornsGame, ctx: Ctx, protag
     });
 
     return targets;
-}
-
-export type DoUnicornSwap2 = {
-    key: "unicornSwap2"
 }
 
 export function unicornSwap2(G: UnstableUnicornsGame, ctx:Ctx, param: {protagonist: PlayerID, playerID: PlayerID}) {

@@ -159,9 +159,9 @@ const CardImage = styled(motion.img)<{color: string, isGlowing: boolean, isTrans
     height: 64px;
     border-radius: 12px;
     border: 4px solid ${props => props.color};
-    animation: ${props => props.isGlowing ? css`${glow} 1s infinite alternate` : 'null'};
+    animation: ${props => props.isGlowing ? css`${glow} 1s infinite alternate` : 'none'};
     opacity: ${props => !props.isTranslucent ? 1 : 0.5};
-    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+    transition: opacity 0.3s cubic-bezier(.25,.8,.25,1), box-shadow 0.3s cubic-bezier(.25,.8,.25,1);
 `;
 
 const MiniCardImage = styled(motion.img)<{color: string, isGlowing: boolean, isTranslucent: boolean}>`
@@ -171,9 +171,9 @@ const MiniCardImage = styled(motion.img)<{color: string, isGlowing: boolean, isT
     border: 2px solid ${props => props.color};
     cursor: pointer;
     margin: 0 0.25em;
-    animation: ${props => props.isGlowing ? css`${glow} 1s infinite alternate` : 'null'};
+    animation: ${props => props.isGlowing ? css`${glow} 1s infinite alternate` : 'none'};
     opacity: ${props => !props.isTranslucent ? 1 : 0.5};
-    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+    transition: opacity 0.3s cubic-bezier(.25,.8,.25,1), box-shadow 0.3s cubic-bezier(.25,.8,.25,1);
 `;
 
 const Placeholder = styled.div`

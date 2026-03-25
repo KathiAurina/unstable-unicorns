@@ -1,5 +1,6 @@
 import styled from 'styled-components';
-import { UnstableUnicornsGame, Ctx, _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist } from '../game/game';
+import type { UnstableUnicornsGame, Ctx } from '../game/state';
+import { _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist } from '../game/state';
 import { BoardState } from '../BoardStateManager';
 import InfoLabel from '../ui/InfoLabel';
 

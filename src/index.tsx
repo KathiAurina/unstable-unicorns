@@ -9,14 +9,12 @@ import { theme } from './theme/theme';
 import GlobalStyle from './theme/GlobalStyle';
 
 ReactDOM.render(
-  <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <GlobalStyle />
-      <LanguageContextProvider>
-        <App />
-      </LanguageContextProvider>
-    </ThemeProvider>
-  </React.StrictMode>,
+  <ThemeProvider theme={theme}>
+    <GlobalStyle />
+    <LanguageContextProvider>
+      <App />
+    </LanguageContextProvider>
+  </ThemeProvider>,
   document.getElementById('root')
 );
 

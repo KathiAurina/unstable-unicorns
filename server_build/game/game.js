@@ -3,18 +3,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports._addSceneFromDo = exports._findInProgressScenesWithProtagonist = exports._findOpenScenesWithProtagonist = exports._findInstruction = void 0;
 exports.canPlayCard = canPlayCard;
 exports.canDraw = canDraw;
-exports._addSceneFromDo = _addSceneFromDo;
-exports._findOpenScenesWithProtagonist = _findOpenScenesWithProtagonist;
-exports._findInProgressScenesWithProtagonist = _findInProgressScenesWithProtagonist;
-exports._findInstruction = _findInstruction;
-const do_1 = require("./do");
+const operations_1 = require("./operations");
+const operations_2 = require("./operations");
 const card_1 = require("./card");
 const constants_1 = require("./constants");
-const do_2 = require("./do");
 const effect_1 = require("./effect");
 const underscore_1 = __importDefault(require("underscore"));
+const state_1 = require("./state");
+var state_2 = require("./state");
+Object.defineProperty(exports, "_findInstruction", { enumerable: true, get: function () { return state_2._findInstruction; } });
+Object.defineProperty(exports, "_findOpenScenesWithProtagonist", { enumerable: true, get: function () { return state_2._findOpenScenesWithProtagonist; } });
+Object.defineProperty(exports, "_findInProgressScenesWithProtagonist", { enumerable: true, get: function () { return state_2._findInProgressScenesWithProtagonist; } });
+Object.defineProperty(exports, "_addSceneFromDo", { enumerable: true, get: function () { return state_2._addSceneFromDo; } });
 const UnstableUnicorns = {
     name: "unstable_unicorns",
     setup: (ctx, _setupData) => {
@@ -89,7 +92,7 @@ const UnstableUnicorns = {
                 G.countPlayedCardsInActionPhase = 0;
                 G.mustEndTurnImmediately = false;
                 // begin of turn: add scene
-                [...G.stable[ctx.currentPlayer], ...G.upgradeDowngradeStable[ctx.currentPlayer]].forEach(c => _addSceneFromDo(G, ctx, c, ctx.currentPlayer, "begin_of_turn"));
+                [...G.stable[ctx.currentPlayer], ...G.upgradeDowngradeStable[ctx.currentPlayer]].forEach(c => (0, state_1._addSceneFromDo)(G, ctx, c, ctx.currentPlayer, "begin_of_turn"));
                 // begin of turn: add effect
                 [...G.stable[ctx.currentPlayer], ...G.upgradeDowngradeStable[ctx.currentPlayer]].forEach(c => {
                     const card = G.deck[c];
@@ -120,11 +123,11 @@ const UnstableUnicorns = {
                 moves: { ready, selectBaby, changeName }
             },
             beginning: {
-                moves: { drawAndAdvance, executeDo: do_2.executeDo, end, commit, skipExecuteDo }
+                moves: { drawAndAdvance, executeDo: operations_2.executeDo, end, commit, skipExecuteDo }
             },
             action_phase: {
                 moves: {
-                    commit, executeDo: do_2.executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo
+                    commit, executeDo: operations_2.executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo
                 }
             }
         }
@@ -185,7 +188,7 @@ function drawAndAdvance(G, ctx) {
 }
 function canPlayCard(G, ctx, protagonist, cardID) {
     if (ctx.currentPlayer === protagonist && ctx.activePlayers[protagonist] === "action_phase" && (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch")))) {
-        return (0, do_1.canEnter)(G, ctx, { playerID: protagonist, cardID });
+        return (0, operations_1.canEnter)(G, ctx, { playerID: protagonist, cardID });
     }
     return false;
 }
@@ -193,7 +196,7 @@ function playCard(G, ctx, protagonist, cardID) {
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
     G.hand[protagonist] = underscore_1.default.without(G.hand[protagonist], cardID);
     if (G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
-        (0, do_1.enter)(G, ctx, { playerID: protagonist, cardID });
+        (0, operations_1.enter)(G, ctx, { playerID: protagonist, cardID });
     }
     else {
         // resolve neigh
@@ -210,7 +213,7 @@ function playUpgradeDowngradeCard(G, ctx, protagonist, targetPlayer, cardID) {
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
     G.hand[protagonist] = underscore_1.default.without(G.hand[protagonist], cardID);
     if (G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
-        (0, do_1.enter)(G, ctx, { playerID: targetPlayer, cardID });
+        (0, operations_1.enter)(G, ctx, { playerID: targetPlayer, cardID });
     }
     else {
         // resolve neigh
@@ -263,7 +266,7 @@ function playSuperNeigh(G, ctx, cardID, protagonist, roundIndex) {
             G.lastNeighResult = { id: underscore_1.default.uniqueId(), result: "cardWasNeighed" };
         }
         else {
-            (0, do_1.enter)(G, ctx, { playerID: G.neighDiscussion.protagonist, cardID: G.neighDiscussion.cardID });
+            (0, operations_1.enter)(G, ctx, { playerID: G.neighDiscussion.protagonist, cardID: G.neighDiscussion.cardID });
             G.lastNeighResult = { id: underscore_1.default.uniqueId(), result: "cardWasPlayed" };
         }
         G.neighDiscussion = undefined;
@@ -282,7 +285,7 @@ function dontPlayNeigh(G, ctx, protagonist, roundIndex) {
                 G.lastNeighResult = { id: underscore_1.default.uniqueId(), result: "cardWasNeighed" };
             }
             else {
-                (0, do_1.enter)(G, ctx, { playerID: G.neighDiscussion.target, cardID: G.neighDiscussion.cardID });
+                (0, operations_1.enter)(G, ctx, { playerID: G.neighDiscussion.target, cardID: G.neighDiscussion.cardID });
                 G.lastNeighResult = { id: underscore_1.default.uniqueId(), result: "cardWasPlayed" };
             }
             G.neighDiscussion = undefined;
@@ -295,11 +298,11 @@ function canDraw(G, ctx) {
     }
     if (ctx.activePlayers[ctx.currentPlayer] === "beginning") {
         // if there is a mandatory scene => one cannot draw
-        if (_findOpenScenesWithProtagonist(G, ctx.currentPlayer).find(([instr, sc]) => sc.mandatory === true)) {
+        if ((0, state_1._findOpenScenesWithProtagonist)(G, ctx.currentPlayer).find(([instr, sc]) => sc.mandatory === true)) {
             return false;
         }
         // if there is an ongoing scene => one cannot draw
-        if (_findInProgressScenesWithProtagonist(G, ctx.currentPlayer).length > 0) {
+        if ((0, state_1._findInProgressScenesWithProtagonist)(G, ctx.currentPlayer).length > 0) {
             return false;
         }
         return true;
@@ -359,127 +362,9 @@ function commit(G, ctx, sceneID) {
     G.script.scenes.find(sc => sc.id === sceneID).mandatory = true;
 }
 function skipExecuteDo(G, ctx, protagonist, instructionID) {
-    const found = _findInstruction(G, instructionID);
+    const found = (0, state_1._findInstruction)(G, instructionID);
     if (found !== undefined) {
         found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
     }
 }
 exports.default = UnstableUnicorns;
-// Helper
-function _addSceneFromDo(G, ctx, cardID, owner, trigger) {
-    const card = G.deck[cardID];
-    if (!card.on) {
-        return;
-    }
-    // all unicorns are basic — trigger no effect
-    if ((0, effect_1.isCardBasicDueToEffect)(G.playerEffects[owner], card))
-        return;
-    card.on.forEach(on => {
-        if (on.do.type === "add_scene" && (on.trigger === trigger || trigger === "any")) {
-            const newScene = {
-                id: underscore_1.default.uniqueId(),
-                mandatory: on.do.info.mandatory,
-                endTurnImmediately: on.do.info.endTurnImmediately,
-                actions: on.do.info.actions.map(ac => {
-                    let instructions = [];
-                    ac.instructions.forEach(c => {
-                        let protagonists = [];
-                        if (c.protagonist === "owner") {
-                            protagonists.push(owner);
-                        }
-                        else if (c.protagonist === "all") {
-                            protagonists = G.players.map(pl => pl.id);
-                        }
-                        protagonists.forEach(pid => {
-                            instructions.push({
-                                id: underscore_1.default.uniqueId(),
-                                protagonist: pid,
-                                state: "open",
-                                do: c.do,
-                                ui: { ...c.ui, info: { source: card.id, ...c.ui.info } },
-                            });
-                        });
-                    });
-                    const action = {
-                        type: "action",
-                        instructions: instructions
-                    };
-                    return action;
-                })
-            };
-            G.script.scenes = [...G.script.scenes, newScene];
-        }
-    });
-}
-// find all scenes that have already started and are not finished
-// or all scenes that have not started yet
-function _findOpenScenesWithProtagonist(G, protagonist) {
-    let scenes = [];
-    let stop = false;
-    G.script.scenes.forEach(scene => {
-        scene.actions.forEach(action => {
-            if (stop) {
-                return;
-            }
-            // find most recent action
-            if (action.instructions.filter(ins => ins.state === "open" || ins.state === "in_progress").length > 0) {
-                stop = true;
-                const inst = action.instructions.filter(ins => ins.protagonist === protagonist && (ins.state === "open" || ins.state === "in_progress"));
-                inst.forEach(i => scenes.push([i, scene]));
-            }
-        });
-        stop = false;
-    });
-    return scenes;
-}
-// a scene is in progress if its first action is finished
-function _findInProgressScenesWithProtagonist(G, protagonist) {
-    let scenes = [];
-    let stop = false;
-    G.script.scenes.forEach(scene => {
-        if (scene.mandatory) {
-            const action = underscore_1.default.first(scene.actions);
-            if (action.instructions.filter(ins => ins.state === "open" || ins.state === "in_progress").length > 0) {
-                stop = true;
-                const inst = action.instructions.filter(ins => ins.protagonist === protagonist && (ins.state === "open" || ins.state === "in_progress"));
-                inst.forEach(i => scenes.push([i, scene]));
-            }
-        }
-        scene.actions.forEach((action, idx) => {
-            if (stop || idx === 0) {
-                return;
-            }
-            // find most recent open action excluding the first action
-            if (action.instructions.filter(ins => ins.state === "open" || ins.state === "in_progress").length > 0) {
-                // check if the prior action was completed
-                if (scene.actions[idx - 1].instructions.filter(ins => ins.state === "executed").length === scene.actions[idx - 1].instructions.length) {
-                    stop = true;
-                    const inst = action.instructions.filter(ins => ins.protagonist === protagonist && (ins.state === "open" || ins.state === "in_progress"));
-                    inst.forEach(i => scenes.push([i, scene]));
-                }
-            }
-        });
-        stop = false;
-    });
-    return scenes;
-}
-function _findInstruction(G, instructionID) {
-    let instruction;
-    let action;
-    let scene;
-    G.script.scenes.forEach(sc => {
-        sc.actions.forEach(ac => {
-            ac.instructions.forEach(ic => {
-                if (ic.id === instructionID) {
-                    instruction = ic;
-                    action = ac;
-                    scene = sc;
-                }
-            });
-        });
-    });
-    if (instruction === undefined || action === undefined || scene === undefined) {
-        return undefined;
-    }
-    return { instruction, action, scene };
-}

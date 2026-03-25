@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.leave = leave;
 exports.enter = enter;
 exports.canEnter = canEnter;
-const game_1 = require("../game");
+const state_1 = require("../state");
 const effect_1 = require("../effect");
 const underscore_1 = __importDefault(require("underscore"));
 const constants_1 = require("../constants");
@@ -93,7 +93,7 @@ function enter(G, ctx, param) {
         // all unicorns are basic — trigger no effect
         if ((0, effect_1.isCardBasicDueToEffect)(G.playerEffects[param.playerID], card))
             return;
-        (0, game_1._addSceneFromDo)(G, ctx, param.cardID, param.playerID, "enter");
+        (0, state_1._addSceneFromDo)(G, ctx, param.cardID, param.playerID, "enter");
         cardOnEnter.filter(on => on.do.type === "auto").forEach(on => {
             if (on.do.type === "auto" && on.do.info.key === "sacrifice_all_downgrades") {
                 const toBeRemoved = underscore_1.default.filter(G.upgradeDowngradeStable[param.playerID], c => {

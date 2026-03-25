@@ -11,12 +11,15 @@ module.exports = function(app) {
   );
 
   // Proxy Socket.IO (boardgame.io real-time game, includes WebSocket upgrade)
+  // Filter excludes /ws which is CRA's HMR WebSocket — don't proxy that
   app.use(
-    '/socket.io',
-    createProxyMiddleware({
-      target: 'http://localhost:8000',
-      changeOrigin: true,
-      ws: true,
-    })
+    createProxyMiddleware(
+      (pathname) => pathname.startsWith('/socket.io'),
+      {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        ws: true,
+      }
+    )
   );
 };
