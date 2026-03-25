@@ -1,117 +1,115 @@
-# Welcome to Unstable Unicorns
+# Unstable Unicorns Online
 
-This is an online game variant of Unstable Unicorns. All you need is a browser and some friends to play with you.
-
-**Demo:** [unstable-unicorns-online.herokuapp.com/:matchID/:numOfPlayers/:playerID](https://unstable-unicorns-online.herokuapp.com/hello-world/6/0)
+An online multiplayer implementation of the Unstable Unicorns card game, playable in any browser. Host it yourself and play with friends over the internet or on a local network.
 
 ![Screenshot of Unstable Unicorns](https://i.imgur.com/jfeCMAw.png)
 
-To create a game type the following url into your browser
+---
 
- `unstable-unicorns-online.herokuapp.com/hello-world/6/0`
+## Prerequisites
 
-This will create a game with match id `hello-world` for `6` players. You will enter the game as a player with id `0`.
+- [Node.js](https://nodejs.org/) (v16+)
+- Git
 
-To play with your friends, share the link
- `unstable-unicorns-online.herokuapp.com/hello-world/6/PLAYER_ID`
- with your friends where you replace `PLAYER_ID` with a number from 0 to 5. Each of your friends including you should receive a unique player id. 
+---
 
-## Game Rules
+## Setup
 
-[Unstable Unicorns Game Rules (PDF File)](https://12ax7web.s3.amazonaws.com/accounts/2/homepage/UU_New-Rules_v1.pdf)
+```bash
+git clone https://github.com/KathiAurina/unstable-unicorns.git
+cd unstable-unicorns
+npm install
+```
 
-## Current State
+---
 
-It is *playable*! However, sometimes you can get stuck in the game, e.g. when a player needs to discard a card but that player has no cards on their hand. For that, there are invisible buttons in the left top corner and right top corner. Clicking the invisible button in the right top corner will end the turn of the current player; the other button in the left top corner will end the current action scene of the player. The section *Implementation Details* will contain more information what an action scene is but for now it is incomplete. I will update it later if I have time.
+## Running Locally
 
-*Some special features*
+You need two terminal windows running simultaneously:
 
- - hover effects
- - sound effects
+**Terminal 1 — Game server** (port 8000)
+```bash
+npm run build:server
+npm run serve
+```
 
-## Implementation Details
+**Terminal 2 — Frontend** (port 3000, with hot-reload)
+```bash
+npm start
+```
 
-This game was developed using [boardgame.io](boardgame.io), React and Typescript.
+Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
-*To-Do: describe architecture, etc...*
+> The frontend dev server automatically proxies all game API requests to the backend on port 8000 — no extra configuration needed.
 
-## Getting Started
+---
 
-To run this project locally on your machine, follow these steps:
+## Playing a Game
 
-### Prerequisites
+1. Open the **Lobby** at [http://localhost:3000](http://localhost:3000).
+2. Enter a name and the number of players, then click **Create Game**.
+3. The game appears in the list below — click **Join** to enter.
+4. Share the lobby URL with your friends so they can join the same game.
+5. Once everyone has joined, each player picks a baby unicorn and the game starts.
+6. On your turn: draw a card, then optionally play one from your hand.
+7. First player to collect 7 unicorns in their stable wins.
 
-- [Node.js](https://nodejs.org/) installed on your machine.
-- Git to clone the repository.
+> **Playing over the internet?** Your friends need to be able to reach your machine. The easiest options are running on a VPS, using a tunneling tool like [ngrok](https://ngrok.com/), or making sure your router forwards port 8000 to your machine.
 
-### Installation
+---
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/unstable-unicorns.git
-    cd unstable-unicorns
-    ```
+## Production Build
 
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
+If you want a single optimized server (no hot-reload):
 
-### Running in Development Mode
+```bash
+npm run build         # builds the frontend
+npm run build:server  # builds the backend
+npm run serve         # serves everything on port 8000
+```
 
-For the best development experience (with hot-reloading), you need two terminal windows.
+Open [http://localhost:8000](http://localhost:8000).
 
-**Terminal 1: The Game Server (Backend)**
+---
 
-This runs the game logic and API.
+## Tests
 
-1.  Build the server code:
-    ```bash
-    npm run build:server
-    ```
-2.  Start the server:
-    ```bash
-    npm run serve
-    ```
-    You should see output indicating the API is running on port 8080 and the App on port 8000.
+```bash
+npm test
+npm test -- --testPathPattern=<filename>   # run a single test file
+```
 
-**Terminal 2: The Client (Frontend)**
+---
 
-This runs the React frontend.
+## Known Limitations
 
-1.  Start the development server:
-    ```bash
-    npm start
-    ```
-2.  This will automatically open your browser at [http://localhost:3000](http://localhost:3000). You should see the Lobby.
+- **~90% of cards implemented.** A handful of edge-case card interactions are still missing.
+- **Emergency escape hatches:** If the game gets stuck (e.g. a player must discard but has no cards in hand), there are invisible buttons in the top-left and top-right corners of the board. Clicking the top-right button force-ends the current turn; the top-left button skips the current action.
 
-### How to Play
+---
 
-1.  Go to the **Lobby** running at `http://localhost:3000`.
-2.  Under **Create New Game**, verify the number of players (default is 2) and optionally give your game a name.
-3.  Click **Create Game**.
-4.  The game will appear in the **Existing Games** list below.
-5.  Click **Join as Player 0** to join the game. This will open the game board in a new tab.
-6.  To play with yourself for testing (or friends locally), open another tab/window for `http://localhost:3000` and join the same game as **Player 1**.
+## Technical Overview
 
-### Building for Production
+Built with **React**, **TypeScript**, and **[boardgame.io](https://boardgame.io)**. The backend is a Node.js/Koa server that runs the game logic and syncs state to all clients in real-time via WebSockets. Game rules and card definitions are shared between client and server.
 
-If you want to run the optimized production build locally:
+### Stack
 
-1.  Build the frontend: `npm run build`
-2.  Build the backend: `npm run build:server`
-3.  Start the server: `npm run serve`
-4.  Access the game at [http://localhost:8000](http://localhost:8000).
+| Layer | Technology |
+|---|---|
+| Frontend | React 17, React Router 5, styled-components, Framer Motion |
+| Game engine | boardgame.io v0.43 |
+| Backend | Node.js, Koa, TypeScript |
+| Multiplayer sync | SocketIO (via boardgame.io) |
 
-## Implementation Details
+### How it works
 
-This game was developed using [boardgame.io](boardgame.io), React and Typescript.
+All game state lives on the server. When a player takes an action (plays a card, steals a unicorn, etc.), the client sends a **move** to the server. The server validates and applies it, then broadcasts the updated state to every connected client.
 
-## To-Do
+Card effects are modelled as a queue of **scenes** (`G.script`). Each scene contains instructions for specific players (e.g. "player 2 must now choose a card to discard"). `BoardStateManager.getBoardState()` reads this queue and translates it into the concrete UI actions shown to each player.
 
- - not all cards have been implemented yet (~90% finished) 
- - drag and drop 
- - make the game more interactive
- - UI...
- - etc...
+### Environment variables
 
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `8000` | Server port |
+| `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin |
