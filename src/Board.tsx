@@ -22,6 +22,7 @@ import type { Moves } from './game/types';
 import GameLabel from './ui/GameLabel';
 import type { SearchTarget } from './game/operations';
 import CharacterSelectionPage from './components/pregame/CharacterSelectionPage';
+import EscapeMenu from './components/EscapeMenu';
 import React from 'react';
 import { LanguageContext } from './LanguageContextProvider';
 import { useSoundEffects } from './hooks/useSoundEffects';
@@ -112,33 +113,70 @@ const Board = (props: Props) => {
     }
 
     const [C2CArrow, setC2CArrow] = useState<{ fromX: number, fromY: number, toX: number, toY: number } | undefined>(undefined);
+    const [escapeMenuOpen, setEscapeMenuOpen] = useState(false);
+    const [gameoverDismissed, setGameoverDismissed] = useState(false);
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setEscapeMenuOpen(prev => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const escapeMenu = (
+        <EscapeMenu
+            isOpen={escapeMenuOpen}
+            onClose={() => setEscapeMenuOpen(false)}
+            isOwner={G.owner === playerID}
+            isCurrentPlayer={ctx.currentPlayer === playerID}
+            playerID={playerID}
+            G={G}
+            ctx={ctx}
+            moves={moves}
+        />
+    );
+
+    const gameoverOverlay = ctx.gameover && !gameoverDismissed ? (() => {
+        const isAborted = (ctx.gameover as any).aborted;
+        const message = isAborted
+            ? 'Game was ended by host'
+            : `Player "${G.players[parseInt((ctx.gameover as any).winner)]?.name ?? (ctx.gameover as any).winner}" wins!`;
+        return (
+            <GameOverOverlay>
+                <GameOverCard>
+                    <GameOverMessage>{message}</GameOverMessage>
+                    <ReturnButton onClick={() => { window.location.href = '/lobby'; }}>
+                        Return to Lobby
+                    </ReturnButton>
+                    {!isAborted && (
+                        <DismissButton onClick={() => setGameoverDismissed(true)}>
+                            View Board
+                        </DismissButton>
+                    )}
+                </GameOverCard>
+            </GameOverOverlay>
+        );
+    })() : null;
 
     if (ctx.phase === "pregame") {
         return (
-            <CharacterSelectionPage G={G} babyCards={_.first(G.deck, 13)} playerID={playerID} moves={moves} />
+            <>
+                {escapeMenu}
+                {gameoverOverlay}
+                <CharacterSelectionPage G={G} babyCards={_.first(G.deck, 13)} playerID={playerID} moves={moves} />
+            </>
         );
     }
 
     return (
+        <>
+        {escapeMenu}
+        {gameoverOverlay}
         <AnimateSharedLayout>
             <Wrapper layout onMouseMove={wrapperOnMouseMove}>
-                <div style={{
-                    position: "absolute", top: 0, left: 100
-                }} onClick={() => {
-                    context!.setLanguage("de")
-                }}>
-                    Deutsch
-                </div>
-                <div style={{
-                    position: "absolute", top: 0, right: 100
-                }} onClick={() => {
-                    context!.setLanguage("en")
-                }}>
-                    Englisch
-                </div>
-
-
                 <OverlayManager
                     G={G}
                     boardStates={boardStates}
@@ -281,6 +319,7 @@ const Board = (props: Props) => {
                 </Bottom>
             </Wrapper>
             </AnimateSharedLayout>
+        </>
     );
 }
 
@@ -392,6 +431,72 @@ const EndTurnButtonWrapper = styled.div`
     top: 110%;
     z-index: 3000;
     width: 200px;
+`;
+
+const GameOverOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+`;
+
+const GameOverCard = styled.div`
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    padding: 48px 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+`;
+
+const GameOverMessage = styled.h2`
+    font-size: 26px;
+    font-weight: 800;
+    color: #333;
+    margin: 0;
+    text-align: center;
+`;
+
+const ReturnButton = styled.button`
+    padding: 14px 32px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77, #4D96FF, #9B59B6);
+    color: white;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+        transform: scale(1.03);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+`;
+
+const DismissButton = styled.button`
+    padding: 10px 28px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Nunito', sans-serif;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    background: transparent;
+    color: #555;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+
+    &:hover {
+        transform: scale(1.03);
+        border-color: #aaa;
+        color: #333;
+    }
 `;
 
 export default Board;
