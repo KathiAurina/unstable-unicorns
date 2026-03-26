@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports._addSceneFromDo = exports._findInProgressScenesWithProtagonist = exports._findOpenScenesWithProtagonist = exports._findInstruction = void 0;
 exports.canPlayCard = canPlayCard;
 exports.canDraw = canDraw;
+const core_1 = require("boardgame.io/core");
 const operations_1 = require("./operations");
 const operations_2 = require("./operations");
 const card_1 = require("./card");
@@ -20,7 +21,7 @@ Object.defineProperty(exports, "_findInProgressScenesWithProtagonist", { enumera
 Object.defineProperty(exports, "_addSceneFromDo", { enumerable: true, get: function () { return state_2._addSceneFromDo; } });
 const UnstableUnicorns = {
     name: "unstable_unicorns",
-    setup: (ctx, _setupData) => {
+    setup: (ctx, setupData) => {
         const players = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
@@ -37,6 +38,7 @@ const UnstableUnicorns = {
         let upgradeDowngradeStable = {};
         let playerEffects = {};
         let ready = {};
+        let lastHeartbeat = {};
         players.forEach(pl => {
             ready[pl.id] = false;
             hand[pl.id] = underscore_1.default.first(drawPile, constants_1.CONSTANTS.numberOfHandCardsAtStart);
@@ -45,6 +47,7 @@ const UnstableUnicorns = {
             temporaryStable[pl.id] = [];
             upgradeDowngradeStable[pl.id] = [];
             playerEffects[pl.id] = [];
+            lastHeartbeat[pl.id] = Date.now();
         });
         return {
             players,
@@ -65,6 +68,8 @@ const UnstableUnicorns = {
             babyStarter: [],
             ready,
             lastNeighResult: undefined,
+            owner: setupData?.ownerPlayerID ?? "0",
+            lastHeartbeat,
         };
     },
     phases: {
@@ -120,14 +125,14 @@ const UnstableUnicorns = {
         },
         stages: {
             pregame: {
-                moves: { ready, selectBaby, changeName }
+                moves: { ready, selectBaby, deselectBaby, changeName, abolishGame, heartbeat, cancelAbandonedGame }
             },
             beginning: {
-                moves: { drawAndAdvance, executeDo: operations_2.executeDo, end, commit, skipExecuteDo }
+                moves: { drawAndAdvance, executeDo: operations_2.executeDo, end, commit, skipExecuteDo, abolishGame }
             },
             action_phase: {
                 moves: {
-                    commit, executeDo: operations_2.executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo
+                    commit, executeDo: operations_2.executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, abolishGame
                 }
             }
         }
@@ -169,6 +174,11 @@ function changeName(G, ctx, protagonist, name) {
     G.players[parseInt(protagonist)].name = name;
 }
 function ready(G, ctx, protagonist) {
+    const myBaby = G.babyStarter.find(s => s.owner === protagonist);
+    if (!myBaby)
+        return core_1.INVALID_MOVE;
+    if (G.babyStarter.some(s => s.cardID === myBaby.cardID && s.owner !== protagonist))
+        return core_1.INVALID_MOVE;
     G.ready[protagonist] = true;
     if (underscore_1.default.every(underscore_1.default.values(G.ready), bo => bo)) {
         initializeGame(G, ctx);
@@ -176,9 +186,30 @@ function ready(G, ctx, protagonist) {
     }
 }
 function selectBaby(G, ctx, protagonist, cardID) {
-    G.babyStarter.push({
-        cardID, owner: protagonist
-    });
+    if (G.babyStarter.some(s => s.cardID === cardID && s.owner !== protagonist))
+        return core_1.INVALID_MOVE;
+    G.babyStarter = G.babyStarter.filter(s => s.owner !== protagonist);
+    G.babyStarter.push({ cardID, owner: protagonist });
+    G.ready[protagonist] = false;
+}
+function deselectBaby(G, ctx, protagonist) {
+    G.babyStarter = G.babyStarter.filter(s => s.owner !== protagonist);
+    G.ready[protagonist] = false;
+}
+function abolishGame(G, ctx, protagonist) {
+    if (ctx.playerID !== protagonist)
+        return core_1.INVALID_MOVE;
+    if (G.owner === protagonist) {
+        ctx.events?.endGame({ aborted: true });
+    }
+}
+function heartbeat(G, ctx, protagonist) {
+    G.lastHeartbeat[protagonist] = Date.now();
+}
+function cancelAbandonedGame(G, ctx) {
+    if (Date.now() - G.lastHeartbeat[G.owner] > 60000) {
+        ctx.events?.endGame({ aborted: true });
+    }
 }
 function drawAndAdvance(G, ctx) {
     G.hand[ctx.currentPlayer].push(underscore_1.default.first(G.drawPile));
@@ -340,6 +371,8 @@ function _createDiscardOverLimitScene(G, protagonist) {
     G.script.scenes = [...G.script.scenes, newScene];
 }
 function end(G, ctx, protagonist) {
+    if (ctx.playerID !== protagonist && ctx.playerID !== G.owner)
+        return core_1.INVALID_MOVE;
     if (G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck")) {
         G.playerEffects[protagonist] = G.playerEffects[protagonist].filter(o => o.effect.key !== "change_of_luck");
         if (G.hand[protagonist].length > 7) {
@@ -362,6 +395,8 @@ function commit(G, ctx, sceneID) {
     G.script.scenes.find(sc => sc.id === sceneID).mandatory = true;
 }
 function skipExecuteDo(G, ctx, protagonist, instructionID) {
+    if (ctx.playerID !== protagonist && ctx.playerID !== G.owner)
+        return core_1.INVALID_MOVE;
     const found = (0, state_1._findInstruction)(G, instructionID);
     if (found !== undefined) {
         found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");

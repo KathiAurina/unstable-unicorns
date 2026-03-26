@@ -220,6 +220,7 @@ function deselectBaby(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) 
 }
 
 function abolishGame(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    if (ctx.playerID !== protagonist) return INVALID_MOVE;
     if (G.owner === protagonist) {
         ctx.events?.endGame!({ aborted: true });
     }
@@ -414,6 +415,7 @@ function _createDiscardOverLimitScene(G: UnstableUnicornsGame, protagonist: Play
 }
 
 function end(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    if (ctx.playerID !== protagonist && ctx.playerID !== G.owner) return INVALID_MOVE;
     if (G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck")) {
         G.playerEffects[protagonist] = G.playerEffects[protagonist].filter(o => o.effect.key !== "change_of_luck");
 
@@ -436,6 +438,7 @@ function commit(G: UnstableUnicornsGame, ctx: Ctx, sceneID: string) {
 }
 
 function skipExecuteDo(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, instructionID: string) {
+    if (ctx.playerID !== protagonist && ctx.playerID !== G.owner) return INVALID_MOVE;
     const found = _findInstruction(G, instructionID);
     if (found !== undefined) {
         found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
