@@ -29,7 +29,7 @@ export type Clipboard = {
 
 export type SetupData = {
     matchName?: string;
-    ownerPlayerID: string;
+    ownerPlayerID?: PlayerID;
 } | undefined;
 
 // ─── BoardStateInfo ───────────────────────────────────────────────────────────
