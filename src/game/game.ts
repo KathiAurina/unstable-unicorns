@@ -191,6 +191,9 @@ function changeName(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, na
 }
 
 function ready(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    const myBaby = G.babyStarter.find(s => s.owner === protagonist);
+    if (!myBaby) return INVALID_MOVE;
+    if (G.babyStarter.some(s => s.cardID === myBaby.cardID && s.owner !== protagonist)) return INVALID_MOVE;
     G.ready[protagonist] = true;
 
     if (_.every(_.values(G.ready), bo => bo)) {
@@ -200,9 +203,31 @@ function ready(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
 }
 
 function selectBaby(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, cardID: CardID) {
-    G.babyStarter.push({
-        cardID, owner: protagonist
-    });
+    if (G.babyStarter.some(s => s.cardID === cardID && s.owner !== protagonist)) return INVALID_MOVE;
+    G.babyStarter = G.babyStarter.filter(s => s.owner !== protagonist);
+    G.babyStarter.push({ cardID, owner: protagonist });
+    G.ready[protagonist] = false;
+}
+
+function deselectBaby(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    G.babyStarter = G.babyStarter.filter(s => s.owner !== protagonist);
+    G.ready[protagonist] = false;
+}
+
+function abolishGame(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    if (G.owner === protagonist) {
+        ctx.events?.endGame!({ aborted: true });
+    }
+}
+
+function heartbeat(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    G.lastHeartbeat[protagonist] = Date.now();
+}
+
+function cancelAbandonedGame(G: UnstableUnicornsGame, ctx: Ctx) {
+    if (Date.now() - G.lastHeartbeat[G.owner] > 60000) {
+        ctx.events?.endGame!({ aborted: true });
+    }
 }
 
 function drawAndAdvance(G: UnstableUnicornsGame, ctx: Ctx) {

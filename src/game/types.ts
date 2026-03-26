@@ -73,5 +73,6 @@ export type Moves = {
     // pregame
     ready: (protagonist: PlayerID) => void;
     selectBaby: (protagonist: PlayerID, cardID: CardID) => void;
+    deselectBaby: (protagonist: PlayerID) => void;
     changeName: (protagonist: PlayerID, name: string) => void;
 };

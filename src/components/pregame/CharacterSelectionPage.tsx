@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import type { UnstableUnicornsGame } from '../../game/state';
 import type { Card } from '../../game/card';
@@ -17,17 +17,65 @@ type Props = {
 
 const CharacterSelectionPage = ({ G, babyCards, playerID, moves }: Props) => {
     const [playerName, setPlayerName] = useState<string>('Player');
+    const [disconnectCountdown, setDisconnectCountdown] = useState<number | null>(null);
 
     const mySelection = G.babyStarter.find((s) => s.owner === playerID);
     const isReady = G.ready[playerID] === true;
+    const isOwner = playerID === G.owner;
 
-    const handleChangeName = () => {
+    // Send heartbeat every 15s
+    useEffect(() => {
+        moves.heartbeat(playerID);
+        const interval = setInterval(() => moves.heartbeat(playerID), 15000);
+        return () => clearInterval(interval);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Detect owner disconnect (non-owners only)
+    const lastSeenOwnerHeartbeatRef = useRef<number>(G.lastHeartbeat[G.owner]);
+    const lastSeenLocalTimeRef = useRef<number>(Date.now());
+
+    useEffect(() => {
+        if (isOwner) return;
+        const interval = setInterval(() => {
+            if (G.lastHeartbeat[G.owner] !== lastSeenOwnerHeartbeatRef.current) {
+                lastSeenOwnerHeartbeatRef.current = G.lastHeartbeat[G.owner];
+                lastSeenLocalTimeRef.current = Date.now();
+                setDisconnectCountdown(null);
+            } else {
+                const elapsed = (Date.now() - lastSeenLocalTimeRef.current) / 1000;
+                if (elapsed >= 60) {
+                    moves.cancelAbandonedGame();
+                } else if (elapsed >= 30) {
+                    setDisconnectCountdown(Math.ceil(60 - elapsed));
+                }
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [G.lastHeartbeat[G.owner]]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleChangeName = async () => {
         moves.changeName(playerID, playerName);
+        const pathParts = window.location.pathname.split('/');
+        const matchID = pathParts[1];
+        const credentials = new URLSearchParams(window.location.search).get('credentials');
+        const API_URL = process.env.REACT_APP_LOBBY_URL || window.location.origin;
+        try {
+            await fetch(`${API_URL}/games/unstable_unicorns/${matchID}/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerID, credentials, newName: playerName }),
+            });
+        } catch (e) {
+            // game state name already updated, ignore
+        }
     };
 
     const handleSelectBaby = (cardID: number) => {
-        if (mySelection) return;
-        moves.selectBaby(playerID, cardID);
+        if (mySelection && mySelection.cardID === cardID) {
+            moves.deselectBaby(playerID);
+        } else {
+            moves.selectBaby(playerID, cardID);
+        }
     };
 
     const handleReady = () => {
@@ -38,6 +86,11 @@ const CharacterSelectionPage = ({ G, babyCards, playerID, moves }: Props) => {
 
     return (
         <PageWrapper>
+            {disconnectCountdown !== null && !isOwner && (
+                <DisconnectBanner>
+                    Host disconnected. Game will be cancelled in {disconnectCountdown}s...
+                </DisconnectBanner>
+            )}
             <Card>
                 <Title>Character Selection</Title>
 
@@ -168,6 +221,20 @@ const AvatarGrid = styled.div`
 const ReadySection = styled.div`
     margin-top: 8px;
     margin-bottom: 4px;
+`;
+
+const DisconnectBanner = styled.div`
+    background: linear-gradient(90deg, #cc3333, #ff6b6b);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    text-align: center;
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
 `;
 
 export default CharacterSelectionPage;
