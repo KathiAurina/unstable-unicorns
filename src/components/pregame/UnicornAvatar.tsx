@@ -15,7 +15,7 @@ const UnicornAvatar = ({ card, isSelected, isTaken, onClick }: Props) => {
         <AvatarWrapper
             $isSelected={isSelected}
             $isTaken={isTaken}
-            onClick={onClick}
+            onClick={isTaken ? undefined : onClick}
             title={isTaken ? 'Already taken' : card.title}
         >
             <AvatarImage

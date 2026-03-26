@@ -1,0 +1,228 @@
+import React, { useContext } from 'react';
+import styled from 'styled-components';
+import type { UnstableUnicornsGame, Ctx } from '../game/state';
+import type { Moves } from '../game/types';
+import type { PlayerID } from '../game/player';
+import { _findOpenScenesWithProtagonist } from '../game/state';
+import { LanguageContext } from '../LanguageContextProvider';
+
+const API_URL = process.env.REACT_APP_LOBBY_URL || window.location.origin;
+
+type Props = {
+    isOpen: boolean;
+    onClose: () => void;
+    isOwner: boolean;
+    isCurrentPlayer: boolean;
+    playerID: PlayerID;
+    G: UnstableUnicornsGame;
+    ctx: Ctx;
+    moves: Moves;
+};
+
+const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ctx, moves }: Props) => {
+    const languageContext = useContext(LanguageContext);
+
+    if (!isOpen) return null;
+
+    const handleLeaveGame = async () => {
+        const pathParts = window.location.pathname.split('/');
+        const matchID = pathParts[1];
+        const searchParams = new URLSearchParams(window.location.search);
+        const credentials = searchParams.get('credentials');
+
+        try {
+            await fetch(`${API_URL}/games/unstable_unicorns/${matchID}/leave`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerID, credentials }),
+            });
+        } catch (e) {
+            // proceed regardless
+        }
+        window.location.href = '/lobby';
+    };
+
+    const handleEndGame = () => {
+        moves.abolishGame(playerID);
+        onClose();
+    };
+
+    const handleForceEndTurn = () => {
+        moves.end(ctx.currentPlayer);
+        onClose();
+    };
+
+    const handleSkipAction = () => {
+        const openScenes = _findOpenScenesWithProtagonist(G, ctx.currentPlayer);
+        if (openScenes.length > 0) {
+            const [instruction] = openScenes[0];
+            moves.skipExecuteDo(ctx.currentPlayer, instruction.id);
+        }
+        onClose();
+    };
+
+    const showEmergencyButtons = isOwner || isCurrentPlayer;
+
+    return (
+        <Backdrop onClick={onClose}>
+            <Modal onClick={e => e.stopPropagation()}>
+                <Title>Menu</Title>
+
+                <MenuButton onClick={handleLeaveGame}>
+                    Leave Game
+                </MenuButton>
+
+                {isOwner && (
+                    <DangerButton onClick={handleEndGame}>
+                        End Game for Everyone
+                    </DangerButton>
+                )}
+
+                {showEmergencyButtons && (
+                    <>
+                        <Divider />
+                        <SectionLabel>Emergency</SectionLabel>
+                        <MenuButton onClick={handleForceEndTurn}>
+                            Force End Turn
+                        </MenuButton>
+                        <MenuButton onClick={handleSkipAction}>
+                            Skip Current Action
+                        </MenuButton>
+                    </>
+                )}
+
+                <Divider />
+                <SectionLabel>Language</SectionLabel>
+                <LangRow>
+                    <LangButton
+                        $active={languageContext?.language === 'de'}
+                        onClick={() => { languageContext?.setLanguage('de'); onClose(); }}
+                    >
+                        Deutsch
+                    </LangButton>
+                    <LangButton
+                        $active={languageContext?.language === 'en'}
+                        onClick={() => { languageContext?.setLanguage('en'); onClose(); }}
+                    >
+                        English
+                    </LangButton>
+                </LangRow>
+
+                <CloseButton onClick={onClose}>Close</CloseButton>
+            </Modal>
+        </Backdrop>
+    );
+};
+
+const Backdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`;
+
+const Modal = styled.div`
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    padding: 32px 36px;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const Title = styled.h2`
+    font-size: 22px;
+    font-weight: 800;
+    color: #333;
+    margin: 0 0 8px 0;
+    text-align: center;
+`;
+
+const MenuButton = styled.button`
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77, #4D96FF, #9B59B6);
+    color: white;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+        transform: scale(1.02);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    }
+`;
+
+const DangerButton = styled(MenuButton)`
+    background: linear-gradient(90deg, #cc3333, #ff6b6b);
+`;
+
+const Divider = styled.hr`
+    border: none;
+    border-top: 1px solid #eeeeee;
+    margin: 4px 0;
+`;
+
+const SectionLabel = styled.div`
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: -4px;
+`;
+
+const LangRow = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
+const LangButton = styled.button<{ $active: boolean }>`
+    flex: 1;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    border: 2px solid ${({ $active }) => ($active ? '#4D96FF' : '#e0e0e0')};
+    border-radius: 8px;
+    cursor: pointer;
+    background: ${({ $active }) => ($active ? '#eef4ff' : '#f9f9f9')};
+    color: ${({ $active }) => ($active ? '#4D96FF' : '#888')};
+    transition: border-color 0.15s ease, background 0.15s ease;
+
+    &:hover {
+        border-color: #4D96FF;
+        color: #4D96FF;
+    }
+`;
+
+const CloseButton = styled.button`
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Nunito', sans-serif;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    color: #888;
+    margin-top: 4px;
+    transition: border-color 0.15s ease;
+
+    &:hover {
+        border-color: #aaa;
+        color: #555;
+    }
+`;
+
+export default EscapeMenu;

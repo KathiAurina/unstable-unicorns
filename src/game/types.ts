@@ -27,7 +27,10 @@ export type Clipboard = {
 // ─── SetupData ────────────────────────────────────────────────────────────────
 // Passed as second argument to Game.setup(). Currently unused.
 
-export type SetupData = undefined;
+export type SetupData = {
+    matchName?: string;
+    ownerPlayerID?: PlayerID;
+} | undefined;
 
 // ─── BoardStateInfo ───────────────────────────────────────────────────────────
 // The typed replacement for `info?: { [key: string]: any }` on BoardState.
@@ -73,5 +76,9 @@ export type Moves = {
     // pregame
     ready: (protagonist: PlayerID) => void;
     selectBaby: (protagonist: PlayerID, cardID: CardID) => void;
+    deselectBaby: (protagonist: PlayerID) => void;
     changeName: (protagonist: PlayerID, name: string) => void;
+    abolishGame: (protagonist: PlayerID) => void;
+    heartbeat: (protagonist: PlayerID) => void;
+    cancelAbandonedGame: () => void;
 };

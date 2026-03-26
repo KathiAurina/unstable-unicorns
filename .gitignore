@@ -13,6 +13,7 @@
 
 # production
 /build
+/server_build
 
 # misc
 .DS_Store
@@ -28,5 +29,3 @@ yarn-error.log*
 bash.exe.stackdump
 settings.json
 .claude/
-
-bash.exe.stackdump

@@ -1,4 +1,5 @@
 import type { Ctx } from 'boardgame.io';
+import { INVALID_MOVE } from 'boardgame.io/core';
 import type { Player, PlayerID } from './player';
 import type { CardID, OnEnterAddEffect } from './card';
 import { canEnter, enter } from './operations';
@@ -26,7 +27,7 @@ export { _findInstruction, _findOpenScenesWithProtagonist, _findInProgressScenes
 
 const UnstableUnicorns = {
     name: "unstable_unicorns",
-    setup: (ctx: Ctx, _setupData: SetupData): UnstableUnicornsGame => {
+    setup: (ctx: Ctx, setupData: SetupData): UnstableUnicornsGame => {
         const players: Player[] = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
@@ -44,15 +45,17 @@ const UnstableUnicorns = {
         let upgradeDowngradeStable: { [key: string]: CardID[] } = {};
         let playerEffects: { [key: string]: { cardID: CardID, effect: Effect }[] } = {};
         let ready: {[key: string]: boolean} = {};
+        let lastHeartbeat: { [key: string]: number } = {};
 
         players.forEach(pl => {
             ready[pl.id] = false;
             hand[pl.id] = _.first(drawPile, CONSTANTS.numberOfHandCardsAtStart);
             drawPile = _.rest(drawPile, CONSTANTS.numberOfHandCardsAtStart);
-            stable[pl.id] = []; 
+            stable[pl.id] = [];
             temporaryStable[pl.id] = [];
-            upgradeDowngradeStable[pl.id] = []; 
+            upgradeDowngradeStable[pl.id] = [];
             playerEffects[pl.id] = [];
+            lastHeartbeat[pl.id] = Date.now();
         });
 
         return {
@@ -74,6 +77,8 @@ const UnstableUnicorns = {
             babyStarter: [],
             ready,
             lastNeighResult: undefined,
+            owner: setupData?.ownerPlayerID ?? "0",
+            lastHeartbeat,
         };
     },
     phases: {
@@ -134,14 +139,14 @@ const UnstableUnicorns = {
         },
         stages: {
             pregame: {
-                moves: { ready, selectBaby, changeName }
+                moves: { ready, selectBaby, deselectBaby, changeName, abolishGame, heartbeat, cancelAbandonedGame }
             },
             beginning: {
-                moves: { drawAndAdvance, executeDo, end, commit, skipExecuteDo }
+                moves: { drawAndAdvance, executeDo, end, commit, skipExecuteDo, abolishGame }
             },
             action_phase: {
                 moves: {
-                    commit, executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo
+                    commit, executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, abolishGame
                 }
             }
         }
@@ -191,6 +196,9 @@ function changeName(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, na
 }
 
 function ready(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    const myBaby = G.babyStarter.find(s => s.owner === protagonist);
+    if (!myBaby) return INVALID_MOVE;
+    if (G.babyStarter.some(s => s.cardID === myBaby.cardID && s.owner !== protagonist)) return INVALID_MOVE;
     G.ready[protagonist] = true;
 
     if (_.every(_.values(G.ready), bo => bo)) {
@@ -200,9 +208,32 @@ function ready(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
 }
 
 function selectBaby(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, cardID: CardID) {
-    G.babyStarter.push({
-        cardID, owner: protagonist
-    });
+    if (G.babyStarter.some(s => s.cardID === cardID && s.owner !== protagonist)) return INVALID_MOVE;
+    G.babyStarter = G.babyStarter.filter(s => s.owner !== protagonist);
+    G.babyStarter.push({ cardID, owner: protagonist });
+    G.ready[protagonist] = false;
+}
+
+function deselectBaby(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    G.babyStarter = G.babyStarter.filter(s => s.owner !== protagonist);
+    G.ready[protagonist] = false;
+}
+
+function abolishGame(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    if (ctx.playerID !== protagonist) return INVALID_MOVE;
+    if (G.owner === protagonist) {
+        ctx.events?.endGame!({ aborted: true });
+    }
+}
+
+function heartbeat(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    G.lastHeartbeat[protagonist] = Date.now();
+}
+
+function cancelAbandonedGame(G: UnstableUnicornsGame, ctx: Ctx) {
+    if (Date.now() - G.lastHeartbeat[G.owner] > 60000) {
+        ctx.events?.endGame!({ aborted: true });
+    }
 }
 
 function drawAndAdvance(G: UnstableUnicornsGame, ctx: Ctx) {
@@ -384,6 +415,7 @@ function _createDiscardOverLimitScene(G: UnstableUnicornsGame, protagonist: Play
 }
 
 function end(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
+    if (ctx.playerID !== protagonist && ctx.playerID !== G.owner) return INVALID_MOVE;
     if (G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck")) {
         G.playerEffects[protagonist] = G.playerEffects[protagonist].filter(o => o.effect.key !== "change_of_luck");
 
@@ -406,6 +438,7 @@ function commit(G: UnstableUnicornsGame, ctx: Ctx, sceneID: string) {
 }
 
 function skipExecuteDo(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, instructionID: string) {
+    if (ctx.playerID !== protagonist && ctx.playerID !== G.owner) return INVALID_MOVE;
     const found = _findInstruction(G, instructionID);
     if (found !== undefined) {
         found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
