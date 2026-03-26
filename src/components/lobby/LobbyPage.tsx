@@ -36,10 +36,24 @@ const LobbyPage = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     numPlayers,
-                    setupData: { matchName: matchName || undefined },
+                    setupData: { matchName: matchName || undefined, ownerPlayerID: "0" },
                 }),
             });
             if (response.ok) {
+                const { matchID } = await response.json();
+                const joinResponse = await fetch(`${API_URL}/games/unstable_unicorns/${matchID}/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playerID: "0", playerName: "Player 0" }),
+                });
+                if (joinResponse.ok) {
+                    const joinData = await joinResponse.json();
+                    const queryParams = new URLSearchParams();
+                    queryParams.append('credentials', joinData.playerCredentials);
+                    const url = `/${matchID}/${numPlayers}/0?${queryParams.toString()}`;
+                    const newWindow = window.open(url, '_blank');
+                    if (newWindow) newWindow.opener = null;
+                }
                 fetchMatches();
             } else {
                 console.error('Failed to create match', await response.text());
@@ -91,7 +105,10 @@ const LobbyPage = () => {
                     setNumPlayers={setNumPlayers}
                     onSubmit={createMatch}
                 />
-                <GameList matches={matches} onJoin={joinSpecificMatch} />
+                <GameList
+                    matches={matches.filter(m => !m.gameover && !m.players.every(p => !p.name))}
+                    onJoin={joinSpecificMatch}
+                />
             </ContentColumn>
         </PageWrapper>
     );

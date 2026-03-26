@@ -5,7 +5,8 @@ interface Match {
     gameID: string;
     matchID: string;
     players: { id: number; name?: string; }[];
-    setupData?: { matchName?: string; };
+    setupData?: { matchName?: string; ownerPlayerID?: string };
+    gameover?: unknown;
 }
 
 interface Props {

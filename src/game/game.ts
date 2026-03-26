@@ -1,4 +1,5 @@
 import type { Ctx } from 'boardgame.io';
+import { INVALID_MOVE } from 'boardgame.io/core';
 import type { Player, PlayerID } from './player';
 import type { CardID, OnEnterAddEffect } from './card';
 import { canEnter, enter } from './operations';
@@ -26,7 +27,7 @@ export { _findInstruction, _findOpenScenesWithProtagonist, _findInProgressScenes
 
 const UnstableUnicorns = {
     name: "unstable_unicorns",
-    setup: (ctx: Ctx, _setupData: SetupData): UnstableUnicornsGame => {
+    setup: (ctx: Ctx, setupData: SetupData): UnstableUnicornsGame => {
         const players: Player[] = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
@@ -44,15 +45,17 @@ const UnstableUnicorns = {
         let upgradeDowngradeStable: { [key: string]: CardID[] } = {};
         let playerEffects: { [key: string]: { cardID: CardID, effect: Effect }[] } = {};
         let ready: {[key: string]: boolean} = {};
+        let lastHeartbeat: { [key: string]: number } = {};
 
         players.forEach(pl => {
             ready[pl.id] = false;
             hand[pl.id] = _.first(drawPile, CONSTANTS.numberOfHandCardsAtStart);
             drawPile = _.rest(drawPile, CONSTANTS.numberOfHandCardsAtStart);
-            stable[pl.id] = []; 
+            stable[pl.id] = [];
             temporaryStable[pl.id] = [];
-            upgradeDowngradeStable[pl.id] = []; 
+            upgradeDowngradeStable[pl.id] = [];
             playerEffects[pl.id] = [];
+            lastHeartbeat[pl.id] = Date.now();
         });
 
         return {
@@ -74,6 +77,8 @@ const UnstableUnicorns = {
             babyStarter: [],
             ready,
             lastNeighResult: undefined,
+            owner: setupData?.ownerPlayerID ?? "0",
+            lastHeartbeat,
         };
     },
     phases: {
@@ -134,14 +139,14 @@ const UnstableUnicorns = {
         },
         stages: {
             pregame: {
-                moves: { ready, selectBaby, changeName }
+                moves: { ready, selectBaby, deselectBaby, changeName, abolishGame, heartbeat, cancelAbandonedGame }
             },
             beginning: {
-                moves: { drawAndAdvance, executeDo, end, commit, skipExecuteDo }
+                moves: { drawAndAdvance, executeDo, end, commit, skipExecuteDo, abolishGame }
             },
             action_phase: {
                 moves: {
-                    commit, executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo
+                    commit, executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, abolishGame
                 }
             }
         }

@@ -43,6 +43,8 @@ export interface UnstableUnicornsGame extends Game {
     babyStarter: { cardID: CardID, owner: PlayerID }[];
     ready: { [key: string]: boolean };
     lastNeighResult: {id: string, result: "cardWasPlayed" | "cardWasNeighed"} | undefined;
+    owner: PlayerID;
+    lastHeartbeat: { [key: string]: number };
 }
 
 // ─── Script types ─────────────────────────────────────────────────────────────
