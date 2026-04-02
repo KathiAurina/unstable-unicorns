@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import CreateGameCard from './CreateGameCard';
 import GameList from './GameList';
 import { Match } from './GameListItem';
+import { Expansion } from '../../game/card';
 
 const API_URL = process.env.REACT_APP_LOBBY_URL || window.location.origin;
 
@@ -10,6 +11,7 @@ const LobbyPage = () => {
     const [matches, setMatches] = useState<Match[]>([]);
     const [numPlayers, setNumPlayers] = useState(2);
     const [matchName, setMatchName] = useState('');
+    const [expansions, setExpansions] = useState<Expansion[]>(["base_game"]);
 
     const fetchMatches = async () => {
         try {
@@ -37,6 +39,7 @@ const LobbyPage = () => {
                 body: JSON.stringify({
                     numPlayers,
                     setupData: { matchName: matchName || undefined, ownerPlayerID: "0" },
+                    expansions: expansions || ["base_game"]
                 }),
             });
             if (response.ok) {
@@ -103,6 +106,8 @@ const LobbyPage = () => {
                     setMatchName={setMatchName}
                     numPlayers={numPlayers}
                     setNumPlayers={setNumPlayers}
+                    setExpansions={setExpansions}
+                    currentExpansions={expansions}
                     onSubmit={createMatch}
                 />
                 <GameList

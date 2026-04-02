@@ -6,7 +6,7 @@ export type CardID = number;
 export interface Card {
     id: CardID;
     title: string;
-    expansions?: Expansion[];
+    expansions: Expansion[];
     image: string;
     on?: On[];
     passive?: Passive[];
@@ -16,7 +16,7 @@ export interface Card {
 
 interface CardDefinition {
     title: string;
-    expansions?: Expansion[];
+    expansions: Expansion[];
     image: string;
     count: number;
     on?: On[];
@@ -26,7 +26,13 @@ interface CardDefinition {
 }
 
 export type CardType = "downgrade" | "upgrade" | "basic" | "unicorn" | "narwhal" | "magic" | "baby" | "neigh" | "super_neigh";
-export type Expansion = "base_game" | "adventures_2nd_edition"
+
+export const AVAILABLE_EXPANSIONS = ["base_game", "adventures_2nd_edition"] as const;
+export const EXPANSION_LABELS: Record<Expansion, string> = {
+    base_game: "Base Game",
+    adventures_2nd_edition: "Adventures (2nd Edition)"
+};
+export type Expansion = (typeof AVAILABLE_EXPANSIONS)[number];
 
 export type OnEnter = {
     trigger: "enter" | "begin_of_turn";
@@ -1996,24 +2002,32 @@ const Cards: CardDefinition[] = [{
     }
 }];
 
-export function initializeDeck() {
-    let deck: Card[] = [];
-    Cards.forEach(c => {
-        for (let i=0; i<c.count; i++) {
+
+export function initializeDeck(expansions: string[] = ["base_game"]): Card[] {
+    const deck: Card[] = [];
+    let currentId = 0;
+
+    const filteredCards = Cards.filter(c => 
+        c.expansions.some(e => expansions.includes(e))
+    );
+
+    for (const card of filteredCards) {
+        for (let i = 0; i < card.count; i++) {
             deck.push({
-                id: 0,
-                title: c.title,
-                on: c.on,
-                passive: c.passive,
-                expansions: ["base_game"], 
-                type: c.type,
-                image: c.image,
-                description: c.description,
+                id: currentId++, 
+                title: card.title,
+                on: card.on,
+                passive: card.passive,
+                expansions: card.expansions, 
+                type: card.type,
+                image: card.image,
+                description: card.description,
+                
             });
         }
-    });
+    }
 
-    return deck.map((c, idx) => ({...c, id: idx}));
+    return deck;
 }
 
 

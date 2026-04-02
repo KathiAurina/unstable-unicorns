@@ -31,11 +31,15 @@ const UnstableUnicorns = {
         const players: Player[] = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
-                name: `Spieler ${idx}`,
+                name: `Player ${idx}`,
             };
         });
+        
+        const selectedExpansions = setupData?.expansions && setupData.expansions.length > 0 
+            ? setupData.expansions 
+            : ["base_game"];
 
-        const deck = initializeDeck();
+        const deck = initializeDeck(selectedExpansions);
         const discardPile: CardID[] = [];
         let nursery: CardID[] = [];
         let drawPile = _.shuffle(deck).filter(c => c.type !== "baby").map(c => c.id);
