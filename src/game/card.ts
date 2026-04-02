@@ -896,7 +896,7 @@ const Cards: CardDefinition[] = [{
     }
 }, {
     title: "Vagabond Unicorn",
-    expansions: ["base_game"], 
+    expansions: ["adventures_2nd_edition"], 
     type: "unicorn",
     image: "vagabond_unicorn",
     count: 1,
@@ -934,7 +934,7 @@ const Cards: CardDefinition[] = [{
     }
 }, {
     title: "Survivalist Unicorn",
-    expansions: ["base_game"], 
+    expansions: ["adventures_2nd_edition"], 
     type: "unicorn",
     image: "survivalist_unicorn",
     count: 1,
