@@ -11,6 +11,7 @@ export interface Card {
     passive?: Passive[];
     type: CardType;
     description: {en: string, de: string};
+    expansions?: string[];
 }
 
 interface CardDefinition {
@@ -21,6 +22,7 @@ interface CardDefinition {
     passive?: Passive[];
     type: CardType;
     description: {en: string, de: string};
+    expansions?: string[];
 }
 
 export type CardType = "downgrade" | "upgrade" | "basic" | "unicorn" | "narwhal" | "magic" | "baby" | "neigh" | "super_neigh";
@@ -108,6 +110,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby0",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -118,6 +121,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby1",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -128,6 +132,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby2",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -138,6 +143,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby3",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -148,6 +154,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby4",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -158,6 +165,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby5",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -168,6 +176,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby6",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -178,6 +187,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby7",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -188,6 +198,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby8",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -198,6 +209,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby9",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -208,6 +220,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby10",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -218,6 +231,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby11",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -228,6 +242,7 @@ const Cards: CardDefinition[] = [{
     type: "baby",
     image: "baby12",
     count: 1, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
@@ -238,6 +253,7 @@ const Cards: CardDefinition[] = [{
     type: "narwhal",
     image: "alluring_narwhal",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -270,6 +286,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "americorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -298,6 +315,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "annoying_flying_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -331,6 +349,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "chainsaw_unicorn",
     count: 2,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -362,6 +381,7 @@ const Cards: CardDefinition[] = [{
     type: "narwhal",
     image: "classy_narwhal",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -391,6 +411,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "dark_angel_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -430,6 +451,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "ginormous_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on:[{
         trigger: "enter",
         do: {
@@ -454,6 +476,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "greedy_flying_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -490,6 +513,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "llamacorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -521,6 +545,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "magical_flying_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -550,6 +575,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "magical_kittencorn",
     count: 1,
+    expansions: ["base_game"],
     passive: ["cannot_be_destroyed_by_magic"],
     description: {
         en: "This card cannot be destroyed by Magic cards.",
@@ -560,6 +586,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "majestic_flying_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -594,6 +621,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "mother_goose_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -622,6 +650,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "mermaid_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -651,6 +680,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "narwhal_torpedo",
     count: 2,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -670,6 +700,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "necromancer_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -708,6 +739,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "queen_bee_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on:[{
         trigger: "enter",
         do: {
@@ -725,6 +757,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "rainbow_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -756,6 +789,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "rhinocorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -787,6 +821,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "seductive_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -825,6 +860,7 @@ const Cards: CardDefinition[] = [{
     type: "narwhal",
     image: "shabby_the_narwhal",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -854,6 +890,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "vagabond_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -891,6 +928,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "survivalist_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -928,6 +966,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "zombie",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -965,6 +1004,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "swift_flying_unicorn",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1002,6 +1042,7 @@ const Cards: CardDefinition[] = [{
     type: "narwhal",
     image: "the_great_narwhal",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1031,6 +1072,7 @@ const Cards: CardDefinition[] = [{
     type: "unicorn",
     image: "unicorn_on_the_cob",
     count: 1,
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1069,6 +1111,7 @@ const Cards: CardDefinition[] = [{
     type: "neigh",
     image: "neigh",
     count: 14,
+    expansions: ["base_game"],
     description: {
         en: "Play this card when another player tries to play a card. Stop their card from being played and send it to the discard pile.",
         de: "Neigh die Karte eines Spielers. Die Karte hat dann keinen Effekt mehr und wird auf den Friedhof gelegt."
@@ -1078,6 +1121,7 @@ const Cards: CardDefinition[] = [{
     type: "super_neigh",
     image: "super_neigh",
     count: 1,
+    expansions: ["base_game"],
     description: {
         en: "Play this card when another player tries to play a card. Stop their card from being played and send it to the discard pile. This card cannot be Neigh'd.",
         de: "Neigh die Karte eines Spielers. Die Karte hat dann keinen Effekt mehr und wird auf den Friedhof gelegt. Diese Karte kann nicht geneight werden."
@@ -1087,6 +1131,7 @@ const Cards: CardDefinition[] = [{
     type: "upgrade",
     image: "yay",
     count: 2, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1104,6 +1149,7 @@ const Cards: CardDefinition[] = [{
     type: "upgrade",
     image: "stable_artillery",
     count: 3, 
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -1142,6 +1188,7 @@ const Cards: CardDefinition[] = [{
     type: "upgrade",
     image: "rainbow_lasso",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -1180,6 +1227,7 @@ const Cards: CardDefinition[] = [{
     type: "upgrade",
     image: "rainbow_aura",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1197,6 +1245,7 @@ const Cards: CardDefinition[] = [{
     type: "upgrade",
     image: "glitter_bomb",
     count: 2, 
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -1235,6 +1284,7 @@ const Cards: CardDefinition[] = [{
     type: "upgrade",
     image: "double_dutch",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -1252,6 +1302,7 @@ const Cards: CardDefinition[] = [{
     type: "upgrade",
     image: "claw_machine",
     count: 3, 
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -1292,6 +1343,7 @@ const Cards: CardDefinition[] = [{
     type: "upgrade",
     image: "caffeine_overload",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "begin_of_turn",
         do: {
@@ -1330,6 +1382,7 @@ const Cards: CardDefinition[] = [{
     type: "downgrade",
     image: "barbed_wire",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "unicorn_enters_your_stable",
         do: {
@@ -1368,6 +1421,7 @@ const Cards: CardDefinition[] = [{
     type: "downgrade",
     image: "blinding_light",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1385,6 +1439,7 @@ const Cards: CardDefinition[] = [{
     type: "downgrade",
     image: "broken_stable",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1402,6 +1457,7 @@ const Cards: CardDefinition[] = [{
     type: "downgrade",
     image: "pandamonium",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1419,6 +1475,7 @@ const Cards: CardDefinition[] = [{
     type: "downgrade",
     image: "slowdown",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1436,6 +1493,7 @@ const Cards: CardDefinition[] = [{
     type: "downgrade",
     image: "tiny_stable",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1453,6 +1511,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "unicorn_poison",
     count: 3, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1481,6 +1540,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "alignment_change",
     count: 2, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1517,6 +1577,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "unfair_bargain",
     count: 2, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1545,6 +1606,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "two-for-one",
     count: 2, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1583,6 +1645,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "targeted_destruction",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1612,6 +1675,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "shake_up",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1640,6 +1704,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "reset_button",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1668,6 +1733,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "mystical_vortex",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1705,6 +1771,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "kiss_of_life",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1734,6 +1801,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "good_deal",
     count: 1, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1772,6 +1840,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "change_of_luck",
     count: 2, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1810,6 +1879,7 @@ const Cards: CardDefinition[] = [{
     type: "magic",
     image: "back_kick",
     count: 3, 
+    expansions: ["base_game"],
     on: [{
         trigger: "enter",
         do: {
@@ -1838,6 +1908,7 @@ const Cards: CardDefinition[] = [{
     type: "basic",
     image: "basic0",
     count: 3, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "Beards are like, so hot.",
@@ -1848,6 +1919,7 @@ const Cards: CardDefinition[] = [{
     type: "basic",
     image: "basic1",
     count: 3, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "Pumpkin spice is the pumpkin spice of life.",
@@ -1858,6 +1930,7 @@ const Cards: CardDefinition[] = [{
     type: "basic",
     image: "basic2",
     count: 3, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "Dance like nobody's watching.",
@@ -1878,6 +1951,7 @@ const Cards: CardDefinition[] = [{
     type: "basic",
     image: "basic4",
     count: 3, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "Popped collars are for date nights only.",
@@ -1888,6 +1962,7 @@ const Cards: CardDefinition[] = [{
     type: "basic",
     image: "basic5",
     count: 3, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "💖🙌💅🙌💖💁💁😂😂😂",
@@ -1898,6 +1973,7 @@ const Cards: CardDefinition[] = [{
     type: "basic",
     image: "basic6",
     count: 3, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "#nomakeup #nofilter #sunnies #shameless #selfie #basic #TGIF # unicornhairdontcare",
@@ -1908,6 +1984,7 @@ const Cards: CardDefinition[] = [{
     type: "basic",
     image: "basic7",
     count: 3, 
+    expansions: ["base_game"],
     on: [],
     description: {
         en: "This card has no special powers, but it sure is cute!",
@@ -1927,6 +2004,7 @@ export function initializeDeck() {
                 type: c.type,
                 image: c.image,
                 description: c.description,
+                expansions: c.expansions,
             });
         }
     });
