@@ -30,6 +30,8 @@ import NeighPanel from './components/NeighPanel';
 import InfoPanel from './components/InfoPanel';
 import OverlayManager from './components/OverlayManager';
 import StableSection from './components/StableSection';
+import { useMobile } from './hooks/useMobile';
+import MobileBoard from './mobile/MobileBoard';
 
 type Props = {
     G: UnstableUnicornsGame;
@@ -39,7 +41,14 @@ type Props = {
     isActive: boolean;
 }
 
+// Top-level Board: routes between mobile and desktop based on device detection.
 const Board = (props: Props) => {
+    const isMobile = useMobile();
+    if (isMobile) return <MobileBoard {...props} />;
+    return <DesktopBoard {...props} />;
+};
+
+const DesktopBoard = (props: Props) => {
     const { G, ctx, playerID, moves } = props;
 
     const { playDrawCardSound, playEndTurnButtonSound, playHubMouseOverSound, playExecuteDoSound } = useSoundEffects(G, ctx, playerID);
