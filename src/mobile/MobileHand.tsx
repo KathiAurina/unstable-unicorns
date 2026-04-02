@@ -256,6 +256,16 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
 
         if (gestureRef.current.isDragging) {
             const t = e.changedTouches[0];
+
+            // Cancel: finger released in bottom 25% of screen → drag back to hand
+            if (t.clientY > window.innerHeight * 0.75) {
+                cancelGesture();
+                clearDropZoneHighlights();
+                setHandStateSync('tucked');
+                setDetailCardIdx(null);
+                return;
+            }
+
             const { playerID, isOwnStable } = resolveDropTarget(t.clientX, t.clientY);
             const cardID = gestureRef.current.cardID;
             cancelGesture();
@@ -275,11 +285,17 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
         }
     }, [onDragEnd, cancelGesture]);
 
-    // Tap on the tucked hand area (not on a specific card): expand
+    // Tap on the hand area (not on a specific card): expand when tucked, collapse when expanded
     const handleHandAreaTap = useCallback((e: React.TouchEvent) => {
         const target = e.target as HTMLElement;
-        if (!target.closest('[data-hand-card]') && handStateRef.current === 'tucked') {
-            setHandStateSync('expanded');
+        if (!target.closest('[data-hand-card]')) {
+            if (handStateRef.current === 'tucked') {
+                setHandStateSync('expanded');
+            } else if (handStateRef.current === 'expanded') {
+                setHandStateSync('tucked');
+                setHover(null);
+                setDetailCardIdx(null);
+            }
         }
     }, []);
 
@@ -358,8 +374,8 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
                     <TuckHint>tap to expand</TuckHint>
                 )}
 
-                {detailCardIdx !== null && isExpanded && (() => {
-                    const displayIdx = hoveredIdx ?? detailCardIdx;
+                {(detailCardIdx !== null || hoveredIdx !== null) && isExpanded && (() => {
+                    const displayIdx = hoveredIdx ?? detailCardIdx ?? 0;
                     const displayCard = cards[Math.max(0, Math.min(displayIdx, cards.length - 1))];
                     if (!displayCard) return null;
                     return (
@@ -403,11 +419,12 @@ const HandArea = styled.div<{ isExpanded: boolean }>`
 
 const FanContainer = styled.div<{ cardCount: number; isExpanded: boolean }>`
     position: absolute;
-    bottom: 0;
+    bottom: ${p => p.isExpanded ? '40px' : '0'};
     left: 50%;
     width: 0;
     height: 0;
     overflow: visible;
+    transition: bottom 0.25s cubic-bezier(.25,.8,.25,1);
 `;
 
 const glow = keyframes`
