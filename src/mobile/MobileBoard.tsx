@@ -23,6 +23,7 @@ import EscapeMenu from '../components/EscapeMenu';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { LanguageContext } from '../LanguageContextProvider';
 
+import CharacterSelectionPage from '../components/pregame/CharacterSelectionPage';
 import LandscapeGuard from './LandscapeGuard';
 import MobileInfoBar from './MobileInfoBar';
 import MobilePlayerField from './MobilePlayerField';
@@ -438,6 +439,11 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
             </GameOverOverlay>
         );
     })() : null;
+
+    // ── Pregame phase ─────────────────────────────────────────────────────────
+    if (ctx.phase === 'pregame') {
+        return <CharacterSelectionPage G={G} babyCards={_.first(G.deck, 13)} playerID={playerID} moves={moves} />;
+    }
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
