@@ -1,8 +1,10 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { Card, CardID } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from '../ui/util';
+import { cardDescription } from '../BoardUtil';
+import { LanguageContext } from '../LanguageContextProvider';
 
 export type DragResult = {
     cardID: CardID;
@@ -18,22 +20,26 @@ type Props = {
     onCardLongPress: (card: Card) => void;
 };
 
-const CARDS_PER_PAGE = 6;
-const TUCK_HEIGHT = 44;
-const PEEK_LIFT = 130;
+// Layout constants
+const CARD_W_TUCKED = 52;
+const CARD_H_TUCKED = Math.round(CARD_W_TUCKED * 1.4);
+const TUCK_VISIBLE = 40;           // px of card top visible when tucked
+const CARD_W_EXPANDED = 72;
+const CARD_H_EXPANDED = Math.round(CARD_W_EXPANDED * 1.4);
 const DRAG_THRESHOLD = 12;
 const LONG_PRESS_MS = 500;
-const CARD_WIDTH = 56;
+// How high the hand rises when expanded (from bottom of screen)
+const EXPANDED_RISE = 260;
+
+type HandState = 'tucked' | 'expanded' | 'dragging';
 
 type GestureState = {
     cardID: CardID;
     card: Card;
-    cardIdx: number;
     startX: number;
     startY: number;
     isDragging: boolean;
     longPressTimer: ReturnType<typeof setTimeout> | null;
-    longPressDidFire: boolean;
     ghostEl: HTMLDivElement | null;
 };
 
@@ -41,21 +47,54 @@ const vibrate = (ms: number) => {
     if ('vibrate' in navigator) navigator.vibrate(ms);
 };
 
-const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress }: Props) => {
-    const [page, setPage] = useState(0);
-    const [peekedIdx, setPeekedIdx] = useState<number | null>(null);
-    const gestureRef = useRef<GestureState | null>(null);
+// Compute fan transform for a card at index `idx` out of `total`
+function fanTransform(idx: number, total: number, expanded: boolean): { x: number; y: number; rotate: number } {
+    if (total === 0) return { x: 0, y: 0, rotate: 0 };
+    const mid = (total - 1) / 2;
+    const degStep = expanded ? 6 : 4;
+    const spread = expanded
+        ? Math.min(42, Math.max(18, 260 / total))   // adapt spread to card count
+        : Math.min(28, Math.max(12, 180 / total));
+    const yStep = expanded ? 2.5 : 4;
+    const rotate = (idx - mid) * degStep;
+    const x = (idx - mid) * spread;
+    const y = Math.abs(idx - mid) ** 2 * yStep;
+    return { x, y, rotate };
+}
 
-    const totalPages = Math.ceil(cards.length / CARDS_PER_PAGE);
-    const startIdx = page * CARDS_PER_PAGE;
-    const pageCards = cards.slice(startIdx, startIdx + CARDS_PER_PAGE);
+const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress }: Props) => {
+    const langCtx = useContext(LanguageContext);
+    const lang = (langCtx?.language ?? 'en') as 'en' | 'de';
+    const [handState, setHandState] = useState<HandState>('tucked');
+    const handStateRef = useRef<HandState>('tucked');
+    const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+    // Tooltip shows rules text after brief hover
+    const [tooltipIdx, setTooltipIdx] = useState<number | null>(null);
+    const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const gestureRef = useRef<GestureState | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const isExpanded = handState === 'expanded';
+
+    const setHandStateSync = (s: HandState) => {
+        handStateRef.current = s;
+        setHandState(s);
+    };
+
+    const cardW = isExpanded ? CARD_W_EXPANDED : CARD_W_TUCKED;
+    const cardH = isExpanded ? CARD_H_EXPANDED : CARD_H_TUCKED;
+
+    // Clear tooltip timer on unmount
+    useEffect(() => () => {
+        if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+    }, []);
 
     const createGhost = useCallback((card: Card, x: number, y: number): HTMLDivElement => {
         const ghost = document.createElement('div');
         ghost.style.cssText = `
             position: fixed;
-            width: ${CARD_WIDTH}px;
-            height: ${Math.round(CARD_WIDTH * 1.4)}px;
+            width: ${CARD_W_EXPANDED}px;
+            height: ${CARD_H_EXPANDED}px;
             background-image: url(${ImageLoader.load(card.image)});
             background-size: cover;
             border-radius: 6px;
@@ -67,7 +106,6 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
             transform: translate(-50%, -60%) scale(1.2);
             left: ${x}px;
             top: ${y}px;
-            transition: transform 0.05s;
         `;
         document.body.appendChild(ghost);
         return ghost;
@@ -111,12 +149,21 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
         return { playerID: null, isOwnStable: false };
     };
 
+    const setHover = (idx: number | null) => {
+        setHoveredIdx(idx);
+        if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
+        if (idx === null) {
+            setTooltipIdx(null);
+        } else {
+            tooltipTimerRef.current = setTimeout(() => setTooltipIdx(idx), 300);
+        }
+    };
+
     const handleTouchStart = useCallback((e: React.TouchEvent, card: Card, idx: number) => {
+        e.stopPropagation();
         const t = e.touches[0];
         const timer = setTimeout(() => {
-            // Long press fired
             if (gestureRef.current && !gestureRef.current.isDragging) {
-                gestureRef.current.longPressDidFire = true;
                 vibrate(40);
                 onCardLongPress(card);
             }
@@ -124,31 +171,48 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
 
         gestureRef.current = {
             cardID: card.id, card,
-            cardIdx: idx,
             startX: t.clientX, startY: t.clientY,
             isDragging: false,
             longPressTimer: timer,
-            longPressDidFire: false,
             ghostEl: null,
         };
     }, [onCardLongPress]);
 
     const handleTouchMove = useCallback((e: React.TouchEvent) => {
-        if (!gestureRef.current) return;
         const t = e.touches[0];
+
+        // Hover tracking while finger sweeps across cards in expanded mode
+        if (handStateRef.current === 'expanded' && !gestureRef.current?.isDragging) {
+            const container = containerRef.current;
+            if (container) {
+                const cardEls = container.querySelectorAll<HTMLElement>('[data-hand-card]');
+                let found: number | null = null;
+                cardEls.forEach((el, i) => {
+                    const rect = el.getBoundingClientRect();
+                    if (t.clientX >= rect.left && t.clientX <= rect.right &&
+                        t.clientY >= rect.top && t.clientY <= rect.bottom) {
+                        found = i;
+                    }
+                });
+                setHover(found);
+            }
+        }
+
+        if (!gestureRef.current) return;
+
         const dx = t.clientX - gestureRef.current.startX;
         const dy = t.clientY - gestureRef.current.startY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (!gestureRef.current.isDragging && dist > DRAG_THRESHOLD) {
-            // Cancel long-press timer when drag starts
             if (gestureRef.current.longPressTimer) {
                 clearTimeout(gestureRef.current.longPressTimer);
                 gestureRef.current.longPressTimer = null;
             }
             gestureRef.current.isDragging = true;
             gestureRef.current.ghostEl = createGhost(gestureRef.current.card, t.clientX, t.clientY);
-            setPeekedIdx(null);
+            setHandStateSync('dragging');
+            setHover(null);
             vibrate(20);
         }
 
@@ -156,7 +220,6 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
             gestureRef.current.ghostEl.style.left = `${t.clientX}px`;
             gestureRef.current.ghostEl.style.top = `${t.clientY}px`;
 
-            // Highlight drop zones
             document.querySelectorAll<HTMLElement>('[data-drop-stable]').forEach(el => {
                 const rect = el.getBoundingClientRect();
                 const over = t.clientX >= rect.left && t.clientX <= rect.right &&
@@ -166,8 +229,10 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
         }
     }, [createGhost]);
 
-    const handleTouchEnd = useCallback((e: React.TouchEvent, card: Card, idx: number) => {
+    const handleTouchEnd = useCallback((e: React.TouchEvent, card: Card) => {
         if (!gestureRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
         clearDropZoneHighlights();
 
         if (gestureRef.current.isDragging) {
@@ -175,118 +240,137 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
             const { playerID, isOwnStable } = resolveDropTarget(t.clientX, t.clientY);
             const cardID = gestureRef.current.cardID;
             cancelGesture();
+            setHandStateSync('tucked');
             vibrate(30);
             onDragEnd({ cardID, dropPlayerID: playerID, dropIsOwnStable: isOwnStable });
-        } else if (gestureRef.current.longPressDidFire) {
-            // Long press was handled, don't also do tap
-            cancelGesture();
         } else {
-            // Regular tap
-            const wasPeeked = peekedIdx === idx;
             cancelGesture();
-            if (wasPeeked) {
-                // Second tap on peeked card = play
+            if (handStateRef.current === 'expanded') {
+                // Tap card when expanded = play it
                 onCardTap(card.id);
-                setPeekedIdx(null);
+                setHandStateSync('tucked');
+                setHover(null);
             } else {
-                setPeekedIdx(idx);
+                // Tap card when tucked = expand hand
+                setHandStateSync('expanded');
             }
         }
-    }, [peekedIdx, onDragEnd, onCardTap, cancelGesture]);
+    }, [onDragEnd, onCardTap, cancelGesture]);
+
+    // Tap on the tucked hand area (not on a specific card): expand
+    const handleHandAreaTap = useCallback((e: React.TouchEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('[data-hand-card]') && handStateRef.current === 'tucked') {
+            setHandStateSync('expanded');
+        }
+    }, []);
+
+    // Backdrop tap collapses expanded hand (without propagating to game board)
+    const handleBackdropTap = useCallback((e: React.TouchEvent) => {
+        e.stopPropagation();
+        setHandStateSync('tucked');
+        setHover(null);
+    }, []);
 
     return (
-        <HandArea onTouchEnd={e => {
-            // Tap on hand area outside cards dismisses peek
-            const target = e.target as HTMLElement;
-            if (!target.closest('[data-hand-card]')) {
-                setPeekedIdx(null);
-            }
-        }}>
-            {totalPages > 1 && (
-                <PageArrow disabled={page === 0}
-                    onTouchEnd={e => {
-                        e.preventDefault();
-                        if (page > 0) { setPage(p => p - 1); setPeekedIdx(null); }
-                    }}
-                    onClick={() => { setPage(p => Math.max(0, p - 1)); setPeekedIdx(null); }}
-                >
-                    &lt;
-                </PageArrow>
+        <>
+            {/* Backdrop to capture taps outside cards when expanded */}
+            {isExpanded && (
+                <ExpandBackdrop
+                    onTouchEnd={handleBackdropTap}
+                    onClick={e => { e.stopPropagation(); setHandStateSync('tucked'); setHover(null); }}
+                />
             )}
 
-            <CardsRow>
-                {pageCards.map((card, idx) => {
-                    const isPeeked = peekedIdx === idx;
-                    const isGlowing = glowingCards.includes(card.id);
-                    return (
-                        <CardSlot
-                            key={card.id}
-                            data-hand-card="1"
-                            isPeeked={isPeeked}
-                            borderColor={_typeToColor(card.type)}
-                            isGlowing={isGlowing}
-                            onTouchStart={e => handleTouchStart(e, card, idx)}
-                            onTouchMove={handleTouchMove}
-                            onTouchEnd={e => {
-                                e.preventDefault();
-                                handleTouchEnd(e, card, idx);
-                            }}
-                        >
-                            <CardFace src={ImageLoader.load(card.image)} alt={card.title} />
-                            {isPeeked && (
-                                <CardLabel color={_typeToColor(card.type)}>
-                                    <CardTitle_>{card.title}</CardTitle_>
-                                    <TypeTag>{card.type.replace('_', ' ')}</TypeTag>
-                                    <PlayHint>Tap again to play · Drag to target</PlayHint>
-                                </CardLabel>
-                            )}
-                        </CardSlot>
-                    );
-                })}
-            </CardsRow>
+            <HandArea
+                ref={containerRef}
+                isExpanded={isExpanded}
+                onTouchEnd={handleHandAreaTap}
+            >
+                <FanContainer cardCount={cards.length} isExpanded={isExpanded}>
+                    {cards.map((card, idx) => {
+                        const { x, y, rotate } = fanTransform(idx, cards.length, isExpanded);
+                        const isGlowing = glowingCards.includes(card.id);
+                        const isHovered = hoveredIdx === idx;
+                        const showTooltip = tooltipIdx === idx && isExpanded;
 
-            {totalPages > 1 && (
-                <PageArrow disabled={page >= totalPages - 1}
-                    onTouchEnd={e => {
-                        e.preventDefault();
-                        if (page < totalPages - 1) { setPage(p => p + 1); setPeekedIdx(null); }
-                    }}
-                    onClick={() => { setPage(p => Math.min(totalPages - 1, p + 1)); setPeekedIdx(null); }}
-                >
-                    &gt;
-                </PageArrow>
-            )}
-        </HandArea>
+                        return (
+                            <CardSlot
+                                key={card.id}
+                                data-hand-card="1"
+                                style={{
+                                    transform: `translateX(calc(-50% + ${x}px)) translateY(${isExpanded ? -y : 0}px) rotate(${rotate}deg)` +
+                                               (isHovered ? ' scale(1.25)' : ''),
+                                    zIndex: isHovered ? 600 : idx + 1,
+                                    transition: 'transform 0.18s cubic-bezier(.25,.8,.25,1)',
+                                }}
+                                cardW={cardW}
+                                cardH={cardH}
+                                borderColor={_typeToColor(card.type)}
+                                isGlowing={isGlowing}
+                                onTouchStart={e => handleTouchStart(e, card, idx)}
+                                onTouchMove={handleTouchMove}
+                                onTouchEnd={e => handleTouchEnd(e, card)}
+                                onContextMenu={e => e.preventDefault()}
+                            >
+                                <CardFace
+                                    src={ImageLoader.load(card.image)}
+                                    alt={card.title}
+                                    cardH={cardH}
+                                />
+                                {showTooltip && (
+                                    <CardTooltip color={_typeToColor(card.type)} side={x < 0 ? 'right' : 'left'}>
+                                        <TooltipTitle>{card.title}</TooltipTitle>
+                                        <TooltipType>{card.type.replace('_', ' ')}</TooltipType>
+                                        <TooltipDesc>{cardDescription(card, lang)}</TooltipDesc>
+                                    </CardTooltip>
+                                )}
+                                {isGlowing && isExpanded && (
+                                    <GlowLabel color={_typeToColor(card.type)}>
+                                        {card.title}
+                                    </GlowLabel>
+                                )}
+                            </CardSlot>
+                        );
+                    })}
+                </FanContainer>
+
+                {!isExpanded && cards.length > 0 && (
+                    <TuckHint>tap to expand</TuckHint>
+                )}
+            </HandArea>
+        </>
     );
 };
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const HandArea = styled.div`
-    height: ${TUCK_HEIGHT}px;
+const ExpandBackdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 490;
+    background: rgba(0,0,0,0.35);
+`;
+
+const HandArea = styled.div<{ isExpanded: boolean }>`
     width: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    background: rgba(0,0,0,0.6);
-    border-top: 1px solid rgba(255,255,255,0.15);
+    height: ${p => p.isExpanded ? `${EXPANDED_RISE}px` : `${TUCK_VISIBLE}px`};
     flex-shrink: 0;
     position: relative;
     overflow: visible;
     z-index: 500;
-    box-sizing: border-box;
     touch-action: none;
+    transition: height 0.25s cubic-bezier(.25,.8,.25,1);
+    pointer-events: all;
 `;
 
-const CardsRow = styled.div`
-    flex: 1;
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    padding: 0 4px;
-    gap: 3px;
+const FanContainer = styled.div<{ cardCount: number; isExpanded: boolean }>`
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 0;
     overflow: visible;
-    height: 100%;
 `;
 
 const glow = keyframes`
@@ -294,88 +378,100 @@ const glow = keyframes`
     to   { box-shadow: 0 0 10px #0ff, 0 0 4px #f0f, 0 0 6px red; }
 `;
 
-const CardSlot = styled.div<{ isPeeked: boolean; borderColor: string; isGlowing: boolean }>`
-    width: ${CARD_WIDTH}px;
-    height: ${TUCK_HEIGHT - 4}px;
-    border-radius: 6px 6px 0 0;
+const CardSlot = styled.div<{ cardW: number; cardH: number; borderColor: string; isGlowing: boolean }>`
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: ${p => p.cardW}px;
+    height: ${p => p.cardH}px;
+    border-radius: 6px 6px 4px 4px;
     border: 2px solid ${p => p.borderColor};
-    border-bottom: none;
     background: #111;
     overflow: hidden;
-    position: relative;
-    flex-shrink: 0;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    transform-origin: bottom center;
     animation: ${p => p.isGlowing ? css`${glow} 0.8s infinite alternate` : 'none'};
-    transition: transform 0.22s cubic-bezier(.25,.8,.25,1), box-shadow 0.22s;
-    transform: ${p => p.isPeeked ? `translateY(-${PEEK_LIFT}px)` : 'translateY(0)'};
-    z-index: ${p => p.isPeeked ? 600 : 'auto'};
     touch-action: none;
-    box-shadow: ${p => p.isPeeked ? '0 8px 24px rgba(0,0,0,0.6)' : 'none'};
+    will-change: transform;
 `;
 
-const CardFace = styled.img`
+const CardFace = styled.img<{ cardH: number }>`
     width: 100%;
-    height: ${TUCK_HEIGHT + PEEK_LIFT - 4}px;
+    height: ${p => p.cardH}px;
     object-fit: cover;
     object-position: top;
     display: block;
     pointer-events: none;
+    -webkit-user-drag: none;
 `;
 
-const CardLabel = styled.div<{ color: string }>`
+const CardTooltip = styled.div<{ color: string; side: 'left' | 'right' }>`
+    position: absolute;
+    ${p => p.side === 'right' ? 'left: 105%;' : 'right: 105%;'}
+    bottom: 10%;
+    width: 130px;
+    background: rgba(20,20,30,0.96);
+    border: 1.5px solid ${p => p.color};
+    border-radius: 8px;
+    padding: 8px 9px;
+    z-index: 700;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.7);
+`;
+
+const TooltipTitle = styled.div`
+    font-size: 11px;
+    font-weight: 800;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    margin-bottom: 2px;
+`;
+
+const TooltipType = styled.div`
+    font-size: 9px;
+    color: rgba(255,255,255,0.5);
+    font-family: 'Nunito', sans-serif;
+    text-transform: capitalize;
+    margin-bottom: 4px;
+`;
+
+const TooltipDesc = styled.div`
+    font-size: 9px;
+    color: rgba(255,255,255,0.82);
+    font-family: 'Open Sans', sans-serif;
+    line-height: 1.35;
+    white-space: pre-wrap;
+`;
+
+const GlowLabel = styled.div<{ color: string }>`
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.8);
     color: white;
-    font-size: 8px;
+    font-size: 7px;
     font-weight: 700;
     font-family: 'Nunito', sans-serif;
-    padding: 3px 4px 2px;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    border-top: 1px solid ${p => p.color};
-`;
-
-const CardTitle_ = styled.div`
-    font-size: 9px;
-    font-weight: 800;
+    padding: 2px 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    border-top: 1px solid ${p => p.color};
 `;
 
-const TypeTag = styled.div`
-    font-size: 7px;
-    color: rgba(255,255,255,0.55);
-    font-weight: 400;
-    text-transform: capitalize;
-`;
-
-const PlayHint = styled.div`
-    font-size: 7px;
-    color: rgba(255,255,255,0.4);
-    font-weight: 400;
-`;
-
-const PageArrow = styled.div<{ disabled: boolean }>`
-    width: 28px;
-    height: ${TUCK_HEIGHT}px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: ${p => p.disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.8)'};
-    font-size: 16px;
-    font-weight: 700;
-    cursor: ${p => p.disabled ? 'default' : 'pointer'};
-    flex-shrink: 0;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    touch-action: manipulation;
+const TuckHint = styled.div`
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.3);
+    font-size: 8px;
+    font-family: 'Nunito', sans-serif;
+    pointer-events: none;
+    white-space: nowrap;
 `;
 
 export default MobileHand;

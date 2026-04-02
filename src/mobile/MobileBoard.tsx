@@ -94,6 +94,9 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
         ? cardInteraction.info.targets.map((t: any) => t.cardID)
         : undefined;
 
+    // Target mode: stable card taps act as target selection
+    const isTargetMode = cardInteraction?.key === 'click_on_other_stable_card' || cardInteraction?.key === 'card_to_card';
+
     // ── Glowing hand cards ────────────────────────────────────────────────────
     let glowingHandCards: CardID[] = [];
     if (boardStates.find(s => s.type === 'playCard') && cardInteraction?.key !== 'play_upgradeDowngradeCardFromHand__choose_target') {
@@ -552,6 +555,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                     cardInteraction={cardInteraction}
                     glowingCardIDs={glowingCardIDs}
                     highlightMode={highlightMode}
+                    isTargetMode={isTargetMode}
                     onCardTap={handleStableCardTap}
                     onPlayerTap={handlePlayerTap}
                     onCardLongPress={card => setDetailCard(card)}

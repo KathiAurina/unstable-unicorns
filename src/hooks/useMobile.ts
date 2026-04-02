@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 
 function detectMobile(): boolean {
-    // Landscape phone: small height + touch (coarse pointer)
-    // max-height:500px catches landscape phones where width >> height
-    const smallHeight = window.matchMedia('(max-height: 500px)').matches;
+    // Touch device (coarse pointer) with at least one phone-sized dimension
     const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
-    return smallHeight && coarsePointer;
+    const smallScreen = window.matchMedia('(max-width: 768px), (max-height: 768px)').matches;
+    return coarsePointer && smallScreen;
 }
 
 export function useMobile(): boolean {
@@ -13,7 +12,7 @@ export function useMobile(): boolean {
 
     useEffect(() => {
         const check = () => setIsMobile(detectMobile());
-        const mq = window.matchMedia('(max-height: 500px)');
+        const mq = window.matchMedia('(max-width: 768px), (max-height: 768px)');
 
         if (typeof mq.addEventListener === 'function') {
             mq.addEventListener('change', check);

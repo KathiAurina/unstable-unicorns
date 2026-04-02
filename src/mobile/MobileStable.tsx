@@ -16,27 +16,38 @@ type Props = {
     playerID: string;         // the owner of this stable
     label: string;
     isCurrentPlayer: boolean;
+    isTargetMode: boolean;    // true when player must select a target card
     onCardTap: (cardID: CardID) => void;
     onCardLongPress: (card: Card) => void;
     // Drop target - data attributes placed on stable container
 };
 
-const CardItem = ({ card, isGlowing, isTranslucent, onTap, onLongPress }: {
+const CardItem = ({ card, isGlowing, isTranslucent, isTargetMode, onTap, onLongPress }: {
     card: Card;
     isGlowing: boolean;
     isTranslucent: boolean;
+    isTargetMode: boolean;
     onTap: () => void;
     onLongPress: () => void;
 }) => {
-    const lp = useLongPress(onLongPress);
+    // In target mode: tap = game action, long press = view detail
+    // When idle: tap = view detail, long press = nothing
+    const longPressAction = isTargetMode ? onLongPress : () => {};
+    const tapAction = isTargetMode ? onTap : onLongPress;
+    const lp = useLongPress(longPressAction);
     return (
         <CardWrapper
             {...lp}
+            onTouchStart={e => {
+                e.preventDefault(); // prevent browser image save context menu
+                lp.onTouchStart(e);
+            }}
             onTouchEnd={e => {
                 const fired = lp.onTouchEnd();
-                if (!fired) onTap();
+                if (!fired) tapAction();
             }}
-            onClick={onTap}
+            onContextMenu={e => e.preventDefault()}
+            onClick={tapAction}
         >
             <CardImg
                 layoutId={`${card.id}`}
@@ -52,7 +63,7 @@ const CardItem = ({ card, isGlowing, isTranslucent, onTap, onLongPress }: {
 
 const MobileStable = ({
     cards, upgradeDowngradeCards, glowingCardIDs, highlightMode,
-    isOwnStable, playerID, label, isCurrentPlayer,
+    isOwnStable, playerID, label, isCurrentPlayer, isTargetMode,
     onCardTap, onCardLongPress,
 }: Props) => {
     return (
@@ -71,6 +82,7 @@ const MobileStable = ({
                             card={card}
                             isGlowing={glowingCardIDs.includes(card.id)}
                             isTranslucent={highlightMode ? !highlightMode.includes(card.id) : false}
+                            isTargetMode={isTargetMode}
                             onTap={() => onCardTap(card.id)}
                             onLongPress={() => onCardLongPress(card)}
                         />
@@ -84,6 +96,7 @@ const MobileStable = ({
                         card={card}
                         isGlowing={glowingCardIDs.includes(card.id)}
                         isTranslucent={highlightMode ? !highlightMode.includes(card.id) : false}
+                        isTargetMode={isTargetMode}
                         onTap={() => onCardTap(card.id)}
                         onLongPress={() => onCardLongPress(card)}
                     />

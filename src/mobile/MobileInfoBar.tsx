@@ -146,13 +146,13 @@ const MobileInfoBar = ({ G, ctx, playerID, moves, boardStates, onShowNursery, on
 
 const Bar = styled.div`
     width: 100%;
-    height: 40px;
+    height: 52px;
     background: rgba(0,0,0,0.75);
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 0 4px;
-    gap: 4px;
+    padding: 0 6px;
+    gap: 5px;
     flex-shrink: 0;
     z-index: 200;
     box-sizing: border-box;
@@ -171,11 +171,11 @@ const glow = keyframes`
 `;
 
 const PileBtn = styled.div<{ isGlowing: boolean }>`
-    width: 30px;
-    height: 34px;
+    width: 39px;
+    height: 44px;
     position: relative;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 5px;
     overflow: hidden;
     border: 2px solid ${p => p.isGlowing ? '#f0f' : 'rgba(255,255,255,0.2)'};
     animation: ${p => p.isGlowing ? css`${glow} 0.8s infinite alternate` : 'none'};
@@ -194,9 +194,9 @@ const PileCount = styled.div`
     right: 0;
     background: rgba(0,0,0,0.7);
     color: white;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 700;
-    padding: 1px 2px;
+    padding: 1px 3px;
     border-radius: 2px 0 0 0;
     font-family: 'Nunito', sans-serif;
 `;

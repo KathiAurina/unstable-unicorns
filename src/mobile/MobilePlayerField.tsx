@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import type { UnstableUnicornsGame, Ctx } from '../game/state';
 import type { CardID } from '../game/card';
@@ -14,6 +14,7 @@ type Props = {
     cardInteraction: CardInteraction | undefined;
     glowingCardIDs: CardID[];
     highlightMode: CardID[] | undefined;
+    isTargetMode: boolean;
     onCardTap: (cardID: CardID) => void;
     onPlayerTap: (targetPlayerID: string) => void;
     onCardLongPress: (card: Card) => void;
@@ -23,10 +24,11 @@ const PLAYERS_PER_PAGE = 4;
 
 const MobilePlayerField = ({
     G, ctx, playerID, boardStates, cardInteraction,
-    glowingCardIDs, highlightMode,
+    glowingCardIDs, highlightMode, isTargetMode,
     onCardTap, onPlayerTap, onCardLongPress,
 }: Props) => {
     const [page, setPage] = useState(0);
+    const swipeStartX = useRef<number | null>(null);
 
     const allPlayers = G.players; // includes own player
     const totalPages = Math.ceil(allPlayers.length / PLAYERS_PER_PAGE);
@@ -62,7 +64,17 @@ const MobilePlayerField = ({
                 </NavArrow>
             )}
 
-            <Grid cols={Math.min(pagePlayers.length, 2)}>
+            <Grid
+                cols={Math.min(pagePlayers.length, 2)}
+                onTouchStart={e => { swipeStartX.current = e.touches[0].clientX; }}
+                onTouchEnd={e => {
+                    if (swipeStartX.current === null) return;
+                    const dx = e.changedTouches[0].clientX - swipeStartX.current;
+                    swipeStartX.current = null;
+                    if (dx < -50 && page < totalPages - 1) setPage(p => p + 1);
+                    else if (dx > 50 && page > 0) setPage(p => p - 1);
+                }}
+            >
                 {pagePlayers.map(pl => {
                     const stableCards = [
                         ...(G.stable[pl.id] ?? []),
@@ -102,6 +114,7 @@ const MobilePlayerField = ({
                                 playerID={pl.id}
                                 label={isOwn ? 'Your Stable' : `${pl.name}'s Stable`}
                                 isCurrentPlayer={pl.id === ctx.currentPlayer}
+                                isTargetMode={isTargetMode}
                                 onCardTap={onCardTap}
                                 onCardLongPress={onCardLongPress}
                             />
@@ -134,13 +147,13 @@ const Container = styled.div`
 `;
 
 const NavArrow = styled.div<{ disabled: boolean }>`
-    width: 24px;
+    width: 36px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     color: ${p => p.disabled ? 'rgba(255,255,255,0.2)' : 'white'};
-    font-size: 18px;
+    font-size: 24px;
     font-weight: 700;
     cursor: ${p => p.disabled ? 'default' : 'pointer'};
     -webkit-tap-highlight-color: transparent;

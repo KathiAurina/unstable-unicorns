@@ -22,15 +22,21 @@ const CardEntry = ({ card, hide, onTap, onLongPress }: {
     onTap: () => void;
     onLongPress: () => void;
 }) => {
+    // Tap = view detail; long press = game action (select card)
     const lp = useLongPress(onLongPress);
     return (
         <CardItem
             {...lp}
+            onTouchStart={e => {
+                e.preventDefault(); // prevent image save context menu
+                lp.onTouchStart(e);
+            }}
             onTouchEnd={e => {
                 e.preventDefault();
                 const fired = lp.onTouchEnd();
                 if (!fired) onTap();
             }}
+            onContextMenu={e => e.preventDefault()}
             onClick={onTap}
         >
             <CardImg
@@ -130,7 +136,7 @@ const Grid = styled.div`
 `;
 
 const CardItem = styled.div`
-    width: calc(33.333% - 6px);
+    width: calc(20% - 7px);
     display: flex;
     flex-direction: column;
     align-items: center;
