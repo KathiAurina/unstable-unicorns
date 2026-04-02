@@ -12,7 +12,7 @@ type Props = {
     onClose: () => void;
 };
 
-function typeLabel(type: Card['type']): string {
+export function typeLabel(type: Card['type']): string {
     const map: Record<string, string> = {
         baby: 'Baby Unicorn', basic: 'Basic Unicorn', unicorn: 'Magical Unicorn',
         narwhal: 'Narwhal Unicorn', magic: 'Magic', upgrade: 'Upgrade',

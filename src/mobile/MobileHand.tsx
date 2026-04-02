@@ -5,6 +5,7 @@ import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from '../ui/util';
 import { cardDescription } from '../BoardUtil';
 import { LanguageContext } from '../LanguageContextProvider';
+import { typeLabel } from './MobileCardDetail';
 
 export type DragResult = {
     cardID: CardID;
@@ -16,7 +17,6 @@ type Props = {
     cards: Card[];
     glowingCards: CardID[];
     onDragEnd: (result: DragResult) => void;
-    onCardTap: (cardID: CardID) => void;
     onCardLongPress: (card: Card) => void;
 };
 
@@ -24,20 +24,23 @@ type Props = {
 const CARD_W_TUCKED = 52;
 const CARD_H_TUCKED = Math.round(CARD_W_TUCKED * 1.4);
 const TUCK_VISIBLE = 40;           // px of card top visible when tucked
-const CARD_W_EXPANDED = 72;
+const CARD_W_EXPANDED = 108;
 const CARD_H_EXPANDED = Math.round(CARD_W_EXPANDED * 1.4);
 const DRAG_THRESHOLD = 12;
+const SWIPE_UP_THRESHOLD = 25;
 const LONG_PRESS_MS = 500;
 // How high the hand rises when expanded (from bottom of screen)
-const EXPANDED_RISE = 260;
+const EXPANDED_RISE = 340;
 
 type HandState = 'tucked' | 'expanded' | 'dragging';
 
 type GestureState = {
     cardID: CardID;
     card: Card;
+    cardIdx: number;
     startX: number;
     startY: number;
+    gestureDirection: 'undecided' | 'vertical' | 'horizontal';
     isDragging: boolean;
     longPressTimer: ReturnType<typeof setTimeout> | null;
     ghostEl: HTMLDivElement | null;
@@ -51,18 +54,18 @@ const vibrate = (ms: number) => {
 function fanTransform(idx: number, total: number, expanded: boolean): { x: number; y: number; rotate: number } {
     if (total === 0) return { x: 0, y: 0, rotate: 0 };
     const mid = (total - 1) / 2;
-    const degStep = expanded ? 6 : 4;
+    const degStep = expanded ? 5 : 4;
     const spread = expanded
-        ? Math.min(42, Math.max(18, 260 / total))   // adapt spread to card count
+        ? Math.min(63, Math.max(27, 390 / total))   // adapt spread to card count
         : Math.min(28, Math.max(12, 180 / total));
-    const yStep = expanded ? 2.5 : 4;
+    const yStep = expanded ? 2.0 : 4;
     const rotate = (idx - mid) * degStep;
     const x = (idx - mid) * spread;
     const y = Math.abs(idx - mid) ** 2 * yStep;
     return { x, y, rotate };
 }
 
-const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress }: Props) => {
+const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) => {
     const langCtx = useContext(LanguageContext);
     const lang = (langCtx?.language ?? 'en') as 'en' | 'de';
     const [handState, setHandState] = useState<HandState>('tucked');
@@ -71,6 +74,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
     // Tooltip shows rules text after brief hover
     const [tooltipIdx, setTooltipIdx] = useState<number | null>(null);
     const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [detailCardIdx, setDetailCardIdx] = useState<number | null>(null);
     const gestureRef = useRef<GestureState | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -170,8 +174,9 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
         }, LONG_PRESS_MS);
 
         gestureRef.current = {
-            cardID: card.id, card,
+            cardID: card.id, card, cardIdx: idx,
             startX: t.clientX, startY: t.clientY,
+            gestureDirection: 'undecided',
             isDragging: false,
             longPressTimer: timer,
             ghostEl: null,
@@ -204,32 +209,46 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
         const dy = t.clientY - gestureRef.current.startY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (!gestureRef.current.isDragging && dist > DRAG_THRESHOLD) {
-            if (gestureRef.current.longPressTimer) {
-                clearTimeout(gestureRef.current.longPressTimer);
-                gestureRef.current.longPressTimer = null;
+        if (!gestureRef.current.isDragging && gestureRef.current.gestureDirection !== 'horizontal') {
+            const threshold = handStateRef.current === 'expanded' ? SWIPE_UP_THRESHOLD : DRAG_THRESHOLD;
+            if (dist > threshold) {
+                if (gestureRef.current.longPressTimer) {
+                    clearTimeout(gestureRef.current.longPressTimer);
+                    gestureRef.current.longPressTimer = null;
+                }
+                const upwardSwipe = dy < 0 && Math.abs(dy) > Math.abs(dx);
+                if (handStateRef.current === 'expanded' && !upwardSwipe) {
+                    // Horizontal/downward swipe in expanded hand → show detail, no drag
+                    gestureRef.current.gestureDirection = 'horizontal';
+                } else {
+                    gestureRef.current.gestureDirection = 'vertical';
+                    gestureRef.current.isDragging = true;
+                    gestureRef.current.ghostEl = createGhost(gestureRef.current.card, t.clientX, t.clientY);
+                    setHandStateSync('dragging');
+                    setHover(null);
+                    vibrate(20);
+                }
             }
-            gestureRef.current.isDragging = true;
-            gestureRef.current.ghostEl = createGhost(gestureRef.current.card, t.clientX, t.clientY);
-            setHandStateSync('dragging');
-            setHover(null);
-            vibrate(20);
         }
 
         if (gestureRef.current.isDragging && gestureRef.current.ghostEl) {
             gestureRef.current.ghostEl.style.left = `${t.clientX}px`;
             gestureRef.current.ghostEl.style.top = `${t.clientY}px`;
 
+            const cardType = gestureRef.current.card.type;
+            const canTargetAny = cardType === 'upgrade' || cardType === 'downgrade';
             document.querySelectorAll<HTMLElement>('[data-drop-stable]').forEach(el => {
                 const rect = el.getBoundingClientRect();
                 const over = t.clientX >= rect.left && t.clientX <= rect.right &&
                              t.clientY >= rect.top && t.clientY <= rect.bottom;
-                el.style.outline = over ? '2px solid #4CAF50' : '';
+                const isOwn = el.getAttribute('data-drop-stable') === 'own';
+                const color = (canTargetAny || isOwn) ? '#4CAF50' : '#F44336';
+                el.style.outline = over ? `2px solid ${color}` : '';
             });
         }
     }, [createGhost]);
 
-    const handleTouchEnd = useCallback((e: React.TouchEvent, card: Card) => {
+    const handleTouchEnd = useCallback((e: React.TouchEvent, card: Card, idx: number) => {
         if (!gestureRef.current) return;
         e.preventDefault();
         e.stopPropagation();
@@ -241,21 +260,20 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
             const cardID = gestureRef.current.cardID;
             cancelGesture();
             setHandStateSync('tucked');
+            setDetailCardIdx(null);
             vibrate(30);
             onDragEnd({ cardID, dropPlayerID: playerID, dropIsOwnStable: isOwnStable });
         } else {
             cancelGesture();
             if (handStateRef.current === 'expanded') {
-                // Tap card when expanded = play it
-                onCardTap(card.id);
-                setHandStateSync('tucked');
-                setHover(null);
+                // Tap or horizontal swipe in expanded hand → show inline detail
+                setDetailCardIdx(idx);
             } else {
                 // Tap card when tucked = expand hand
                 setHandStateSync('expanded');
             }
         }
-    }, [onDragEnd, onCardTap, cancelGesture]);
+    }, [onDragEnd, cancelGesture]);
 
     // Tap on the tucked hand area (not on a specific card): expand
     const handleHandAreaTap = useCallback((e: React.TouchEvent) => {
@@ -270,6 +288,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
         e.stopPropagation();
         setHandStateSync('tucked');
         setHover(null);
+        setDetailCardIdx(null);
     }, []);
 
     return (
@@ -278,7 +297,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
             {isExpanded && (
                 <ExpandBackdrop
                     onTouchEnd={handleBackdropTap}
-                    onClick={e => { e.stopPropagation(); setHandStateSync('tucked'); setHover(null); }}
+                    onClick={e => { e.stopPropagation(); setHandStateSync('tucked'); setHover(null); setDetailCardIdx(null); }}
                 />
             )}
 
@@ -310,7 +329,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
                                 isGlowing={isGlowing}
                                 onTouchStart={e => handleTouchStart(e, card, idx)}
                                 onTouchMove={handleTouchMove}
-                                onTouchEnd={e => handleTouchEnd(e, card)}
+                                onTouchEnd={e => handleTouchEnd(e, card, idx)}
                                 onContextMenu={e => e.preventDefault()}
                             >
                                 <CardFace
@@ -338,6 +357,24 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardTap, onCardLongPress
                 {!isExpanded && cards.length > 0 && (
                     <TuckHint>tap to expand</TuckHint>
                 )}
+
+                {detailCardIdx !== null && isExpanded && (() => {
+                    const displayIdx = hoveredIdx ?? detailCardIdx;
+                    const displayCard = cards[Math.max(0, Math.min(displayIdx, cards.length - 1))];
+                    if (!displayCard) return null;
+                    return (
+                        <InlineDetail key={displayCard.id} borderColor={_typeToColor(displayCard.type)}>
+                            <InlineDetailImg src={ImageLoader.load(displayCard.image)} alt={displayCard.title} />
+                            <InlineDetailInfo>
+                                <InlineDetailBadge color={_typeToColor(displayCard.type)}>
+                                    {typeLabel(displayCard.type)}
+                                </InlineDetailBadge>
+                                <InlineDetailTitle>{displayCard.title}</InlineDetailTitle>
+                                <InlineDetailDesc>{cardDescription(displayCard, lang)}</InlineDetailDesc>
+                            </InlineDetailInfo>
+                        </InlineDetail>
+                    );
+                })()}
             </HandArea>
         </>
     );
@@ -472,6 +509,68 @@ const TuckHint = styled.div`
     font-family: 'Nunito', sans-serif;
     pointer-events: none;
     white-space: nowrap;
+`;
+
+const InlineDetail = styled.div<{ borderColor: string }>`
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 24px);
+    max-width: 400px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    background: rgba(18, 14, 28, 0.97);
+    border: 1.5px solid ${p => p.borderColor};
+    border-radius: 10px;
+    padding: 8px;
+    z-index: 510;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.85);
+    pointer-events: none;
+`;
+
+const InlineDetailImg = styled.img`
+    width: 90px;
+    height: 126px;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 6px;
+    flex-shrink: 0;
+`;
+
+const InlineDetailInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+    flex: 1;
+`;
+
+const InlineDetailBadge = styled.div<{ color: string }>`
+    font-size: 9px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    color: ${p => p.color};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const InlineDetailTitle = styled.div`
+    font-size: 12px;
+    font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+    color: white;
+    line-height: 1.2;
+`;
+
+const InlineDetailDesc = styled.div`
+    font-size: 9px;
+    color: rgba(255,255,255,0.82);
+    font-family: 'Open Sans', sans-serif;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow: hidden;
 `;
 
 export default MobileHand;

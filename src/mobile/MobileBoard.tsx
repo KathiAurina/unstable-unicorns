@@ -571,7 +571,6 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                     cards={G.hand[playerID].map(c => G.deck[c]).filter(Boolean)}
                     glowingCards={glowingHandCards}
                     onDragEnd={handleDragEnd}
-                    onCardTap={handleHandCardTap}
                     onCardLongPress={card => setDetailCard(card)}
                 />
             </Wrapper>
