@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import type { UnstableUnicornsGame, Ctx } from '../game/state';
 import type { Moves } from '../game/types';
@@ -21,6 +21,26 @@ type Props = {
 
 const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ctx, moves }: Props) => {
     const languageContext = useContext(LanguageContext);
+    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+    const supportsFullscreen = !!document.documentElement.requestFullscreen;
+
+    useEffect(() => {
+        const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', onFsChange);
+        return () => document.removeEventListener('fullscreenchange', onFsChange);
+    }, []);
+
+    const handleToggleFullscreen = async () => {
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+            } else {
+                await document.documentElement.requestFullscreen();
+            }
+        } catch (e) {
+            // Fullscreen API not supported or blocked (e.g. Safari iOS)
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -107,6 +127,16 @@ const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ct
                         English
                     </LangButton>
                 </LangRow>
+
+                {supportsFullscreen && (
+                    <>
+                        <Divider />
+                        <SectionLabel>Display</SectionLabel>
+                        <MenuButton onClick={handleToggleFullscreen}>
+                            {isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                        </MenuButton>
+                    </>
+                )}
 
                 <CloseButton onClick={onClose}>Close</CloseButton>
             </Modal>
