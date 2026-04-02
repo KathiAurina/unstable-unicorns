@@ -74,22 +74,7 @@ const MobileStable = ({
             data-player-id={playerID}
         >
             <Label isOwnStable={isOwnStable}>{label}</Label>
-            {upgradeDowngradeCards.length > 0 && (
-                <UpgradeRow>
-                    {upgradeDowngradeCards.map(card => (
-                        <CardItem
-                            key={card.id}
-                            card={card}
-                            isGlowing={glowingCardIDs.includes(card.id)}
-                            isTranslucent={highlightMode ? !highlightMode.includes(card.id) : false}
-                            isTargetMode={isTargetMode}
-                            onTap={() => onCardTap(card.id)}
-                            onLongPress={() => onCardLongPress(card)}
-                        />
-                    ))}
-                </UpgradeRow>
-            )}
-            <StableGrid>
+            <StableRow>
                 {cards.map(card => (
                     <CardItem
                         key={card.id}
@@ -101,10 +86,37 @@ const MobileStable = ({
                         onLongPress={() => onCardLongPress(card)}
                     />
                 ))}
-                {cards.length === 0 && (
+                {cards.length === 0 && upgradeDowngradeCards.length === 0 && (
                     <EmptyHint>Empty</EmptyHint>
                 )}
-            </StableGrid>
+                <Spacer />
+                {upgradeDowngradeCards
+                    .filter(c => c.type === 'upgrade')
+                    .map(card => (
+                        <CardItem
+                            key={card.id}
+                            card={card}
+                            isGlowing={glowingCardIDs.includes(card.id)}
+                            isTranslucent={highlightMode ? !highlightMode.includes(card.id) : false}
+                            isTargetMode={isTargetMode}
+                            onTap={() => onCardTap(card.id)}
+                            onLongPress={() => onCardLongPress(card)}
+                        />
+                    ))}
+                {upgradeDowngradeCards
+                    .filter(c => c.type === 'downgrade')
+                    .map(card => (
+                        <CardItem
+                            key={card.id}
+                            card={card}
+                            isGlowing={glowingCardIDs.includes(card.id)}
+                            isTranslucent={highlightMode ? !highlightMode.includes(card.id) : false}
+                            isTargetMode={isTargetMode}
+                            onTap={() => onCardTap(card.id)}
+                            onLongPress={() => onCardLongPress(card)}
+                        />
+                    ))}
+            </StableRow>
         </Container>
     );
 };
@@ -137,19 +149,17 @@ const Label = styled.div<{ isOwnStable: boolean }>`
     text-overflow: ellipsis;
 `;
 
-const UpgradeRow = styled.div`
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 2px;
-`;
-
-const StableGrid = styled.div`
+const StableRow = styled.div`
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 2px;
     align-items: flex-start;
+`;
+
+const Spacer = styled.div`
+    flex: 1;
+    min-width: 4px;
 `;
 
 const CardWrapper = styled.div`
@@ -159,9 +169,9 @@ const CardWrapper = styled.div`
 `;
 
 const CardImg = styled(motion.img)<{ color: string; isGlowing: boolean; isTranslucent: boolean }>`
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
+    width: 36px;
+    height: 36px;
+    border-radius: 5px;
     border: 2px solid ${p => p.color};
     object-fit: cover;
     opacity: ${p => p.isTranslucent ? 0.45 : 1};

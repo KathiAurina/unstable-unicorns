@@ -485,6 +485,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                 {showDiscardFinder && (
                     <MobileFinder
                         cards={showDiscardFinder.map(c => G.deck[c.cardID])}
+                        browseOnly={!boardStates.find(s => s.type === 'revive' || s.type === 'addFromDiscardPileToHand__single_action_popup')}
                         onBackClick={() => setShowDiscardFinder(undefined)}
                         onCardClick={cardID => {
                             const state = boardStates.find(s => s.type === 'revive' || s.type === 'addFromDiscardPileToHand__single_action_popup');
@@ -498,6 +499,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                 {showNurseryFinder && (
                     <MobileFinder
                         cards={G.nursery.map(c => G.deck[c])}
+                        browseOnly={!boardStates.find(s => s.type === 'reviveFromNursery')}
                         onBackClick={() => setShowNurseryFinder(false)}
                         onCardClick={cardID => {
                             const state = boardStates.find(s => s.type === 'reviveFromNursery');
@@ -512,6 +514,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                     <MobileFinder
                         cards={G.hand[showPlayerHand].map(c => G.deck[c])}
                         showBackButton={true}
+                        browseOnly={true}
                         onBackClick={() => setShowPlayerHand(undefined)}
                         onCardClick={() => { }}
                         hide={G.playerEffects[showPlayerHand].find(o => o.effect.key === 'your_hand_is_visible') === undefined}

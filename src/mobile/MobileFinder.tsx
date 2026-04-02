@@ -12,18 +12,23 @@ type Props = {
     hide?: boolean;
     title?: string;
     showBackButton?: boolean;
+    browseOnly?: boolean;
     onBackClick: () => void;
     onCardClick: (cardID: CardID) => void;
 };
 
-const CardEntry = ({ card, hide, onTap, onLongPress }: {
+const CardEntry = ({ card, hide, browseOnly, onTap, onLongPress }: {
     card: Card;
     hide: boolean;
+    browseOnly: boolean;
     onTap: () => void;
     onLongPress: () => void;
 }) => {
-    // Tap = view detail; long press = game action (select card)
-    const lp = useLongPress(onLongPress);
+    // browseOnly: tap = show detail, long press = no-op
+    // action mode: tap = game action, long press = show detail
+    const lpCallback = browseOnly ? () => {} : onLongPress;
+    const tapCallback = browseOnly ? onLongPress : onTap;
+    const lp = useLongPress(lpCallback);
     return (
         <CardItem
             {...lp}
@@ -34,22 +39,21 @@ const CardEntry = ({ card, hide, onTap, onLongPress }: {
             onTouchEnd={e => {
                 e.preventDefault();
                 const fired = lp.onTouchEnd();
-                if (!fired) onTap();
+                if (!fired) tapCallback();
             }}
             onContextMenu={e => e.preventDefault()}
-            onClick={onTap}
+            onClick={tapCallback}
         >
             <CardImg
                 src={hide ? ImageLoader.load('back') : ImageLoader.load(card.image)}
                 color={hide ? '#555' : _typeToColor(card.type)}
                 alt={card.title}
             />
-            {!hide && <CardName>{card.title}</CardName>}
         </CardItem>
     );
 };
 
-const MobileFinder = ({ cards, hide = false, title, showBackButton = true, onBackClick, onCardClick }: Props) => {
+const MobileFinder = ({ cards, hide = false, title, showBackButton = true, browseOnly = false, onBackClick, onCardClick }: Props) => {
     const [detailCard, setDetailCard] = useState<Card | undefined>(undefined);
 
     return (
@@ -72,6 +76,7 @@ const MobileFinder = ({ cards, hide = false, title, showBackButton = true, onBac
                         key={card.id}
                         card={card}
                         hide={hide}
+                        browseOnly={browseOnly}
                         onTap={() => onCardClick(card.id)}
                         onLongPress={() => !hide && setDetailCard(card)}
                     />
@@ -129,18 +134,17 @@ const Grid = styled.div`
     flex: 1;
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 10px;
+    gap: 4px;
+    padding: 6px;
     overflow-y: auto;
     align-content: flex-start;
 `;
 
 const CardItem = styled.div`
-    width: calc(20% - 7px);
+    width: calc(10% - 3.6px);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
@@ -153,15 +157,6 @@ const CardImg = styled.img<{ color: string }>`
     border: 2px solid ${p => p.color};
     object-fit: cover;
     display: block;
-`;
-
-const CardName = styled.div`
-    font-size: 9px;
-    color: white;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
-    text-align: center;
-    line-height: 1.2;
 `;
 
 export default MobileFinder;
