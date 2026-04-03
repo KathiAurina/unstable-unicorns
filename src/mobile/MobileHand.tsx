@@ -274,11 +274,14 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
             vibrate(30);
             onDragEnd({ cardID, dropPlayerID: playerID, dropIsOwnStable: isOwnStable });
         } else {
+            const direction = gestureRef.current.gestureDirection;
             cancelGesture();
             if (handStateRef.current === 'expanded') {
-                // Tap or horizontal swipe in expanded hand → show inline detail
                 setHover(null);
-                setDetailCardIdx(idx);
+                // Only show inline detail for taps, not horizontal swipes
+                if (direction === 'undecided') {
+                    setDetailCardIdx(idx);
+                }
             } else {
                 // Tap card when tucked = expand hand
                 setHandStateSync('expanded');

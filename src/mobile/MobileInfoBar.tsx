@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import type { UnstableUnicornsGame, Ctx } from '../game/state';
-import { _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist } from '../game/state';
+import { _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist, _findInstruction } from '../game/state';
 import type { Moves } from '../game/types';
 import { BoardState } from '../BoardStateManager';
 import ImageLoader from '../assets/card/imageLoader';
@@ -22,6 +22,8 @@ type Props = {
 function getInfoText(G: UnstableUnicornsGame, ctx: Ctx, playerID: string, boardStates: BoardState[]): string | undefined {
     const openScenes = _findOpenScenesWithProtagonist(G, playerID);
     const scenesInProgress = _findInProgressScenesWithProtagonist(G, playerID);
+    const cardName = (bs: BoardState) =>
+        bs.info?.sourceCardID != null ? G.deck[bs.info.sourceCardID]?.title : undefined;
 
     if (ctx.currentPlayer === playerID && ctx.activePlayers![playerID] === 'beginning' && openScenes.length > 0) {
         return 'Activate your card effect or skip and draw a card.';
@@ -32,12 +34,40 @@ function getInfoText(G: UnstableUnicornsGame, ctx: Ctx, playerID: string, boardS
     if (playerID === ctx.currentPlayer && G.countPlayedCardsInActionPhase === 0 && !G.neighDiscussion && ctx.activePlayers![playerID] === 'action_phase') {
         return 'Drag a card from hand to play it, or tap the deck to draw.';
     }
-    if (boardStates.find(o => o.type === 'discard' || o.type === 'discard__popup__committed')) return 'Tap a card in your hand to discard it.';
+    if (boardStates.find(o => o.type === 'discard' || o.type === 'discard__popup__committed')) {
+        const bs = boardStates.find(o => o.type === 'discard' || o.type === 'discard__popup__committed')!;
+        const result = bs.info?.instructionID != null ? _findInstruction(G, bs.info.instructionID) : undefined;
+        const count: number = (result?.instruction?.do as any)?.info?.count ?? 1;
+        if (count > 1) return `Drag ${count} cards from your hand to discard them.`;
+        return 'Drag a card from your hand to discard it.';
+    }
+    if (boardStates.find(o => o.type === 'discard__popup__ask')) {
+        const bs = boardStates.find(o => o.type === 'discard__popup__ask')!;
+        const result = bs.info?.instructionID != null ? _findInstruction(G, bs.info.instructionID) : undefined;
+        const count: number = (result?.instruction?.do as any)?.info?.count ?? 1;
+        const st = bs.info?.singleActionText as string | undefined;
+        if (st) return `Tap ${cardName(bs)} in your stable to activate: ${st}.`;
+        if (count > 1) return `Tap ${cardName(bs)} in your stable to discard ${count} cards.`;
+        return `Tap ${cardName(bs)} in your stable to activate its discard effect.`;
+    }
+    if (boardStates.find(o => o.type === 'bring__popup__committed')) return 'Drag a card from your hand to bring it to your stable.';
+    if (boardStates.find(o => o.type === 'bring__popup__ask')) {
+        const bs = boardStates.find(o => o.type === 'bring__popup__ask')!;
+        return `Tap ${cardName(bs)} in your stable to bring a card to your stable.`;
+    }
     if (boardStates.find(o => o.type === 'destroy__click_on_card_in_stable')) return 'Tap a card in a stable to destroy it.';
+    if (boardStates.find(o => o.type === 'destroy__cardToCard')) {
+        const bs = boardStates.find(o => o.type === 'destroy__cardToCard')!;
+        return `Tap ${cardName(bs)} and then tap the card you want to destroy.`;
+    }
     if (boardStates.find(o => o.type === 'sacrifice__clickOnCardInStable')) return 'Tap a card in your stable to sacrifice it.';
+    if (boardStates.find(o => o.type === 'sacrifice__cardToCard')) {
+        const bs = boardStates.find(o => o.type === 'sacrifice__cardToCard')!;
+        return `Tap ${cardName(bs)} and then tap a card in your stable to sacrifice it.`;
+    }
     if (boardStates.find(o => o.type === 'steal__cardToCard')) {
         const bs = boardStates.find(o => o.type === 'steal__cardToCard')!;
-        return `Tap ${G.deck[bs.info!.sourceCardID!].title} then tap the card to steal.`;
+        return `Tap ${cardName(bs)} and then tap another player's card to steal it.`;
     }
     if (boardStates.find(o => o.type === 'draw__clickOnDrawPile')) {
         const bs = boardStates.find(o => o.type === 'draw__clickOnDrawPile');
@@ -45,36 +75,72 @@ function getInfoText(G: UnstableUnicornsGame, ctx: Ctx, playerID: string, boardS
     }
     if (boardStates.find(o => o.type === 'swapHands__cardToPlayer')) {
         const bs = boardStates.find(o => o.type === 'swapHands__cardToPlayer')!;
-        return `Tap ${G.deck[bs.info!.sourceCardID!].title} then tap a player to swap hands.`;
+        return `Tap ${cardName(bs)} and then tap a player to trade hands with them.`;
     }
     if (boardStates.find(o => o.type === 'move__cardToCard')) {
         const bs = boardStates.find(o => o.type === 'move__cardToCard')!;
-        return `Tap ${G.deck[bs.info!.sourceCardID!].title} then tap the target card.`;
+        return `Tap ${cardName(bs)} and then tap another card to move it.`;
     }
     if (boardStates.find(o => o.type === 'move2__cardToPlayer')) {
         const bs = boardStates.find(o => o.type === 'move2__cardToPlayer')!;
-        return `Tap ${G.deck[bs.info!.sourceCardID!].title} then tap a player.`;
+        return `Tap ${cardName(bs)} and then tap a player to move the selected card into their stable.`;
     }
     if (boardStates.find(o => o.type === 'wait_for_other_players')) return 'Waiting for other players...';
     if (boardStates.find(o => o.type === 'unicornswap1')) {
         const bs = boardStates.find(o => o.type === 'unicornswap1')!;
-        return `Tap ${G.deck[bs.info!.sourceCardID!].title} then tap the card to move.`;
+        return `Tap ${cardName(bs)} and then tap one of your cards to move it.`;
     }
     if (boardStates.find(o => o.type === 'unicornswap2')) {
         const bs = boardStates.find(o => o.type === 'unicornswap2')!;
-        return `Tap ${G.deck[bs.info!.sourceCardID!].title} then tap a player.`;
+        return `Tap ${cardName(bs)} and then tap another player to move the card to their stable.`;
     }
     if (boardStates.find(o => o.type === 'blatantThievery1')) {
         const bs = boardStates.find(o => o.type === 'blatantThievery1')!;
-        return `Tap ${G.deck[bs.info!.sourceCardID!].title} then tap a player.`;
+        return `Tap ${cardName(bs)} and then tap a player to look at their hand.`;
     }
     if (boardStates.find(o => o.type === 'pullRandom__cardToPlayer')) {
         const bs = boardStates.find(o => o.type === 'pullRandom__cardToPlayer')!;
-        return `Tap ${G.deck[bs.info!.sourceCardID!].title} then tap a player.`;
+        return `Tap ${cardName(bs)} and then tap a player to pull a random card from them.`;
     }
     if (boardStates.find(o => o.type === 'makeSomeoneDiscard__cardToPlayer')) {
         const bs = boardStates.find(o => o.type === 'makeSomeoneDiscard__cardToPlayer')!;
-        return `Tap ${G.deck[bs.info!.sourceCardID!].title} then tap a player to force discard.`;
+        return `Tap ${cardName(bs)} and then tap a player to force them to discard.`;
+    }
+    if (boardStates.find(o => o.type === 'backKick__card_to_card')) {
+        const bs = boardStates.find(o => o.type === 'backKick__card_to_card')!;
+        return `Tap ${cardName(bs)} and then tap a card to return it to its owner's hand.`;
+    }
+    if (boardStates.find(o => o.type === 'returnToHand__cardToCard')) {
+        const bs = boardStates.find(o => o.type === 'returnToHand__cardToCard')!;
+        return `Tap ${cardName(bs)} and then tap a card to return it to your hand.`;
+    }
+    if (boardStates.find(o => o.type === 'shakeUp')) {
+        const bs = boardStates.find(o => o.type === 'shakeUp')!;
+        return `Tap ${cardName(bs)} in your stable to shuffle and redistribute all unicorns.`;
+    }
+    if (boardStates.find(o => o.type === 'reset')) {
+        const bs = boardStates.find(o => o.type === 'reset')!;
+        return `Tap ${cardName(bs)} in your stable to return all upgrades and downgrades to their owners.`;
+    }
+    if (boardStates.find(o => o.type === 'shuffleDiscardPileIntoDrawPile')) {
+        const bs = boardStates.find(o => o.type === 'shuffleDiscardPileIntoDrawPile')!;
+        return `Tap ${cardName(bs)} to shuffle the discard pile into the draw pile.`;
+    }
+    if (boardStates.find(o => o.type === 'revive')) {
+        const bs = boardStates.find(o => o.type === 'revive')!;
+        return `Tap ${cardName(bs)} in your stable to choose a unicorn from the discard pile to revive.`;
+    }
+    if (boardStates.find(o => o.type === 'reviveFromNursery')) {
+        const bs = boardStates.find(o => o.type === 'reviveFromNursery')!;
+        return `Tap ${cardName(bs)} in your stable to choose a baby unicorn from the nursery.`;
+    }
+    if (boardStates.find(o => o.type === 'addFromDiscardPileToHand__single_action_popup')) {
+        const bs = boardStates.find(o => o.type === 'addFromDiscardPileToHand__single_action_popup')!;
+        return `Tap ${cardName(bs)} in your stable to add a card from the discard pile to your hand.`;
+    }
+    if (boardStates.find(o => o.type === 'search__single_action_popup')) {
+        const bs = boardStates.find(o => o.type === 'search__single_action_popup')!;
+        return `Tap ${cardName(bs)} in your stable to search the deck for a card.`;
     }
     return undefined;
 }
