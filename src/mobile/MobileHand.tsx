@@ -277,6 +277,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
             cancelGesture();
             if (handStateRef.current === 'expanded') {
                 // Tap or horizontal swipe in expanded hand → show inline detail
+                setHover(null);
                 setDetailCardIdx(idx);
             } else {
                 // Tap card when tucked = expand hand

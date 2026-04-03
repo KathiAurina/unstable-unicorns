@@ -30,10 +30,11 @@ const CardItem = ({ card, isGlowing, isTranslucent, isTargetMode, onTap, onLongP
     onTap: () => void;
     onLongPress: () => void;
 }) => {
-    // In target mode: tap = game action, long press = view detail
+    // In target mode or when card has an action (glowing): tap = game action, long press = view detail
     // When idle: tap = view detail, long press = nothing
-    const longPressAction = isTargetMode ? onLongPress : () => {};
-    const tapAction = isTargetMode ? onTap : onLongPress;
+    const isActionable = isTargetMode || isGlowing;
+    const longPressAction = isActionable ? onLongPress : () => {};
+    const tapAction = isActionable ? onTap : onLongPress;
     const lp = useLongPress(longPressAction);
     return (
         <CardWrapper

@@ -60,6 +60,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
     const [detailCard, setDetailCard] = useState<Card | undefined>(undefined);
     const [escapeMenuOpen, setEscapeMenuOpen] = useState(false);
     const [gameoverDismissed, setGameoverDismissed] = useState(false);
+    const [neighHidden, setNeighHidden] = useState(false);
 
     // ── Computed ──────────────────────────────────────────────────────────────
     const boardStates = getBoardState(G, ctx, playerID);
@@ -182,6 +183,10 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
         };
     };
     const neighProps = buildNeighProps();
+
+    // Reset hidden state when a new neigh discussion starts or a new round begins
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { setNeighHidden(false); }, [G.neighDiscussion?.rounds.length]);
 
     // ── Card tap handlers ─────────────────────────────────────────────────────
 
@@ -537,10 +542,18 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
 
                 {/* Neigh modal */}
                 <AnimatePresence>
-                    {neighProps && (
-                        <MobileNeighModal key="neigh-modal" {...neighProps} />
+                    {neighProps && !neighHidden && (
+                        <MobileNeighModal key="neigh-modal" {...neighProps} onHide={() => setNeighHidden(true)} />
                     )}
                 </AnimatePresence>
+                {neighProps && neighHidden && (
+                    <ShowNeighBtn
+                        onTouchEnd={e => { e.preventDefault(); setNeighHidden(false); }}
+                        onClick={() => setNeighHidden(false)}
+                    >
+                        Show Neigh
+                    </ShowNeighBtn>
+                )}
 
                 {/* Main board */}
                 <MobileInfoBar
@@ -582,6 +595,25 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
 };
 
 // ── Styled components ─────────────────────────────────────────────────────────
+
+const ShowNeighBtn = styled.div`
+    position: fixed;
+    bottom: 200px;
+    right: 16px;
+    z-index: 79000;
+    background: #1e1e30;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+`;
 
 const Wrapper = styled.div`
     width: 100%;

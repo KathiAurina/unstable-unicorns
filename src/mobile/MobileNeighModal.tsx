@@ -18,12 +18,13 @@ type Props = {
     showPlayNeighButton: boolean;
     onPlayNeighClick: () => void;
     onDontPlayNeighClick: () => void;
+    onHide: () => void;
 };
 
 const MobileNeighModal = ({
     card, role, originalInitiatorName, newInitiatorName,
     numberOfNeighedCards, didVote, showPlayNeighButton,
-    onPlayNeighClick, onDontPlayNeighClick,
+    onPlayNeighClick, onDontPlayNeighClick, onHide,
 }: Props) => {
     const context = useContext(LanguageContext);
 
@@ -61,6 +62,15 @@ const MobileNeighModal = ({
                 exit={{ y: 60, opacity: 0 }}
                 transition={{ duration: 0.22 }}
             >
+                <ModalHeader>
+                    <ModalTitle>Neigh Discussion</ModalTitle>
+                    <HideBtn
+                        onTouchEnd={e => { e.preventDefault(); onHide(); }}
+                        onClick={onHide}
+                    >
+                        Peek at Board
+                    </HideBtn>
+                </ModalHeader>
                 <CardRow>
                     <CardImg src={ImageLoader.load(card.image)} alt={card.title} borderColor={_typeToColor(card.type)} />
                     <CardInfo>
@@ -214,6 +224,35 @@ const NeighBtn = styled.div`
     border-radius: 10px;
     padding: 14px 0;
     text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+`;
+
+const ModalHeader = styled.div`
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+`;
+
+const ModalTitle = styled.div`
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    font-family: 'Nunito', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+const HideBtn = styled.div`
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    font-family: 'Nunito', sans-serif;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 6px 12px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
