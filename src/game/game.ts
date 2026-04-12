@@ -180,19 +180,16 @@ const UnstableUnicorns = {
 }
 
 function initializeGame(G: UnstableUnicornsGame, ctx: Ctx) {
-    let a: number[] = [];
-    for (let i=0; i<13; i++) {
-        a.push(i);
-    }
+    let babyIds = G.deck.filter(c => c.type === "baby").map(c => c.id);
 
     G.babyStarter.forEach(({cardID, owner}) => {
         G.stable[owner].push(cardID);
-        a = _.without(a, cardID);
+        babyIds = _.without(babyIds, cardID);
     });
 
-    a.forEach(cardId => {
+    babyIds.forEach(cardId => {
         G.nursery.push(cardId);
-    })
+    });
 }
 
 function changeName(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, name: string) {

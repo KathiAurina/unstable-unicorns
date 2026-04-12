@@ -38,8 +38,7 @@ const LobbyPage = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     numPlayers,
-                    setupData: { matchName: matchName || undefined, ownerPlayerID: "0" },
-                    expansions: expansions || ["base_game"]
+                    setupData: { matchName: matchName || undefined, ownerPlayerID: "0", expansions: expansions || ["base_game"] },
                 }),
             });
             if (response.ok) {

@@ -121,7 +121,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Baby Unicorn",
@@ -132,7 +132,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 },  {
     title: "Baby Unicorn",
@@ -143,7 +143,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Baby Unicorn",
@@ -154,7 +154,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 },  {
     title: "Baby Unicorn",
@@ -165,7 +165,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 },  {
     title: "Baby Unicorn",
@@ -176,7 +176,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Baby Unicorn",
@@ -187,7 +187,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Baby Unicorn",
@@ -198,7 +198,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Baby Unicorn",
@@ -209,7 +209,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Baby Unicorn",
@@ -220,7 +220,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Baby Unicorn",
@@ -231,7 +231,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Baby Unicorn",
@@ -242,7 +242,7 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Baby Narwhal",
@@ -253,7 +253,51 @@ const Cards: CardDefinition[] = [{
     on: [],
     description: {
         en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-        de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+    }
+}, {
+    title: "Baby Unicorn",
+    expansions: ["adventures_2nd_edition"], 
+    type: "baby",
+    image: "baby_fisherman",
+    count: 1, 
+    on: [],
+    description: {
+        en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+    }
+}, {
+    title: "Baby Unicorn",
+    expansions: ["adventures_2nd_edition"], 
+    type: "baby",
+    image: "baby_forest",
+    count: 1, 
+    on: [],
+    description: {
+        en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+    }
+}, {
+    title: "Baby Unicorn",
+    expansions: ["adventures_2nd_edition"], 
+    type: "baby",
+    image: "baby_pirate",
+    count: 1, 
+    on: [],
+    description: {
+        en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+    }
+}, {
+    title: "Baby Unicorn",
+    expansions: ["adventures_2nd_edition"], 
+    type: "baby",
+    image: "baby_safari",
+    count: 1, 
+    on: [],
+    description: {
+        en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+        de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
     title: "Alluring Narwhal",

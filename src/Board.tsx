@@ -166,7 +166,7 @@ const Board = (props: Props) => {
             <>
                 {escapeMenu}
                 {gameoverOverlay}
-                <CharacterSelectionPage G={G} babyCards={_.first(G.deck, 13)} playerID={playerID} moves={moves} />
+                <CharacterSelectionPage G={G} babyCards={G.deck.filter(c => c.type === "baby")} playerID={playerID} moves={moves} />
             </>
         );
     }
