@@ -1,7 +1,6 @@
 import styled, { css, keyframes } from 'styled-components';
 import { Card, CardID, CardType } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
-import _ from 'underscore';
 import { _typeToColor } from './util';
 import CardHover from './CardHover';
 import { useContext, useState } from 'react';

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 const LONG_PRESS_MS = 500;
 const MOVE_CANCEL_PX = 10;
@@ -15,6 +15,8 @@ export function useLongPress(onLongPress: () => void) {
         }
         startRef.current = null;
     }, []);
+
+    useEffect(() => cancel, [cancel]);
 
     const onTouchStart = useCallback((e: React.TouchEvent) => {
         const t = e.touches[0];

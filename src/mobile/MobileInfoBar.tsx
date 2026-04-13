@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import type { UnstableUnicornsGame, Ctx } from '../game/state';
 import { _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist, _findInstruction } from '../game/state';

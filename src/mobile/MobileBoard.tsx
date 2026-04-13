@@ -15,13 +15,12 @@ import type { CardID, Card } from '../game/card';
 import type { SearchTarget } from '../game/operations';
 import type { AddFromDiscardPileToHandTarget, BringToStableTarget, DiscardTarget, ReviveTarget } from '../game/operations';
 import { CardInteraction } from '../BoardUtil';
-import { getBoardState, BoardState } from '../BoardStateManager';
+import { getBoardState } from '../BoardStateManager';
 import { canPlayCard } from '../game/game';
 
 import BG from '../assets/ui/board-background.jpg';
 import EscapeMenu from '../components/EscapeMenu';
 import { useSoundEffects } from '../hooks/useSoundEffects';
-import { LanguageContext } from '../LanguageContextProvider';
 
 import CharacterSelectionPage from '../components/pregame/CharacterSelectionPage';
 import LandscapeGuard from './LandscapeGuard';
@@ -44,7 +43,7 @@ type Props = {
 type FinderType = 'deck' | 'discard' | 'nursery' | 'playerHand' | 'blatantThievery';
 
 const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
-    const { playDrawCardSound, playEndTurnButtonSound, playHubMouseOverSound, playExecuteDoSound } = useSoundEffects(G, ctx, playerID);
+    const { playDrawCardSound, playEndTurnButtonSound, playExecuteDoSound } = useSoundEffects(G, ctx, playerID);
 
     // ── Finder state ─────────────────────────────────────────────────────────
     const [showDeckFinder, setShowDeckFinder] = useState<SearchTarget[] | undefined>(undefined);
@@ -78,18 +77,25 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
     const destroySacrificeState = boardStates.find(
         s => s.type === 'destroy__click_on_card_in_stable' || s.type === 'sacrifice__clickOnCardInStable'
     );
-    if (destroySacrificeState && cardInteraction?.info?.instructionID !== destroySacrificeState.info!.instructionID) {
-        setCardInteraction({
-            key: 'click_on_other_stable_card',
-            info: {
-                targets: destroySacrificeState.info!.targets!,
-                instructionID: destroySacrificeState.info!.instructionID,
-            },
-        });
-    }
-    if (!destroySacrificeState && cardInteraction?.key === 'click_on_other_stable_card') {
-        setCardInteraction(undefined);
-    }
+    const destroySacrificeInstructionID = destroySacrificeState?.info?.instructionID;
+    const destroySacrificeTargets = destroySacrificeState?.info?.targets;
+    useEffect(() => {
+        if (destroySacrificeInstructionID !== undefined) {
+            setCardInteraction({
+                key: 'click_on_other_stable_card',
+                info: {
+                    targets: destroySacrificeTargets!,
+                    instructionID: destroySacrificeInstructionID,
+                },
+            });
+        } else {
+            setCardInteraction(prev =>
+                prev?.key === 'click_on_other_stable_card' ? undefined : prev
+            );
+        }
+    // destroySacrificeTargets is always in sync with destroySacrificeInstructionID (same object)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [destroySacrificeInstructionID]);
 
     // Derived highlight set
     const highlightMode = cardInteraction?.key === 'click_on_other_stable_card' || cardInteraction?.key === 'card_to_card'
@@ -323,7 +329,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
 
     /** Drag-end from hand → decide what to play */
     const handleDragEnd = (result: DragResult) => {
-        const { cardID, dropPlayerID, dropIsOwnStable } = result;
+        const { cardID, dropPlayerID } = result;
         const card = G.deck[cardID];
 
         // Neigh played from hand during neigh discussion
@@ -384,7 +390,11 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
         if (boardStates.find(s => s.type === 'neigh__playNeigh')) {
             if ((card.type === 'neigh' || card.type === 'super_neigh') &&
                 !G.playerEffects[playerID].find(e => e.effect.key === 'you_cannot_play_neigh')) {
-                moves.playNeigh(cardID, playerID, G.neighDiscussion!.rounds.length - 1);
+                if (card.type === 'super_neigh') {
+                    moves.playSuperNeigh(cardID, playerID, G.neighDiscussion!.rounds.length - 1);
+                } else {
+                    moves.playNeigh(cardID, playerID, G.neighDiscussion!.rounds.length - 1);
+                }
             }
             return;
         }

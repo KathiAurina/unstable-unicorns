@@ -99,7 +99,12 @@ const MobilePlayerField = ({
                                     onPlayerTap(pl.id);
                                 }
                             }}
-                            onClick={() => onPlayerTap(pl.id)}
+                            onClick={e => {
+                                const target = e.target as HTMLElement;
+                                if (!target.closest('[data-card-id]')) {
+                                    onPlayerTap(pl.id);
+                                }
+                            }}
                         >
                             <PlayerHeader>
                                 <PlayerName isCurrent={pl.id === ctx.currentPlayer}>{isOwn ? 'You' : pl.name}</PlayerName>

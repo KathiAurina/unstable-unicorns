@@ -39,16 +39,21 @@ const CardItem = ({ card, isGlowing, isTranslucent, isTargetMode, onTap, onLongP
     return (
         <CardWrapper
             {...lp}
+            data-card-id={card.id}
             onTouchStart={e => {
                 e.preventDefault(); // prevent browser image save context menu
                 lp.onTouchStart(e);
             }}
             onTouchEnd={e => {
+                e.stopPropagation();
                 const fired = lp.onTouchEnd();
                 if (!fired) tapAction();
             }}
             onContextMenu={e => e.preventDefault()}
-            onClick={tapAction}
+            onClick={e => {
+                e.stopPropagation();
+                tapAction();
+            }}
         >
             <CardImg
                 layoutId={`${card.id}`}

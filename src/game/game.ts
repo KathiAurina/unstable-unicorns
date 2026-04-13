@@ -11,7 +11,7 @@ import _ from 'underscore';
 import type { SetupData } from './types';
 import {
     UnstableUnicornsGame,
-    Scene, Action, Instruction,
+    Scene,
     _addSceneFromDo,
     _findOpenScenesWithProtagonist,
     _findInProgressScenesWithProtagonist,
