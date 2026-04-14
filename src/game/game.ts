@@ -246,6 +246,10 @@ function drawAndAdvance(G: UnstableUnicornsGame, ctx: Ctx) {
 
 export function canPlayCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, cardID: CardID) {
     if (ctx.currentPlayer === protagonist && ctx.activePlayers![protagonist] === "action_phase" && (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch")))) {
+        const card = G.deck[cardID];
+        if (card.type === "upgrade" && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) {
+            return false;
+        }
         return canEnter(G, ctx, { playerID: protagonist, cardID });
     }
 

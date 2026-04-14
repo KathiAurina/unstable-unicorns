@@ -486,8 +486,14 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                 {showDeckFinder && (
                     <MobileFinder
                         cards={showDeckFinder.map(s => G.deck[s.cardID])}
-                        showBackButton={false}
+                        showBackButton={true}
                         onBackClick={() => setShowDeckFinder(undefined)}
+                        onFailToFindClick={() => {
+                            const bs = boardStates.find(o => o.type === 'search__single_action_popup')!;
+                            moves.skipExecuteDo(playerID, bs.info!.instructionID);
+                            setShowDeckFinder(undefined);
+                            setCardInteraction(undefined);
+                        }}
                         onCardClick={cardID => {
                             const bs = boardStates.find(o => o.type === 'search__single_action_popup')!;
                             const { instruction } = _findInstruction(G, bs.info!.instructionID)!;

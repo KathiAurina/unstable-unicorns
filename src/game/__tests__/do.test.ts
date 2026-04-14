@@ -5,6 +5,7 @@ import {
     findPullRandomTargets, findMakeSomeoneDiscardTarget,
     findAddFromDiscardPileToHand,
 } from '../do';
+import { canPlayCard } from '../game';
 import { setupTestGame, createCtx, giveCardToStable, giveCardToUpgradeStable, giveCardToHand } from '../testHelpers';
 
 // ─── enter / canEnter ────────────────────────────────────────────────────────
@@ -31,12 +32,20 @@ describe('canEnter', () => {
         expect(canEnter(G, ctx, { playerID: '0', cardID: superNeigh.id })).toBe(false);
     });
 
-    it('blocks upgrade when you_cannot_play_upgrades effect is active', () => {
+    it('allows upgrade to enter via canEnter when you_cannot_play_upgrades is active (steal/move not blocked)', () => {
         const G = setupTestGame();
         const ctx = createCtx();
         const upgrade = G.deck.find(c => c.type === 'upgrade')!;
         G.playerEffects['0'] = [{ effect: { key: 'you_cannot_play_upgrades' } }];
-        expect(canEnter(G, ctx, { playerID: '0', cardID: upgrade.id })).toBe(false);
+        expect(canEnter(G, ctx, { playerID: '0', cardID: upgrade.id })).toBe(true);
+    });
+
+    it('blocks playing an upgrade via canPlayCard when you_cannot_play_upgrades is active', () => {
+        const G = setupTestGame();
+        const ctx = createCtx();
+        const upgrade = G.deck.find(c => c.type === 'upgrade')!;
+        G.playerEffects['0'] = [{ effect: { key: 'you_cannot_play_upgrades' } }];
+        expect(canPlayCard(G, ctx, '0', upgrade.id)).toBe(false);
     });
 
     it('blocks basic unicorn when basic_unicorns_can_only_join_your_stable is active for another player', () => {

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.leave = leave;
 exports.enter = enter;
 exports.canEnter = canEnter;
+const card_1 = require("../card");
 const state_1 = require("../state");
 const effect_1 = require("../effect");
 const underscore_1 = __importDefault(require("underscore"));
@@ -49,25 +50,25 @@ function injectActionOrCreateScene(G, newAction) {
         scene.actions.splice(index, 0, newAction);
     }
 }
-function leave(G, ctx, param) {
-    G.stable[param.playerID] = underscore_1.default.without(G.stable[param.playerID], param.cardID);
-    G.upgradeDowngradeStable[param.playerID] = underscore_1.default.without(G.upgradeDowngradeStable[param.playerID], param.cardID);
-    // remove player effect
-    G.playerEffects[param.playerID] = underscore_1.default.filter(G.playerEffects[param.playerID], eff => eff.cardID !== param.cardID);
-    // when another unicorn enters your stable
-    // inject action after the current action
-    const on = [...G.stable[param.playerID], ...G.upgradeDowngradeStable[param.playerID]].map(c => G.deck[c]).filter(s => s.on && s.on.filter(o => o.trigger === "unicorn_leaves_your_stable").length > 0);
-    on.forEach(card => {
+/** Fires reactive `inject_action` triggers on every card in the given player's
+ *  stable (including upgrades/downgrades) whose `on` array contains `trigger`.
+ *  The caller is responsible for gating on the moving card's type when the
+ *  trigger's game semantics require it (e.g. `unicorn_*` triggers). */
+function fireReactiveStableTrigger(G, playerID, trigger) {
+    const cards = [...G.stable[playerID], ...G.upgradeDowngradeStable[playerID]]
+        .map(c => G.deck[c])
+        .filter(s => s.on?.some(o => o.trigger === trigger));
+    cards.forEach(card => {
         // all unicorns are basic — trigger no effect
-        if ((0, effect_1.isCardBasicDueToEffect)(G.playerEffects[param.playerID], card))
+        if ((0, effect_1.isCardBasicDueToEffect)(G.playerEffects[playerID], card))
             return;
-        const on = card.on?.find(o => o.trigger === "unicorn_leaves_your_stable");
+        const on = card.on.find(o => o.trigger === trigger);
         if (on.do.type === "inject_action") {
             const newAction = {
                 type: "action",
                 instructions: [{
                         id: underscore_1.default.uniqueId(),
-                        protagonist: param.playerID,
+                        protagonist: playerID,
                         state: "open",
                         do: on.do.info.instruction.do,
                         ui: { ...on.do.info.instruction.ui, info: { source: card.id, ...on.do.info.instruction.ui.info } },
@@ -76,6 +77,16 @@ function leave(G, ctx, param) {
             injectActionOrCreateScene(G, newAction);
         }
     });
+}
+function leave(G, ctx, param) {
+    G.stable[param.playerID] = underscore_1.default.without(G.stable[param.playerID], param.cardID);
+    G.upgradeDowngradeStable[param.playerID] = underscore_1.default.without(G.upgradeDowngradeStable[param.playerID], param.cardID);
+    // remove player effect
+    G.playerEffects[param.playerID] = underscore_1.default.filter(G.playerEffects[param.playerID], eff => eff.cardID !== param.cardID);
+    // unicorn_leaves_your_stable is unicorn-specific by game semantics
+    if (!(0, card_1.isUnicorn)(G.deck[param.cardID]))
+        return;
+    fireReactiveStableTrigger(G, param.playerID, "unicorn_leaves_your_stable");
 }
 function enter(G, ctx, param) {
     const card = G.deck[param.cardID];
@@ -131,28 +142,10 @@ function enter(G, ctx, param) {
             }
         }
     }
-    // when another unicorn enters your stable
-    // inject action after the current action
-    const on = [...G.stable[param.playerID], ...G.upgradeDowngradeStable[param.playerID]].map(c => G.deck[c]).filter(s => s.on && s.on.filter(o => o.trigger === "unicorn_enters_your_stable").length > 0);
-    on.forEach(card => {
-        // all unicorns are basic — trigger no effect
-        if ((0, effect_1.isCardBasicDueToEffect)(G.playerEffects[param.playerID], card))
-            return;
-        const on = card.on?.find(o => o.trigger === "unicorn_enters_your_stable");
-        if (on.do.type === "inject_action") {
-            const newAction = {
-                type: "action",
-                instructions: [{
-                        id: underscore_1.default.uniqueId(),
-                        protagonist: param.playerID,
-                        state: "open",
-                        do: on.do.info.instruction.do,
-                        ui: { ...on.do.info.instruction.ui, info: { source: card.id, ...on.do.info.instruction.ui.info } },
-                    }]
-            };
-            injectActionOrCreateScene(G, newAction);
-        }
-    });
+    // unicorn_enters_your_stable is unicorn-specific by game semantics
+    if (!(0, card_1.isUnicorn)(card))
+        return;
+    fireReactiveStableTrigger(G, param.playerID, "unicorn_enters_your_stable");
 }
 function canEnter(G, ctx, param) {
     if (G.deck[param.cardID].type === "neigh" || G.deck[param.cardID].type === "super_neigh") {
@@ -162,11 +155,6 @@ function canEnter(G, ctx, param) {
         return false;
     }
     const card = G.deck[param.cardID];
-    if (G.playerEffects[param.playerID].find(s => s.effect.key === "you_cannot_play_upgrades")) {
-        if (card.type === "upgrade") {
-            return false;
-        }
-    }
     if (card.type === "basic") {
         let basic_unicorns_cannot_enter_isActive = false;
         underscore_1.default.keys(G.playerEffects).forEach(key => {

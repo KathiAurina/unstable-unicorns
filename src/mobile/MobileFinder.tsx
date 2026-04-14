@@ -14,6 +14,7 @@ type Props = {
     showBackButton?: boolean;
     browseOnly?: boolean;
     onBackClick: () => void;
+    onFailToFindClick?: () => void;
     onCardClick: (cardID: CardID) => void;
 };
 
@@ -53,7 +54,7 @@ const CardEntry = ({ card, hide, browseOnly, onTap, onLongPress }: {
     );
 };
 
-const MobileFinder = ({ cards, hide = false, title, showBackButton = true, browseOnly = false, onBackClick, onCardClick }: Props) => {
+const MobileFinder = ({ cards, hide = false, title, showBackButton = true, browseOnly = false, onBackClick, onFailToFindClick, onCardClick }: Props) => {
     const [detailCard, setDetailCard] = useState<Card | undefined>(undefined);
 
     return (
@@ -66,6 +67,14 @@ const MobileFinder = ({ cards, hide = false, title, showBackButton = true, brows
                     >
                         Back
                     </BackBtn>
+                )}
+                {onFailToFindClick && (
+                    <FailBtn
+                        onTouchEnd={e => { e.preventDefault(); onFailToFindClick(); }}
+                        onClick={onFailToFindClick}
+                    >
+                        Fail to Find
+                    </FailBtn>
                 )}
                 {title && <Title>{title}</Title>}
             </TopBar>
@@ -111,6 +120,19 @@ const TopBar = styled.div`
 
 const BackBtn = styled.div`
     background: rgba(255,255,255,0.15);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+`;
+
+const FailBtn = styled.div`
+    background: rgba(192,57,43,0.85);
     color: white;
     font-size: 13px;
     font-weight: 700;
