@@ -197,7 +197,7 @@ const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
                 if (!canDiscard(G, ctx, playerID, doInfo)) return [];
                 const actionIdx = scene.actions.findIndex(ac => ac.instructions.some(i => i.id === ins.id));
                 const subsequentSatisfiable = scene.actions.slice(actionIdx + 1).every(ac =>
-                    ac.instructions.every(i => canSatisfyDo(G, ctx, i.protagonist, i.do))
+                    ac.instructions.every(i => canSatisfyDo(G, ctx, i.protagonist, i.do, i.ui.info?.source))
                 );
                 if (!subsequentSatisfiable) return [];
             }

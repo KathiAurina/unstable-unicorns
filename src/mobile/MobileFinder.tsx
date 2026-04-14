@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Card, CardID } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
@@ -30,17 +30,23 @@ const CardEntry = ({ card, hide, browseOnly, onTap, onLongPress }: {
     const lpCallback = browseOnly ? () => {} : onLongPress;
     const tapCallback = browseOnly ? onLongPress : onTap;
     const lp = useLongPress(lpCallback);
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
     return (
         <CardItem
-            {...lp}
             onTouchStart={e => {
-                e.preventDefault(); // prevent image save context menu
+                touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                 lp.onTouchStart(e);
+                // no preventDefault here — allows native scroll on the grid
             }}
+            onTouchMove={lp.onTouchMove}
             onTouchEnd={e => {
-                e.preventDefault();
+                e.preventDefault(); // prevent synthesized click after touch
                 const fired = lp.onTouchEnd();
-                if (!fired) tapCallback();
+                if (!fired && touchStartRef.current) {
+                    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+                    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+                    if (Math.sqrt(dx * dx + dy * dy) < 10) tapCallback();
+                }
             }}
             onContextMenu={e => e.preventDefault()}
             onClick={tapCallback}

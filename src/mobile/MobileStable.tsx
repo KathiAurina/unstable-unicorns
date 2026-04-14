@@ -45,6 +45,7 @@ const CardItem = ({ card, isGlowing, isTranslucent, isTargetMode, onTap, onLongP
                 lp.onTouchStart(e);
             }}
             onTouchEnd={e => {
+                e.preventDefault();
                 e.stopPropagation();
                 const fired = lp.onTouchEnd();
                 if (!fired) tapAction();

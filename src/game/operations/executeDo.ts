@@ -119,7 +119,7 @@ export function autoFizzleUnsatisfiable(G: UnstableUnicornsGame, ctx: Ctx): void
             currentAction.instructions
                 .filter(ins => ins.state !== "executed")
                 .forEach(ins => {
-                    if (!canSatisfyDo(G, ctx, ins.protagonist, ins.do)) {
+                    if (!canSatisfyDo(G, ctx, ins.protagonist, ins.do, ins.ui.info?.source)) {
                         // Mark all of this protagonist's instructions in this action as executed
                         currentAction.instructions
                             .filter(i => i.protagonist === ins.protagonist)
@@ -131,12 +131,15 @@ export function autoFizzleUnsatisfiable(G: UnstableUnicornsGame, ctx: Ctx): void
             // If this is the last action and it's now fully executed, flush temp stables
             const isLastAction = currentAction === scene.actions[scene.actions.length - 1];
             if (isLastAction && currentAction.instructions.every(i => i.state === "executed")) {
-                G.players.forEach(pl => {
-                    const tempCard = _.first(G.temporaryStable[pl.id]);
+                const protagonists = [...new Set(currentAction.instructions.map(i => i.protagonist))];
+                const isShakeUp = currentAction.instructions.some(i => i.do.key === "shakeUp");
+                protagonists.forEach(protagonist => {
+                    const tempCard = _.first(G.temporaryStable[protagonist]);
                     if (tempCard !== undefined) {
-                        G.temporaryStable[pl.id] = [];
-                        // shakeUp cards are handled elsewhere; all others go to discard
-                        G.discardPile = [...G.discardPile, tempCard];
+                        G.temporaryStable[protagonist] = [];
+                        if (!isShakeUp) {
+                            G.discardPile = [...G.discardPile, tempCard];
+                        }
                     }
                 });
             }

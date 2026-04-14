@@ -30,7 +30,7 @@ const Finder = (props: Props) => {
                 </Button>
             }
             {props.onFailToFindClick &&
-                <FailButton onClick={() => props.onFailToFindClick!()}>
+                <FailButton onClick={props.onFailToFindClick}>
                     Fail to Find
                 </FailButton>
             }
