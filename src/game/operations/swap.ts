@@ -38,6 +38,7 @@ export function reset(G: UnstableUnicornsGame, ctx: Ctx, param: {protagonist: Pl
     });
 
     G.drawPile = _.shuffle([...G.drawPile, ...G.discardPile]);
+    G.discardPile = [];
 }
 
 export function shuffleDiscardPileIntoDrawPile(G: UnstableUnicornsGame, ctx: Ctx, _param: unknown) {

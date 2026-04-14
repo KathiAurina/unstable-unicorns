@@ -191,12 +191,12 @@ describe('findDestroyTargets', () => {
         const targets = (0, do_1.findDestroyTargets)(G, ctx, '0', { type: 'unicorn' }, undefined);
         expect(targets.length).toBe(0);
     });
-    it('does not target own cards', () => {
+    it('can target own cards (destroy is allowed on own stable)', () => {
         const G = (0, testHelpers_1.setupTestGame)();
         const ctx = (0, testHelpers_1.createCtx)();
         (0, testHelpers_1.giveCardToStable)(G, '0', 'basic');
         const targets = (0, do_1.findDestroyTargets)(G, ctx, '0', { type: 'unicorn' }, undefined);
-        expect(targets.every(t => t.playerID !== '0')).toBe(true);
+        expect(targets.some(t => t.playerID === '0')).toBe(true);
     });
 });
 // ─── discard ─────────────────────────────────────────────────────────────────
@@ -288,6 +288,27 @@ describe('findSacrificeTargets', () => {
         const cardID = (0, testHelpers_1.giveCardToUpgradeStable)(G, '0', 'downgrade');
         const targets = (0, do_1.findSacrificeTargets)(G, ctx, '0', { type: 'downgrade' });
         expect(targets.some(t => t.cardID === cardID)).toBe(true);
+    });
+    it('returns own unicorns AND upgrades AND downgrades for type=any', () => {
+        const G = (0, testHelpers_1.setupTestGame)();
+        const ctx = (0, testHelpers_1.createCtx)();
+        const unicornID = (0, testHelpers_1.giveCardToStable)(G, '0', 'basic');
+        const upgradeID = (0, testHelpers_1.giveCardToUpgradeStable)(G, '0', 'upgrade');
+        const downgradeID = (0, testHelpers_1.giveCardToUpgradeStable)(G, '0', 'downgrade');
+        const targets = (0, do_1.findSacrificeTargets)(G, ctx, '0', { type: 'any' });
+        expect(targets.some(t => t.cardID === unicornID)).toBe(true);
+        expect(targets.some(t => t.cardID === upgradeID)).toBe(true);
+        expect(targets.some(t => t.cardID === downgradeID)).toBe(true);
+    });
+    it('excludes pandamonium unicorns from type=any', () => {
+        const G = (0, testHelpers_1.setupTestGame)();
+        const ctx = (0, testHelpers_1.createCtx)();
+        const unicornID = (0, testHelpers_1.giveCardToStable)(G, '0', 'basic');
+        const upgradeID = (0, testHelpers_1.giveCardToUpgradeStable)(G, '0', 'upgrade');
+        G.playerEffects['0'] = [{ effect: { key: 'pandamonium' } }];
+        const targets = (0, do_1.findSacrificeTargets)(G, ctx, '0', { type: 'any' });
+        expect(targets.some(t => t.cardID === unicornID)).toBe(false);
+        expect(targets.some(t => t.cardID === upgradeID)).toBe(true);
     });
 });
 // ─── findReviveTarget ─────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import type { UnstableUnicornsGame, Ctx } from "../state";
+import type { UnstableUnicornsGame, Ctx, Action, Scene } from "../state";
 import { _findInstruction } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
@@ -13,6 +13,7 @@ import { returnToHand, bringToStable, move, move2, backKick } from "./move";
 import { makeSomeoneDiscard, blatantThievery1, pullRandom } from "./misc";
 import { swapHands, shakeUp, reset, shuffleDiscardPileIntoDrawPile, unicornSwap1, unicornSwap2 } from "./swap";
 import { CardID } from "../card";
+import { canSatisfyDo } from "./canSatisfy";
 export type { Do } from '../do-types';
 
 
@@ -89,5 +90,56 @@ export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: stri
                 }
             }
         }
+    }
+
+    // After every execution, check if any mandatory instructions have become
+    // unsatisfiable (no valid targets) and auto-skip them.
+    autoFizzleUnsatisfiable(G, ctx);
+}
+
+/**
+ * Scans all mandatory scenes and marks any instruction that has no valid
+ * targets as executed (effect fizzles). Handles the temporary-stable cleanup
+ * for magic cards when the last action of a scene is fully fizzled.
+ * Repeats until stable (fizzling one action may expose the next).
+ */
+export function autoFizzleUnsatisfiable(G: UnstableUnicornsGame, ctx: Ctx): void {
+    let changed = true;
+    while (changed) {
+        changed = false;
+        G.script.scenes.forEach((scene: Scene) => {
+            if (!scene.mandatory) return;
+
+            // Find the current action (first one with any non-executed instruction)
+            const currentAction = scene.actions.find((ac: Action) =>
+                ac.instructions.some(ins => ins.state !== "executed")
+            );
+            if (!currentAction) return;
+
+            currentAction.instructions
+                .filter(ins => ins.state !== "executed")
+                .forEach(ins => {
+                    if (!canSatisfyDo(G, ctx, ins.protagonist, ins.do)) {
+                        // Mark all of this protagonist's instructions in this action as executed
+                        currentAction.instructions
+                            .filter(i => i.protagonist === ins.protagonist)
+                            .forEach(i => { i.state = "executed"; });
+                        changed = true;
+                    }
+                });
+
+            // If this is the last action and it's now fully executed, flush temp stables
+            const isLastAction = currentAction === scene.actions[scene.actions.length - 1];
+            if (isLastAction && currentAction.instructions.every(i => i.state === "executed")) {
+                G.players.forEach(pl => {
+                    const tempCard = _.first(G.temporaryStable[pl.id]);
+                    if (tempCard !== undefined) {
+                        G.temporaryStable[pl.id] = [];
+                        // shakeUp cards are handled elsewhere; all others go to discard
+                        G.discardPile = [...G.discardPile, tempCard];
+                    }
+                });
+            }
+        });
     }
 }

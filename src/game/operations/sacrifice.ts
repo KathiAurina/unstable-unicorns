@@ -67,7 +67,14 @@ export function findSacrificeTargets(G: UnstableUnicornsGame, ctx: Ctx, protagon
     }
 
     if (info.type === "any") {
-        targets = G.stable[protagonist].map(c => ({ cardID: c }));
+        const hasPandamonium = G.playerEffects[protagonist].find(s => s.effect.key === "pandamonium") !== undefined;
+        G.stable[protagonist].forEach(c => {
+            if (hasPandamonium && isUnicorn(G.deck[c])) return;
+            targets.push({ cardID: c });
+        });
+        G.upgradeDowngradeStable[protagonist].forEach(c => {
+            targets.push({ cardID: c });
+        });
     }
 
     return targets;

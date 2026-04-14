@@ -1,4 +1,4 @@
-import { CardID, OnEnter, OnEnterAddEffect } from "../card";
+import { CardID, OnEnter, OnEnterAddEffect, isUnicorn } from "../card";
 import type { UnstableUnicornsGame, Ctx, Scene, Action, Instruction } from "../state";
 import { _addSceneFromDo } from "../state";
 import type { PlayerID } from "../player";
@@ -61,8 +61,8 @@ export function leave(G: UnstableUnicornsGame, ctx: Ctx, param: ParamLeave) {
     // remove player effect
     G.playerEffects[param.playerID] = _.filter(G.playerEffects[param.playerID], eff => eff.cardID !== param.cardID);
 
-    // when another unicorn enters your stable
-    // inject action after the current action
+    // unicorn_leaves_your_stable triggers only fire when the leaving card is a unicorn
+    if (!isUnicorn(G.deck[param.cardID])) return;
     const on = [...G.stable[param.playerID], ...G.upgradeDowngradeStable[param.playerID]].map(c => G.deck[c]).filter(s => s.on && s.on.filter(o => o.trigger === "unicorn_leaves_your_stable").length > 0);
     on.forEach(card => {
         // all unicorns are basic — trigger no effect
@@ -151,8 +151,9 @@ export function enter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
         }
     }
 
-    // when another unicorn enters your stable
-    // inject action after the current action
+    // when a unicorn enters your stable, fire unicorn_enters_your_stable triggers on
+    // cards already in the stable — only if the entering card is itself a unicorn
+    if (!isUnicorn(card)) return;
     const on = [...G.stable[param.playerID], ...G.upgradeDowngradeStable[param.playerID]].map(c => G.deck[c]).filter(s => s.on && s.on.filter(o => o.trigger === "unicorn_enters_your_stable").length > 0);
     on.forEach(card => {
         // all unicorns are basic — trigger no effect

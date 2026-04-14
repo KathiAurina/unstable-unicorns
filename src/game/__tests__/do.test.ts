@@ -246,13 +246,13 @@ describe('findDestroyTargets', () => {
         expect(targets.length).toBe(0);
     });
 
-    it('does not target own cards', () => {
+    it('can target own cards (destroy is allowed on own stable)', () => {
         const G = setupTestGame();
         const ctx = createCtx();
         giveCardToStable(G, '0', 'basic');
 
         const targets = findDestroyTargets(G, ctx, '0', { type: 'unicorn' }, undefined);
-        expect(targets.every(t => t.playerID !== '0')).toBe(true);
+        expect(targets.some(t => t.playerID === '0')).toBe(true);
     });
 });
 
@@ -370,6 +370,31 @@ describe('findSacrificeTargets', () => {
 
         const targets = findSacrificeTargets(G, ctx, '0', { type: 'downgrade' });
         expect(targets.some(t => t.cardID === cardID)).toBe(true);
+    });
+
+    it('returns own unicorns AND upgrades AND downgrades for type=any', () => {
+        const G = setupTestGame();
+        const ctx = createCtx();
+        const unicornID = giveCardToStable(G, '0', 'basic');
+        const upgradeID = giveCardToUpgradeStable(G, '0', 'upgrade');
+        const downgradeID = giveCardToUpgradeStable(G, '0', 'downgrade');
+
+        const targets = findSacrificeTargets(G, ctx, '0', { type: 'any' });
+        expect(targets.some(t => t.cardID === unicornID)).toBe(true);
+        expect(targets.some(t => t.cardID === upgradeID)).toBe(true);
+        expect(targets.some(t => t.cardID === downgradeID)).toBe(true);
+    });
+
+    it('excludes pandamonium unicorns from type=any', () => {
+        const G = setupTestGame();
+        const ctx = createCtx();
+        const unicornID = giveCardToStable(G, '0', 'basic');
+        const upgradeID = giveCardToUpgradeStable(G, '0', 'upgrade');
+        G.playerEffects['0'] = [{ effect: { key: 'pandamonium' } }];
+
+        const targets = findSacrificeTargets(G, ctx, '0', { type: 'any' });
+        expect(targets.some(t => t.cardID === unicornID)).toBe(false);
+        expect(targets.some(t => t.cardID === upgradeID)).toBe(true);
     });
 });
 

@@ -60,9 +60,6 @@ function findDestroyTargets(G, ctx, protagonist, info, sourceCard) {
                 }
             });
         }
-        if (pl.id === protagonist) {
-            return;
-        }
         if (info.type === "unicorn") {
             G.stable[pl.id].forEach(cid => {
                 const card = G.deck[cid];

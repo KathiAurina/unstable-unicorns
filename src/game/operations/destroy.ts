@@ -68,14 +68,10 @@ export function findDestroyTargets(G: UnstableUnicornsGame, ctx: Ctx, protagonis
                 const card = G.deck[cid];
                 if (pl.id === protagonist && card.type === "downgrade") {
                     targets.push({ playerID: pl.id, cardID: cid });
-                } else if (pl.id !== protagonist && card.type === "upgrade") {
+                } else if (card.type === "upgrade") {
                     targets.push({ playerID: pl.id, cardID: cid });
                 }
             });
-        }
-
-        if (pl.id === protagonist) {
-            return;
         }
 
         if (info.type === "unicorn") {
