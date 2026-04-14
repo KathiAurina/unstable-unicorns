@@ -26,3 +26,4 @@ __exportStar(require("./move"), exports);
 __exportStar(require("./swap"), exports);
 __exportStar(require("./misc"), exports);
 __exportStar(require("./executeDo"), exports);
+__exportStar(require("./canSatisfy"), exports);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
 import { Card, CardID } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
@@ -14,6 +14,7 @@ type Props = {
     showBackButton?: boolean;
     browseOnly?: boolean;
     onBackClick: () => void;
+    onFailToFindClick?: () => void;
     onCardClick: (cardID: CardID) => void;
 };
 
@@ -29,17 +30,23 @@ const CardEntry = ({ card, hide, browseOnly, onTap, onLongPress }: {
     const lpCallback = browseOnly ? () => {} : onLongPress;
     const tapCallback = browseOnly ? onLongPress : onTap;
     const lp = useLongPress(lpCallback);
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
     return (
         <CardItem
-            {...lp}
             onTouchStart={e => {
-                e.preventDefault(); // prevent image save context menu
+                touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                 lp.onTouchStart(e);
+                // no preventDefault here — allows native scroll on the grid
             }}
+            onTouchMove={lp.onTouchMove}
             onTouchEnd={e => {
-                e.preventDefault();
+                e.preventDefault(); // prevent synthesized click after touch
                 const fired = lp.onTouchEnd();
-                if (!fired) tapCallback();
+                if (!fired && touchStartRef.current) {
+                    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+                    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+                    if (Math.sqrt(dx * dx + dy * dy) < 10) tapCallback();
+                }
             }}
             onContextMenu={e => e.preventDefault()}
             onClick={tapCallback}
@@ -53,7 +60,7 @@ const CardEntry = ({ card, hide, browseOnly, onTap, onLongPress }: {
     );
 };
 
-const MobileFinder = ({ cards, hide = false, title, showBackButton = true, browseOnly = false, onBackClick, onCardClick }: Props) => {
+const MobileFinder = ({ cards, hide = false, title, showBackButton = true, browseOnly = false, onBackClick, onFailToFindClick, onCardClick }: Props) => {
     const [detailCard, setDetailCard] = useState<Card | undefined>(undefined);
 
     return (
@@ -66,6 +73,14 @@ const MobileFinder = ({ cards, hide = false, title, showBackButton = true, brows
                     >
                         Back
                     </BackBtn>
+                )}
+                {onFailToFindClick && (
+                    <FailBtn
+                        onTouchEnd={e => { e.preventDefault(); onFailToFindClick(); }}
+                        onClick={onFailToFindClick}
+                    >
+                        Fail to Find
+                    </FailBtn>
                 )}
                 {title && <Title>{title}</Title>}
             </TopBar>
@@ -111,6 +126,19 @@ const TopBar = styled.div`
 
 const BackBtn = styled.div`
     background: rgba(255,255,255,0.15);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+`;
+
+const FailBtn = styled.div`
+    background: rgba(192,57,43,0.85);
     color: white;
     font-size: 13px;
     font-weight: 700;

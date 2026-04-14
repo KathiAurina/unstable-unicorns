@@ -109,6 +109,12 @@ const InfoPanel = ({ G, ctx, playerID, boardStates }: Props) => {
         text = `Click on ${card.title} and then click on a player to pull a random card from that player.`
     }
 
+    if (boardStates.find(o => o.type === "search__single_action_popup")) {
+        const boardState = boardStates.find(o => o.type === "search__single_action_popup")!;
+        const card = G.deck[boardState.info!.sourceCardID!];
+        text = `Click on ${card.title} in your stable to search the deck for a card.`
+    }
+
     if (!text) {
         return null;
     }

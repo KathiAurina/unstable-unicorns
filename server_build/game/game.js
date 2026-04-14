@@ -219,6 +219,10 @@ function drawAndAdvance(G, ctx) {
 }
 function canPlayCard(G, ctx, protagonist, cardID) {
     if (ctx.currentPlayer === protagonist && ctx.activePlayers[protagonist] === "action_phase" && (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch")))) {
+        const card = G.deck[cardID];
+        if (card.type === "upgrade" && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) {
+            return false;
+        }
         return (0, operations_1.canEnter)(G, ctx, { playerID: protagonist, cardID });
     }
     return false;

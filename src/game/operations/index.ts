@@ -10,4 +10,5 @@ export * from './move';
 export * from './swap';
 export * from './misc';
 export * from './executeDo';
+export * from './canSatisfy';
 

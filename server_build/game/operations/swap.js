@@ -39,6 +39,7 @@ function reset(G, ctx, param) {
         });
     });
     G.drawPile = underscore_1.default.shuffle([...G.drawPile, ...G.discardPile]);
+    G.discardPile = [];
 }
 function shuffleDiscardPileIntoDrawPile(G, ctx, _param) {
     G.drawPile = underscore_1.default.shuffle([...G.drawPile, ...G.discardPile]);

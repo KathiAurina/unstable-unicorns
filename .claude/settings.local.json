@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Bash(mkdir -p \"C:/Users/lclic/.claude/plans\")",
+      "Read(//c/Users/lclic/.claude/plans/**)"
     ]
   }
 }

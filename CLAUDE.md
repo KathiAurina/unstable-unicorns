@@ -82,6 +82,12 @@ See `agent_docs/` for human-verified game rules and card mechanics:
 **Phases**: `pregame` (baby unicorn selection) → `main` (normal turns).
 **Turn stages**: `beginning` (draw phase, begin-of-turn effects) → `action_phase` (play cards, end turn).
 
+**UI info messages** — The "what should the player do now" text lives in **two files that must always be updated together**:
+- `src/components/InfoPanel.tsx` (desktop)
+- `src/mobile/MobileInfoBar.tsx` (mobile)
+
+When you add or change a `BoardStateKey` or alter a card's resolution flow, update both files. Desktop uses "Click on …" phrasing; mobile uses "Tap …". Mobile currently covers more states than desktop — bring desktop up to parity when you touch the affected key.
+
 ### Deployment
 
 The production deployment runs at `uu.clicque.de`. The lobby API is served on the same port as the game server (no separate subdomain). `PORT` defaults to 8000, `CORS_ORIGIN` defaults to `https://uu.clicque.de`.
