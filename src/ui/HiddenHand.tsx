@@ -1,8 +1,4 @@
 import styled from 'styled-components';
-import { Card, CardType } from '../game/card';
-import ImageLoader from '../assets/card/imageLoader';
-import _ from 'underscore';
-import { _typeToColor } from './util';
 import BACK from '../assets/card/UU-Back-Main.png';
 
 type Props = {

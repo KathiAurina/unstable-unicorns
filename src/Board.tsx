@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import _ from 'underscore';
 import HiddenHand from './ui/HiddenHand';
-import Stable, { StableHandle } from './ui/Stable';
+import { StableHandle } from './ui/Stable';
 import PlayerField, { PlayerFieldHandle } from './ui/PlayerField';
 import { motion, AnimateSharedLayout, AnimatePresence } from "framer-motion";
 // game
@@ -30,6 +30,8 @@ import NeighPanel from './components/NeighPanel';
 import InfoPanel from './components/InfoPanel';
 import OverlayManager from './components/OverlayManager';
 import StableSection from './components/StableSection';
+import { useMobile } from './hooks/useMobile';
+import MobileBoard from './mobile/MobileBoard';
 
 type Props = {
     G: UnstableUnicornsGame;
@@ -39,7 +41,14 @@ type Props = {
     isActive: boolean;
 }
 
+// Top-level Board: routes between mobile and desktop based on device detection.
 const Board = (props: Props) => {
+    const isMobile = useMobile();
+    if (isMobile) return <MobileBoard {...props} />;
+    return <DesktopBoard {...props} />;
+};
+
+const DesktopBoard = (props: Props) => {
     const { G, ctx, playerID, moves } = props;
 
     const { playDrawCardSound, playEndTurnButtonSound, playHubMouseOverSound, playExecuteDoSound } = useSoundEffects(G, ctx, playerID);
@@ -54,8 +63,7 @@ const Board = (props: Props) => {
     const playerFieldRef = useRef<PlayerFieldHandle>(null);
     const [hoverTargets, setHoverTargets] = useState<{ sourceCardID: CardID, targets: HoverTarget[] }>();
     const [cardInteraction, setCardInteraction] = useState<CardInteraction | undefined>(undefined);
-    const context = useContext(LanguageContext);
-
+    useContext(LanguageContext);
     let openScenes: Array<[Instruction, Scene]> = _findInProgressScenesWithProtagonist(G, playerID);
     if (openScenes.length === 0) {
         openScenes = _findOpenScenesWithProtagonist(G, playerID);
@@ -112,7 +120,7 @@ const Board = (props: Props) => {
         }
     }
 
-    const [C2CArrow, setC2CArrow] = useState<{ fromX: number, fromY: number, toX: number, toY: number } | undefined>(undefined);
+    const [C2CArrow] = useState<{ fromX: number, fromY: number, toX: number, toY: number } | undefined>(undefined);
     const [escapeMenuOpen, setEscapeMenuOpen] = useState(false);
     const [gameoverDismissed, setGameoverDismissed] = useState(false);
 

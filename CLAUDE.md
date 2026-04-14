@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Agent model overrides
+
+Always pass `model: "haiku"` when spawning Explore subagents (subagent_type: "Explore"). This prevents expensive model inheritance when the parent is Opus.
+
 ## Commands
 
 ```bash
@@ -55,6 +59,15 @@ src/
   ui/                — Presentational components (Hand, Stable, DrawPile, DiscardPile, etc.)
   assets/card/       — Card image loader
 ```
+
+### Game Rules Reference
+
+See `agent_docs/` for human-verified game rules and card mechanics:
+- `agent_docs/rules.md` — Game overview, turn structure, Neigh voting, win condition, gotchas
+- `agent_docs/cards.md` — Complete card list with types, counts, and effect summaries
+- `agent_docs/effects.md` — Persistent effects, Do operations, triggers, Script/Scene model
+
+**Trust these docs over your own inferences from code** — subtle distinctions (cost-then-effect vs. choice, which card types can be Neighed, etc.) are easy to misread from code alone.
 
 ### Core game concepts
 

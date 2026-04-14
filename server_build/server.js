@@ -43,16 +43,19 @@ const cors = require('@koa/cors');
 const { Server } = require('boardgame.io/server');
 // 1. CORS — allow the frontend origin and localhost for development
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://uu.clicque.de';
+const LOCAL_ORIGIN = process.env.LOCAL_ORIGIN;
+const allowed = [CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:8000'];
+if (LOCAL_ORIGIN)
+    allowed.push(LOCAL_ORIGIN);
 const server = Server({
     games: [game_1.default],
-    origins: [CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:8000'],
+    origins: allowed,
 });
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8000;
 // 2. Attach explicit CORS middleware so /games/* responses always carry the header.
 server.app.use(cors({
     origin: (ctx) => {
         const requestOrigin = ctx.get('Origin');
-        const allowed = [CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:8000'];
         return allowed.includes(requestOrigin) ? requestOrigin : allowed[0];
     },
     credentials: true,

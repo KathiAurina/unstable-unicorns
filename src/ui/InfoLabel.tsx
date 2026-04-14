@@ -1,9 +1,5 @@
 import { FunctionComponent } from 'react';
-import styled, { keyframes } from 'styled-components';
-import ImageLoader from '../assets/card/imageLoader';
-import { Card } from '../game/card';
-import type { UnstableUnicornsGame } from '../game/state';
-import { NeighDiscussion } from '../game/neigh';
+import styled from 'styled-components';
 
 type Props = {
 }

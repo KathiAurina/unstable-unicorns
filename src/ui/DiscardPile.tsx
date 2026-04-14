@@ -1,6 +1,6 @@
 import _ from 'underscore';
 import styled from 'styled-components';
-import type { Card, CardID } from "../game/card";
+import type { Card } from "../game/card";
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from './util';
 import  { useContext, useState } from 'react';

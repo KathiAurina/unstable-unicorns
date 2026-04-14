@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import type { UnstableUnicornsGame, Ctx } from '../game/state';
 import type { Moves } from '../game/types';
@@ -21,6 +21,26 @@ type Props = {
 
 const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ctx, moves }: Props) => {
     const languageContext = useContext(LanguageContext);
+    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+    const supportsFullscreen = !!document.documentElement.requestFullscreen;
+
+    useEffect(() => {
+        const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', onFsChange);
+        return () => document.removeEventListener('fullscreenchange', onFsChange);
+    }, []);
+
+    const handleToggleFullscreen = async () => {
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+            } else {
+                await document.documentElement.requestFullscreen();
+            }
+        } catch (e) {
+            // Fullscreen API not supported or blocked (e.g. Safari iOS)
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -108,6 +128,16 @@ const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ct
                     </LangButton>
                 </LangRow>
 
+                {supportsFullscreen && (
+                    <>
+                        <Divider />
+                        <SectionLabel>Display</SectionLabel>
+                        <MenuButton onClick={handleToggleFullscreen}>
+                            {isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                        </MenuButton>
+                    </>
+                )}
+
                 <CloseButton onClick={onClose}>Close</CloseButton>
             </Modal>
         </Backdrop>
@@ -130,9 +160,18 @@ const Modal = styled.div`
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
     padding: 32px 36px;
     width: 320px;
+    max-width: calc(100vw - 32px);
+    max-height: 90dvh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 10px;
+
+    @media (max-height: 500px) {
+        padding: 14px 18px;
+        gap: 7px;
+        border-radius: 12px;
+    }
 `;
 
 const Title = styled.h2`
@@ -141,6 +180,11 @@ const Title = styled.h2`
     color: #333;
     margin: 0 0 8px 0;
     text-align: center;
+
+    @media (max-height: 500px) {
+        font-size: 16px;
+        margin: 0 0 2px 0;
+    }
 `;
 
 const MenuButton = styled.button`
@@ -159,6 +203,11 @@ const MenuButton = styled.button`
     &:hover {
         transform: scale(1.02);
         box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    @media (max-height: 500px) {
+        padding: 8px;
+        font-size: 12px;
     }
 `;
 
