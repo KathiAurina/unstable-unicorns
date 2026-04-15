@@ -15,6 +15,7 @@ exports.findMoveTargets2 = findMoveTargets2;
 exports.backKick = backKick;
 exports.findBackKickTargets = findBackKickTargets;
 const underscore_1 = __importDefault(require("underscore"));
+const card_1 = require("../card");
 const enter_1 = require("./enter");
 const destroy_1 = require("./destroy");
 const misc_1 = require("./misc");
@@ -22,7 +23,7 @@ function returnToHand(G, ctx, param) {
     const card = G.deck[param.cardID];
     const playerID = (0, destroy_1.findOwnerOfCard)(G, param.cardID);
     (0, enter_1.leave)(G, ctx, { playerID: playerID, cardID: param.cardID });
-    if (card.type === "baby") {
+    if ((0, card_1.hasType)(card, "baby")) {
         G.nursery.push(param.cardID);
     }
     else {
@@ -46,7 +47,7 @@ function bringToStable(G, ctx, param) {
 function findBringToStableTargets(G, ctx, protagonist, info) {
     let targets = [];
     if (info.type === "basic_unicorn") {
-        targets = G.hand[protagonist].map(c => G.deck[c]).filter(c => c.type === "basic" && (0, enter_1.canEnter)(G, ctx, { cardID: c.id, playerID: protagonist })).map(c => ({ cardID: c.id }));
+        targets = G.hand[protagonist].map(c => G.deck[c]).filter(c => (0, card_1.hasType)(c, "basic") && (0, enter_1.canEnter)(G, ctx, { cardID: c.id, playerID: protagonist })).map(c => ({ cardID: c.id }));
     }
     return targets;
 }

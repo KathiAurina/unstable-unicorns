@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.initializeDeck = initializeDeck;
 exports.isUnicorn = isUnicorn;
+exports.hasType = hasType;
 const Cards = [{
         title: "Baby Unicorn",
         type: "baby",
@@ -228,7 +229,7 @@ const Cards = [{
         title: "Chainsaw Unicorn",
         type: "unicorn",
         image: "chainsaw_unicorn",
-        count: 2,
+        count: 1,
         on: [{
                 trigger: "enter",
                 do: {
@@ -438,10 +439,15 @@ const Cards = [{
                         endTurnImmediately: false
                     }
                 }
+            }, {
+                trigger: "this_destroyed_or_sacrificed",
+                do: {
+                    type: "return_to_hand",
+                }
             }],
         description: {
-            en: "When this card enters your Stable, you may add a Magic card from the discard pile to your hand.",
-            de: "Wenn diese Karte deinen Stall betritt, darfst du eine Magiekarte aus dem Friedhof deiner Hand hinzufügen."
+            en: "When this card enters your Stable, you may add a Magic card from the discard pile to your hand. If this card is sacrificed or destroyed, return it to your hand.",
+            de: "Wenn diese Karte deinen Stall betritt, darfst du eine Magiekarte aus dem Friedhof deiner Hand hinzufügen. Wenn diese Karte geopfert oder zerstört wird, kommt sie stattdessen auf deine Hand zurück."
         }
     }, {
         title: "Magical Kittencorn",
@@ -548,7 +554,7 @@ const Cards = [{
         title: "Narwhal Torpedo",
         type: "unicorn",
         image: "narwhal_torpedo",
-        count: 2,
+        count: 1,
         on: [{
                 trigger: "enter",
                 do: {
@@ -1803,7 +1809,7 @@ const Cards = [{
         }
     }, {
         title: "Narwhal",
-        type: "basic",
+        type: ["basic", "narwhal"],
         image: "basic7",
         count: 3,
         on: [],
@@ -1830,6 +1836,9 @@ function initializeDeck() {
     return deck.map((c, idx) => ({ ...c, id: idx }));
 }
 // Helper
+function hasType(card, type) {
+    return Array.isArray(card.type) ? card.type.includes(type) : card.type === type;
+}
 function isUnicorn(card) {
-    return card.type === "baby" || card.type === "basic" || card.type === "unicorn" || card.type === "narwhal";
+    return hasType(card, "baby") || hasType(card, "basic") || hasType(card, "unicorn") || hasType(card, "narwhal");
 }

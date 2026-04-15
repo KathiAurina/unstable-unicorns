@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
-import { Card, CardID } from '../game/card';
+import { Card, CardID, getPrimaryType } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from '../ui/util';
 import { cardDescription } from '../BoardUtil';
@@ -360,7 +360,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
                                 {showTooltip && (
                                     <CardTooltip color={_typeToColor(card.type)} side={x < 0 ? 'right' : 'left'}>
                                         <TooltipTitle>{card.title}</TooltipTitle>
-                                        <TooltipType>{card.type.replace('_', ' ')}</TooltipType>
+                                        <TooltipType>{getPrimaryType(card).replace('_', ' ')}</TooltipType>
                                         <TooltipDesc>{cardDescription(card, lang)}</TooltipDesc>
                                     </CardTooltip>
                                 )}

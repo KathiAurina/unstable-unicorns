@@ -102,6 +102,9 @@ describe('enter', () => {
     it('adds magic card to temporaryStable', () => {
         const G = setupTestGame();
         const ctx = createCtx();
+        // Give player 1 a unicorn so Unicorn Poison's destroy-unicorn scene is satisfiable
+        // (otherwise autoFizzleUnsatisfiable flushes the temp stable immediately).
+        giveCardToStable(G, '1', 'basic');
         const magic = G.deck.find(c => c.type === 'magic')!;
         G.drawPile = G.drawPile.filter(id => id !== magic.id);
 
@@ -298,7 +301,8 @@ describe('findDiscardTargets', () => {
         const targets = findDiscardTargets(G, ctx, '0', { count: 1, type: 'unicorn' });
         targets.forEach(t => {
             const card = G.deck[G.hand['0'][t.handIndex]];
-            expect(['baby', 'basic', 'unicorn', 'narwhal']).toContain(card.type);
+            const cardTypes = Array.isArray(card.type) ? card.type : [card.type];
+            expect(cardTypes.some(t => ['baby', 'basic', 'unicorn', 'narwhal'].includes(t))).toBe(true);
         });
     });
 });

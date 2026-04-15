@@ -31,7 +31,7 @@ const UnstableUnicorns = {
         const deck = (0, card_1.initializeDeck)();
         const discardPile = [];
         let nursery = [];
-        let drawPile = underscore_1.default.shuffle(deck).filter(c => c.type !== "baby").map(c => c.id);
+        let drawPile = underscore_1.default.shuffle(deck).filter(c => !(0, card_1.hasType)(c, "baby")).map(c => c.id);
         let hand = {};
         let stable = {};
         let temporaryStable = {};
@@ -115,6 +115,7 @@ const UnstableUnicorns = {
                         });
                     }
                 });
+                (0, operations_2.autoFizzleUnsatisfiable)(G, ctx);
                 ctx.events?.setActivePlayers({ all: "beginning" });
             }
             else {
@@ -220,7 +221,7 @@ function drawAndAdvance(G, ctx) {
 function canPlayCard(G, ctx, protagonist, cardID) {
     if (ctx.currentPlayer === protagonist && ctx.activePlayers[protagonist] === "action_phase" && (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch")))) {
         const card = G.deck[cardID];
-        if (card.type === "upgrade" && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) {
+        if ((0, card_1.hasType)(card, "upgrade") && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) {
             return false;
         }
         return (0, operations_1.canEnter)(G, ctx, { playerID: protagonist, cardID });
@@ -238,11 +239,18 @@ function playCard(G, ctx, protagonist, cardID) {
         G.neighDiscussion = {
             cardID, protagonist, rounds: [{
                     state: "open",
-                    playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: pl.id === protagonist ? "no_neigh" : "undecided" }])))
+                    playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }])))
                 }],
             target: protagonist,
         };
     }
+}
+function initialNeighVote(G, playerID, protagonist) {
+    if (playerID === protagonist)
+        return "no_neigh";
+    if (G.playerEffects[playerID].find(e => e.effect.key === "you_cannot_play_neigh"))
+        return "no_neigh";
+    return "undecided";
 }
 function playUpgradeDowngradeCard(G, ctx, protagonist, targetPlayer, cardID) {
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
@@ -255,7 +263,7 @@ function playUpgradeDowngradeCard(G, ctx, protagonist, targetPlayer, cardID) {
         G.neighDiscussion = {
             cardID, protagonist, rounds: [{
                     state: "open",
-                    playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: pl.id === protagonist ? "no_neigh" : "undecided" }]))),
+                    playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }]))),
                 }],
             target: targetPlayer,
         };
@@ -277,7 +285,7 @@ function playNeigh(G, ctx, cardID, protagonist, roundIndex) {
         round.state = "neigh";
         G.neighDiscussion.rounds.push({
             state: "open",
-            playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: pl.id === protagonist ? "no_neigh" : "undecided" }])))
+            playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }])))
         });
     }
 }

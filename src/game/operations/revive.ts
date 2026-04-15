@@ -1,4 +1,4 @@
-import { CardID, isUnicorn } from "../card";
+import { CardID, isUnicorn, hasType } from "../card";
 import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
@@ -34,7 +34,7 @@ export function findReviveTarget(G: UnstableUnicornsGame, ctx: Ctx, protagonist:
     if (info.type === "basic_unicorn") {
         targets = G.discardPile.filter(c => {
             const card = G.deck[c];
-            return canEnter(G, ctx, { playerID: protagonist, cardID: c }) && card.type === "basic";
+            return canEnter(G, ctx, { playerID: protagonist, cardID: c }) && hasType(card, "basic");
         }).map(c => ({ cardID: c }));
     }
 
@@ -59,7 +59,7 @@ export function findAddFromDiscardPileToHand(G: UnstableUnicornsGame, ctx: Ctx, 
     let targets: AddFromDiscardPileToHandTarget[] = [];
 
     if (info.type === "magic" || info.type === "neigh") {
-        targets = G.discardPile.map(c => G.deck[c]).filter(c => c.type === info.type).map(c => ({ cardID: c.id }));
+        targets = G.discardPile.map(c => G.deck[c]).filter(c => hasType(c, info.type)).map(c => ({ cardID: c.id }));
     }
 
     if (info.type === "unicorn") {

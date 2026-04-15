@@ -3,8 +3,8 @@ import { INVALID_MOVE } from 'boardgame.io/core';
 import type { Player, PlayerID } from './player';
 import type { CardID, OnEnterAddEffect } from './card';
 import { canEnter, enter } from './operations';
-import { executeDo } from './operations';
-import { initializeDeck } from './card';
+import { executeDo, autoFizzleUnsatisfiable } from './operations';
+import { initializeDeck, hasType } from './card';
 import { CONSTANTS } from './constants';
 import { Effect, isCardBasicDueToEffect } from './effect';
 import _ from 'underscore';
@@ -38,7 +38,7 @@ const UnstableUnicorns = {
         const deck = initializeDeck();
         const discardPile: CardID[] = [];
         let nursery: CardID[] = [];
-        let drawPile = _.shuffle(deck).filter(c => c.type !== "baby").map(c => c.id);
+        let drawPile = _.shuffle(deck).filter(c => !hasType(c, "baby")).map(c => c.id);
         let hand: { [key: string]: CardID[] } = {};
         let stable: { [key: string]: CardID[] } = {};
         let temporaryStable: { [key: string]: CardID[] } = {};
@@ -129,6 +129,8 @@ const UnstableUnicorns = {
                     }
                 });
 
+
+                autoFizzleUnsatisfiable(G, ctx);
 
                 ctx.events?.setActivePlayers!({ all: "beginning" });
             } else {
@@ -247,7 +249,7 @@ function drawAndAdvance(G: UnstableUnicornsGame, ctx: Ctx) {
 export function canPlayCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, cardID: CardID) {
     if (ctx.currentPlayer === protagonist && ctx.activePlayers![protagonist] === "action_phase" && (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch")))) {
         const card = G.deck[cardID];
-        if (card.type === "upgrade" && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) {
+        if (hasType(card, "upgrade") && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) {
             return false;
         }
         return canEnter(G, ctx, { playerID: protagonist, cardID });
@@ -267,11 +269,17 @@ function playCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, card
         G.neighDiscussion = {
             cardID, protagonist, rounds: [{
                 state: "open",
-                playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: pl.id === protagonist ? "no_neigh" : "undecided" }])))
+                playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }])))
             }],
             target: protagonist,
         };
     }
+}
+
+function initialNeighVote(G: UnstableUnicornsGame, playerID: PlayerID, protagonist: PlayerID): "no_neigh" | "undecided" {
+    if (playerID === protagonist) return "no_neigh";
+    if (G.playerEffects[playerID].find(e => e.effect.key === "you_cannot_play_neigh")) return "no_neigh";
+    return "undecided";
 }
 
 function playUpgradeDowngradeCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, targetPlayer: PlayerID, cardID: CardID) {
@@ -285,7 +293,7 @@ function playUpgradeDowngradeCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist
         G.neighDiscussion = {
             cardID, protagonist, rounds: [{
                 state: "open",
-                playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: pl.id === protagonist ? "no_neigh" : "undecided" }]))),
+                playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }]))),
             }],
             target: targetPlayer,
         };
@@ -293,6 +301,7 @@ function playUpgradeDowngradeCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist
 }
 
 function playNeigh(G: UnstableUnicornsGame, ctx: Ctx, cardID: CardID, protagonist: PlayerID, roundIndex: number) {
+    if (G.playerEffects[protagonist].find(e => e.effect.key === "you_cannot_play_neigh")) return;
     if (G.neighDiscussion) {
         G.hand[protagonist] = _.without(G.hand[protagonist], cardID);
         G.discardPile = [...G.discardPile, cardID];
@@ -309,12 +318,13 @@ function playNeigh(G: UnstableUnicornsGame, ctx: Ctx, cardID: CardID, protagonis
         round.state = "neigh";
         G.neighDiscussion.rounds.push({
             state: "open",
-            playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: pl.id === protagonist ? "no_neigh" : "undecided" }])))
+            playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }])))
         });
     }
 }
 
 function playSuperNeigh(G: UnstableUnicornsGame, ctx: Ctx, cardID: CardID, protagonist: PlayerID, roundIndex: number) {
+    if (G.playerEffects[protagonist].find(e => e.effect.key === "you_cannot_play_neigh")) return;
     if (G.neighDiscussion) {
         G.hand[protagonist] = _.without(G.hand[protagonist], cardID);
         G.discardPile = [...G.discardPile, cardID];

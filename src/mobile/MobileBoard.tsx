@@ -21,6 +21,8 @@ import { canPlayCard } from '../game/game';
 import BG from '../assets/ui/board-background.jpg';
 import EscapeMenu from '../components/EscapeMenu';
 import { useSoundEffects } from '../hooks/useSoundEffects';
+import { useGameSettings } from '../hooks/useGameSettings';
+import { useAutoActions } from '../hooks/useAutoActions';
 
 import CharacterSelectionPage from '../components/pregame/CharacterSelectionPage';
 import LandscapeGuard from './LandscapeGuard';
@@ -61,8 +63,12 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
     const [gameoverDismissed, setGameoverDismissed] = useState(false);
     const [neighHidden, setNeighHidden] = useState(false);
 
+    // ── Settings & automation ─────────────────────────────────────────────────
+    const { autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh } = useGameSettings();
+
     // ── Computed ──────────────────────────────────────────────────────────────
     const boardStates = getBoardState(G, ctx, playerID);
+    useAutoActions(G, ctx, playerID, moves, { autoEndTurn, autoDontNeigh }, boardStates);
 
     let openScenes: Array<[Instruction, Scene]> = _findInProgressScenesWithProtagonist(G, playerID);
     if (openScenes.length === 0) {
@@ -476,6 +482,10 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                     G={G}
                     ctx={ctx}
                     moves={moves}
+                    autoEndTurn={autoEndTurn}
+                    setAutoEndTurn={setAutoEndTurn}
+                    autoDontNeigh={autoDontNeigh}
+                    setAutoDontNeigh={setAutoDontNeigh}
                 />
                 {gameoverOverlay}
 

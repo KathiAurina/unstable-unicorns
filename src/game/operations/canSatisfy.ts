@@ -1,4 +1,4 @@
-import type { UnstableUnicornsGame, Ctx } from "../state";
+import type { UnstableUnicornsGame, Ctx, Scene, Action } from "../state";
 import type { PlayerID } from "../player";
 import type { Do } from "../do-types";
 import type { CardID } from "../card";
@@ -10,6 +10,7 @@ import { findReviveTarget, findAddFromDiscardPileToHand } from "./revive";
 import { findBringToStableTargets, findReturnToHandTargets, findBackKickTargets } from "./move";
 import { findSearchTargets } from "./search";
 import { findUnicornSwap1Targets } from "./swap";
+import _ from 'underscore';
 
 /**
  * Returns true if the given Do operation can be executed by protagonist
@@ -55,3 +56,50 @@ export function canSatisfyDo(G: UnstableUnicornsGame, ctx: Ctx, protagonist: Pla
  * Use this to block the opt-in popup when the cost is unpayable.
  */
 export { canDiscard as canPayDiscardCost };
+
+/**
+ * Scans all mandatory scenes and marks any instruction that has no valid
+ * targets as executed (effect fizzles). Handles the temporary-stable cleanup
+ * for magic cards when the last action of a scene is fully fizzled.
+ * Repeats until stable (fizzling one action may expose the next).
+ */
+export function autoFizzleUnsatisfiable(G: UnstableUnicornsGame, ctx: Ctx): void {
+    let changed = true;
+    while (changed) {
+        changed = false;
+        G.script.scenes.forEach((scene: Scene) => {
+            if (!scene.mandatory) return;
+
+            const currentAction = scene.actions.find((ac: Action) =>
+                ac.instructions.some(ins => ins.state !== "executed")
+            );
+            if (!currentAction) return;
+
+            currentAction.instructions
+                .filter(ins => ins.state !== "executed")
+                .forEach(ins => {
+                    if (!canSatisfyDo(G, ctx, ins.protagonist, ins.do, ins.ui.info?.source)) {
+                        currentAction.instructions
+                            .filter(i => i.protagonist === ins.protagonist)
+                            .forEach(i => { i.state = "executed"; });
+                        changed = true;
+                    }
+                });
+
+            const isLastAction = currentAction === scene.actions[scene.actions.length - 1];
+            if (isLastAction && currentAction.instructions.every(i => i.state === "executed")) {
+                const protagonists = [...new Set(currentAction.instructions.map(i => i.protagonist))];
+                const isShakeUp = currentAction.instructions.some(i => i.do.key === "shakeUp");
+                protagonists.forEach(protagonist => {
+                    const tempCard = _.first(G.temporaryStable[protagonist]);
+                    if (tempCard !== undefined) {
+                        G.temporaryStable[protagonist] = [];
+                        if (!isShakeUp) {
+                            G.discardPile = [...G.discardPile, tempCard];
+                        }
+                    }
+                });
+            }
+        });
+    }
+}

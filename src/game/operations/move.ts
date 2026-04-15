@@ -1,4 +1,4 @@
-import { CardID } from "../card";
+import { CardID, hasType } from "../card";
 import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
 import _ from 'underscore';
@@ -19,7 +19,7 @@ export function returnToHand(G: UnstableUnicornsGame, ctx: Ctx, param: ParamRetu
     const playerID = findOwnerOfCard(G, param.cardID)!;
     leave(G, ctx, { playerID: playerID, cardID: param.cardID });
 
-    if (card.type === "baby") {
+    if (hasType(card, "baby")) {
         G.nursery.push(param.cardID);
     } else {
         G.hand[playerID].push(param.cardID);
@@ -63,7 +63,7 @@ export function findBringToStableTargets(G: UnstableUnicornsGame, ctx: Ctx, prot
     let targets: BringToStableTarget[] = [];
 
     if (info.type === "basic_unicorn") {
-        targets = G.hand[protagonist].map(c => G.deck[c]).filter(c => c.type === "basic" && canEnter(G, ctx, { cardID: c.id, playerID: protagonist })).map(c => ({ cardID: c.id }));
+        targets = G.hand[protagonist].map(c => G.deck[c]).filter(c => hasType(c, "basic") && canEnter(G, ctx, { cardID: c.id, playerID: protagonist })).map(c => ({ cardID: c.id }));
     }
 
     return targets;

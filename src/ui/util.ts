@@ -1,37 +1,14 @@
 import type { CardType } from "../game/card";
 
-export function _typeToColor(type: CardType): string {
-    if (type === "baby") {
-        return "#6C6D70";
-    }
-
-    if (type === "basic") {
-        return "#6C6D70"
-    }
-
-    if (type === "downgrade") {
-        return "#FCB820";
-    }
-
-    if (type === "upgrade") {
-        return "#F57F22";
-    }
-
-    if (type === "narwhal") {
-        return "#6C6D70";
-    }
-
-    if (type === "neigh" || type === "super_neigh") {
-        return "#E94343";
-    }
-
-    if (type === "magic") {
-        return "#88C652";
-    }
-
-    if (type === "unicorn") {
-        return "#6C6D70";
-    }
-
+export function _typeToColor(type: CardType | CardType[]): string {
+    const t = Array.isArray(type) ? type[0] : type;
+    if (t === "baby") return "#6C6D70";
+    if (t === "basic") return "#6C6D70";
+    if (t === "downgrade") return "#FCB820";
+    if (t === "upgrade") return "#F57F22";
+    if (t === "narwhal") return "#6C6D70";
+    if (t === "neigh" || t === "super_neigh") return "#E94343";
+    if (t === "magic") return "#88C652";
+    if (t === "unicorn") return "#6C6D70";
     return "#000000";
 }

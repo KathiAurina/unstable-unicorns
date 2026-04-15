@@ -32,6 +32,8 @@ import OverlayManager from './components/OverlayManager';
 import StableSection from './components/StableSection';
 import { useMobile } from './hooks/useMobile';
 import MobileBoard from './mobile/MobileBoard';
+import { useGameSettings } from './hooks/useGameSettings';
+import { useAutoActions } from './hooks/useAutoActions';
 
 type Props = {
     G: UnstableUnicornsGame;
@@ -123,6 +125,8 @@ const DesktopBoard = (props: Props) => {
     const [C2CArrow] = useState<{ fromX: number, fromY: number, toX: number, toY: number } | undefined>(undefined);
     const [escapeMenuOpen, setEscapeMenuOpen] = useState(false);
     const [gameoverDismissed, setGameoverDismissed] = useState(false);
+    const { autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh } = useGameSettings();
+    useAutoActions(G, ctx, playerID, moves, { autoEndTurn, autoDontNeigh }, boardStates);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -144,6 +148,10 @@ const DesktopBoard = (props: Props) => {
             G={G}
             ctx={ctx}
             moves={moves}
+            autoEndTurn={autoEndTurn}
+            setAutoEndTurn={setAutoEndTurn}
+            autoDontNeigh={autoDontNeigh}
+            setAutoDontNeigh={setAutoDontNeigh}
         />
     );
 
@@ -183,6 +191,9 @@ const DesktopBoard = (props: Props) => {
         <>
         {escapeMenu}
         {gameoverOverlay}
+        <MenuToggleButton onClick={() => setEscapeMenuOpen(prev => !prev)} title="Menu (Esc)">
+            ☰
+        </MenuToggleButton>
         <AnimateSharedLayout>
             <Wrapper layout onMouseMove={wrapperOnMouseMove}>
                 <OverlayManager
@@ -366,6 +377,29 @@ const renderEndTurnButton = (moves: Moves, playerID: PlayerID, playEndTurnButton
 }
 
 ////////////////////////////////
+
+const MenuToggleButton = styled.button`
+    position: fixed;
+    top: 10px;
+    right: 12px;
+    z-index: 9999;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.45);
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.65);
+    }
+`;
 
 const Wrapper = styled(motion.div)`
     width: 100%;

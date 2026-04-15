@@ -1,5 +1,5 @@
 import styled, { css, keyframes } from 'styled-components';
-import { Card, CardID, CardType } from '../game/card';
+import { Card, CardID, CardType, getPrimaryType } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from './util';
 import CardHover from './CardHover';
@@ -42,7 +42,7 @@ const Hand = (props: Props) => {
                 };
 
                 let typeText: string | undefined = undefined;
-                switch (card.type) {
+                switch (getPrimaryType(card)) {
                     case "upgrade": {
                         typeText = "An upgrade card can be placed in any stable and grants the stable owner a positive effect.";
                         break;
@@ -148,7 +148,8 @@ const glow = keyframes`
     }
 `;
 
-function _typeToString(type: CardType): string {
+function _typeToString(type: CardType | CardType[]): string {
+    type = Array.isArray(type) ? type[0] : type;
     if (type === "baby") {
         return "Baby";
     }

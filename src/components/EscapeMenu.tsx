@@ -17,9 +17,13 @@ type Props = {
     G: UnstableUnicornsGame;
     ctx: Ctx;
     moves: Moves;
+    autoEndTurn: boolean;
+    setAutoEndTurn: (v: boolean) => void;
+    autoDontNeigh: boolean;
+    setAutoDontNeigh: (v: boolean) => void;
 };
 
-const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ctx, moves }: Props) => {
+const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ctx, moves, autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh }: Props) => {
     const languageContext = useContext(LanguageContext);
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
     const supportsFullscreen = !!document.documentElement.requestFullscreen;
@@ -110,6 +114,29 @@ const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ct
                         </MenuButton>
                     </>
                 )}
+
+                <Divider />
+                <SectionLabel>Automation</SectionLabel>
+                <CheckboxRow>
+                    <CheckboxLabel>
+                        <input
+                            type="checkbox"
+                            checked={autoEndTurn}
+                            onChange={e => setAutoEndTurn(e.target.checked)}
+                        />
+                        Automatically end turn when no actions remain
+                    </CheckboxLabel>
+                </CheckboxRow>
+                <CheckboxRow>
+                    <CheckboxLabel>
+                        <input
+                            type="checkbox"
+                            checked={autoDontNeigh}
+                            onChange={e => setAutoDontNeigh(e.target.checked)}
+                        />
+                        Automatically pass neigh discussion when not having a neigh card in hand
+                    </CheckboxLabel>
+                </CheckboxRow>
 
                 <Divider />
                 <SectionLabel>Language</SectionLabel>
@@ -271,6 +298,31 @@ const CloseButton = styled.button`
     &:hover {
         border-color: #aaa;
         color: #555;
+    }
+`;
+
+const CheckboxRow = styled.div`
+    display: flex;
+    align-items: flex-start;
+`;
+
+const CheckboxLabel = styled.label`
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    line-height: 1.4;
+
+    input[type="checkbox"] {
+        margin-top: 2px;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        cursor: pointer;
+        accent-color: #4D96FF;
     }
 `;
 
