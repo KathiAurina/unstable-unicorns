@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { hasType } from '../game/card';
 import type { UnstableUnicornsGame, Ctx } from '../game/state';
 import type { PlayerID } from '../game/player';
 import type { Moves } from '../game/types';
@@ -55,7 +56,7 @@ export function useAutoActions(
             if (!settings.autoDontNeigh) return;
             const hasNeighCard = G.hand[playerID].some(cid => {
                 const card = G.deck[cid];
-                return card && (card.type === 'neigh' || card.type === 'super_neigh');
+                return card && (hasType(card, 'neigh') || hasType(card, 'super_neigh'));
             });
             if (hasNeighCard) return;
         }

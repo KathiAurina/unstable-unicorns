@@ -106,7 +106,13 @@ const UnstableUnicorns = {
 
             // this is run whenever a new player starts its turn
             // perfect for placing players in a stage
-            if (G.drawPile.length > 0 || G.discardPile.length > 0) {
+            if (G.drawPile.length === 0 && G.discardPile.length > 0) {
+                G.drawPile = _.shuffle(G.discardPile);
+                G.discardPile = [];
+                G.deckWasReshuffled = true;
+            }
+
+            if (G.drawPile.length > 0) {
                 G.script = { scenes: [] };
                 G.countPlayedCardsInActionPhase = 0;
                 G.mustEndTurnImmediately = false;

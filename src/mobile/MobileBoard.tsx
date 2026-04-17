@@ -12,6 +12,7 @@ import type { UnstableUnicornsGame, Ctx, Instruction, Scene } from '../game/stat
 import { _findInProgressScenesWithProtagonist, _findOpenScenesWithProtagonist, _findInstruction } from '../game/state';
 import type { Moves } from '../game/types';
 import type { CardID, Card } from '../game/card';
+import { hasType } from '../game/card';
 import type { SearchTarget } from '../game/operations';
 import type { AddFromDiscardPileToHandTarget, BringToStableTarget, DiscardTarget, ReviveTarget } from '../game/operations';
 import { CardInteraction } from '../BoardUtil';
@@ -340,9 +341,9 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
 
         // Neigh played from hand during neigh discussion
         if (boardStates.find(s => s.type === 'neigh__playNeigh')) {
-            if (card.type === 'neigh' || card.type === 'super_neigh') {
+            if (hasType(card, 'neigh') || hasType(card, 'super_neigh')) {
                 if (!G.playerEffects[playerID].find(e => e.effect.key === 'you_cannot_play_neigh')) {
-                    if (card.type === 'super_neigh') {
+                    if (hasType(card, 'super_neigh')) {
                         moves.playSuperNeigh(cardID, playerID, G.neighDiscussion!.rounds.length - 1);
                     } else {
                         moves.playNeigh(cardID, playerID, G.neighDiscussion!.rounds.length - 1);
@@ -375,7 +376,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
         if (!boardStates.find(s => s.type === 'playCard')) return;
         if (!canPlayCard(G, ctx, playerID, cardID)) return;
 
-        if (card.type === 'upgrade' || card.type === 'downgrade') {
+        if (hasType(card, 'upgrade') || hasType(card, 'downgrade')) {
             // Upgrade/downgrade: need a target player
             if (dropPlayerID !== null) {
                 moves.playUpgradeDowngradeCard(playerID, dropPlayerID, cardID);
@@ -394,9 +395,9 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
 
         // Neigh discussion
         if (boardStates.find(s => s.type === 'neigh__playNeigh')) {
-            if ((card.type === 'neigh' || card.type === 'super_neigh') &&
+            if ((hasType(card, 'neigh') || hasType(card, 'super_neigh')) &&
                 !G.playerEffects[playerID].find(e => e.effect.key === 'you_cannot_play_neigh')) {
-                if (card.type === 'super_neigh') {
+                if (hasType(card, 'super_neigh')) {
                     moves.playSuperNeigh(cardID, playerID, G.neighDiscussion!.rounds.length - 1);
                 } else {
                     moves.playNeigh(cardID, playerID, G.neighDiscussion!.rounds.length - 1);
@@ -427,7 +428,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
         // Play card
         if (boardStates.find(s => s.type === 'playCard')) {
             if (!canPlayCard(G, ctx, playerID, cardID)) return;
-            if (card.type === 'upgrade' || card.type === 'downgrade') {
+            if (hasType(card, 'upgrade') || hasType(card, 'downgrade')) {
                 // Upgrade/downgrade needs target selection — enter choose-target mode
                 setCardInteraction({
                     key: 'play_upgradeDowngradeCardFromHand__choose_target',
