@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from '../game/card';
+import { Card, CardType } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from '../ui/util';
 import { cardDescription } from '../BoardUtil';
@@ -18,6 +18,9 @@ export function typeLabel(type: Card['type']): string {
         narwhal: 'Narwhal Unicorn', magic: 'Magic', upgrade: 'Upgrade',
         downgrade: 'Downgrade', neigh: 'Neigh', super_neigh: 'Super Neigh',
     };
+    if (Array.isArray(type)) {
+        return type.map((t: CardType) => map[t] ?? t).join(' / ');
+    }
     return map[type] ?? type;
 }
 

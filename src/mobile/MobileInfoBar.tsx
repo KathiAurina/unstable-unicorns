@@ -149,6 +149,7 @@ const MobileInfoBar = ({ G, ctx, playerID, moves, boardStates, onShowNursery, on
     const canDraw = !!(boardStates.find(s => s.type === 'drawCard' || s.type === 'draw__clickOnDrawPile'));
     const canEndTurn = !!(boardStates.find(s => s.type === 'endTurn'));
     const infoText = getInfoText(G, ctx, playerID, boardStates);
+    const reshuffleText = G.deckWasReshuffled ? 'Discard pile was shuffled into the draw pile!' : undefined;
 
     const handleDrawTap = () => {
         if (boardStates.find(s => s.type === 'drawCard')) {
@@ -188,7 +189,10 @@ const MobileInfoBar = ({ G, ctx, playerID, moves, boardStates, onShowNursery, on
                 </PileBtn>
             </PileRow>
 
-            <InfoText>{infoText ?? (ctx.currentPlayer === playerID ? "Your turn" : `${G.players[parseInt(ctx.currentPlayer)]?.name ?? '?'}'s turn`)}</InfoText>
+            <InfoText>
+                {reshuffleText && <ReshuffleNotice>{reshuffleText} </ReshuffleNotice>}
+                {infoText ?? (ctx.currentPlayer === playerID ? "Your turn" : `${G.players[parseInt(ctx.currentPlayer)]?.name ?? '?'}'s turn`)}
+            </InfoText>
 
             <RightRow>
                 {canEndTurn && (
@@ -265,6 +269,11 @@ const PileCount = styled.div`
     padding: 1px 3px;
     border-radius: 2px 0 0 0;
     font-family: 'Nunito', sans-serif;
+`;
+
+const ReshuffleNotice = styled.span`
+    color: #ffd700;
+    font-weight: 800;
 `;
 
 const InfoText = styled.div`

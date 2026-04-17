@@ -26,7 +26,7 @@ function findReviveTarget(G, ctx, protagonist, info) {
     if (info.type === "basic_unicorn") {
         targets = G.discardPile.filter(c => {
             const card = G.deck[c];
-            return (0, enter_1.canEnter)(G, ctx, { playerID: protagonist, cardID: c }) && card.type === "basic";
+            return (0, enter_1.canEnter)(G, ctx, { playerID: protagonist, cardID: c }) && (0, card_1.hasType)(card, "basic");
         }).map(c => ({ cardID: c }));
     }
     return targets;
@@ -38,7 +38,7 @@ function addFromDiscardPileToHand(G, ctx, param) {
 function findAddFromDiscardPileToHand(G, ctx, protagonist, info) {
     let targets = [];
     if (info.type === "magic" || info.type === "neigh") {
-        targets = G.discardPile.map(c => G.deck[c]).filter(c => c.type === info.type).map(c => ({ cardID: c.id }));
+        targets = G.discardPile.map(c => G.deck[c]).filter(c => (0, card_1.hasType)(c, info.type)).map(c => ({ cardID: c.id }));
     }
     if (info.type === "unicorn") {
         targets = G.discardPile.map(c => G.deck[c]).filter(c => (0, card_1.isUnicorn)(c)).map(c => ({ cardID: c.id }));

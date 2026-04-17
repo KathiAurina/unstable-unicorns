@@ -1,7 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.hasType = hasType;
+exports.getPrimaryType = getPrimaryType;
 exports.initializeDeck = initializeDeck;
 exports.isUnicorn = isUnicorn;
+function hasType(card, type) {
+    return Array.isArray(card.type) ? card.type.includes(type) : card.type === type;
+}
+/** Returns the primary (first) type for display/UI purposes. */
+function getPrimaryType(card) {
+    return Array.isArray(card.type) ? card.type[0] : card.type;
+}
 const Cards = [{
         title: "Baby Unicorn",
         type: "baby",
@@ -228,7 +237,7 @@ const Cards = [{
         title: "Chainsaw Unicorn",
         type: "unicorn",
         image: "chainsaw_unicorn",
-        count: 2,
+        count: 1,
         on: [{
                 trigger: "enter",
                 do: {
@@ -438,10 +447,15 @@ const Cards = [{
                         endTurnImmediately: false
                     }
                 }
+            }, {
+                trigger: "this_destroyed_or_sacrificed",
+                do: {
+                    type: "return_to_hand",
+                }
             }],
         description: {
-            en: "When this card enters your Stable, you may add a Magic card from the discard pile to your hand.",
-            de: "Wenn diese Karte deinen Stall betritt, darfst du eine Magiekarte aus dem Friedhof deiner Hand hinzufügen."
+            en: "When this card enters your Stable, you may add a Magic card from the discard pile to your hand. If this card is sacrificed or destroyed, return it to your hand.",
+            de: "Wenn diese Karte deinen Stall betritt, darfst du eine Magiekarte aus dem Friedhof deiner Hand hinzufügen. Wenn diese Karte geopfert oder zerstört wird, kommt sie stattdessen auf deine Hand zurück."
         }
     }, {
         title: "Magical Kittencorn",
@@ -546,9 +560,9 @@ const Cards = [{
         }
     }, {
         title: "Narwhal Torpedo",
-        type: "unicorn",
+        type: "narwhal",
         image: "narwhal_torpedo",
-        count: 2,
+        count: 1,
         on: [{
                 trigger: "enter",
                 do: {
@@ -1803,7 +1817,7 @@ const Cards = [{
         }
     }, {
         title: "Narwhal",
-        type: "basic",
+        type: ["basic", "narwhal"],
         image: "basic7",
         count: 3,
         on: [],
@@ -1831,5 +1845,5 @@ function initializeDeck() {
 }
 // Helper
 function isUnicorn(card) {
-    return card.type === "baby" || card.type === "basic" || card.type === "unicorn" || card.type === "narwhal";
+    return hasType(card, "baby") || hasType(card, "basic") || hasType(card, "unicorn") || hasType(card, "narwhal");
 }

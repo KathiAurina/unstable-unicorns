@@ -9,7 +9,7 @@ export interface Card {
     image: string;
     on?: On[];
     passive?: Passive[];
-    type: CardType;
+    type: CardType | CardType[];
     description: {en: string, de: string};
 }
 
@@ -19,11 +19,20 @@ interface CardDefinition {
     count: number;
     on?: On[];
     passive?: Passive[];
-    type: CardType;
+    type: CardType | CardType[];
     description: {en: string, de: string};
 }
 
 export type CardType = "downgrade" | "upgrade" | "basic" | "unicorn" | "narwhal" | "magic" | "baby" | "neigh" | "super_neigh";
+
+export function hasType(card: { type: CardType | CardType[] }, type: CardType): boolean {
+    return Array.isArray(card.type) ? card.type.includes(type) : card.type === type;
+}
+
+/** Returns the primary (first) type for display/UI purposes. */
+export function getPrimaryType(card: { type: CardType | CardType[] }): CardType {
+    return Array.isArray(card.type) ? card.type[0] : card.type;
+}
 
 export type OnEnter = {
     trigger: "enter" | "begin_of_turn";
@@ -330,7 +339,7 @@ const Cards: CardDefinition[] = [{
     title: "Chainsaw Unicorn",
     type: "unicorn",
     image: "chainsaw_unicorn",
-    count: 2,
+    count: 1,
     on: [{
         trigger: "enter",
         do: {
@@ -540,10 +549,15 @@ const Cards: CardDefinition[] = [{
                 endTurnImmediately: false
             }
         }
+    }, {
+        trigger: "this_destroyed_or_sacrificed",
+        do: {
+            type: "return_to_hand",
+        }
     }],
     description: {
-        en: "When this card enters your Stable, you may add a Magic card from the discard pile to your hand.",
-        de: "Wenn diese Karte deinen Stall betritt, darfst du eine Magiekarte aus dem Friedhof deiner Hand hinzufügen." 
+        en: "When this card enters your Stable, you may add a Magic card from the discard pile to your hand. If this card is sacrificed or destroyed, return it to your hand.",
+        de: "Wenn diese Karte deinen Stall betritt, darfst du eine Magiekarte aus dem Friedhof deiner Hand hinzufügen. Wenn diese Karte geopfert oder zerstört wird, kommt sie stattdessen auf deine Hand zurück."
     }
 }, {
     title: "Magical Kittencorn",
@@ -648,9 +662,9 @@ const Cards: CardDefinition[] = [{
     }
 }, {
     title: "Narwhal Torpedo",
-    type: "unicorn",
+    type: "narwhal",
     image: "narwhal_torpedo",
-    count: 2,
+    count: 1,
     on: [{
         trigger: "enter",
         do: {
@@ -1905,7 +1919,7 @@ const Cards: CardDefinition[] = [{
     }
 }, {
     title: "Narwhal",
-    type: "basic",
+    type: ["basic", "narwhal"] as CardType[],
     image: "basic7",
     count: 3, 
     on: [],
@@ -1941,5 +1955,5 @@ export function initializeDeck() {
 
 
 export function isUnicorn(card: Card): boolean {
-    return card.type === "baby" || card.type === "basic" || card.type === "unicorn" || card.type === "narwhal";
+    return hasType(card, "baby") || hasType(card, "basic") || hasType(card, "unicorn") || hasType(card, "narwhal");
 }

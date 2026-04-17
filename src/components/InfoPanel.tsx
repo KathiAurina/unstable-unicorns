@@ -115,15 +115,14 @@ const InfoPanel = ({ G, ctx, playerID, boardStates }: Props) => {
         text = `Click on ${card.title} in your stable to search the deck for a card.`
     }
 
-    if (!text) {
+    if (!text && !G.deckWasReshuffled) {
         return null;
     }
 
     return (
         <InfoLabelWrapper>
-            <InfoLabel>
-                {text}
-            </InfoLabel>
+            {text && <InfoLabel>{text}</InfoLabel>}
+            {G.deckWasReshuffled && <InfoLabel>The draw pile was empty — the discard pile was shuffled in!</InfoLabel>}
         </InfoLabelWrapper>
     );
 }

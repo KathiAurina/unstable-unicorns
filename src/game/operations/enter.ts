@@ -1,10 +1,11 @@
-import { CardID, OnEnter, OnEnterAddEffect, isUnicorn } from "../card";
+import { CardID, OnEnter, OnEnterAddEffect, isUnicorn, hasType } from "../card";
 import type { UnstableUnicornsGame, Ctx, Scene, Action, Instruction } from "../state";
 import { _addSceneFromDo } from "../state";
 import type { PlayerID } from "../player";
 import { isCardBasicDueToEffect } from "../effect";
 import _ from 'underscore';
 import { CONSTANTS } from "../constants";
+import { autoFizzleUnsatisfiable } from "./canSatisfy";
 
 const _findInstructionInProgress = (G: UnstableUnicornsGame): [Scene, Action, Instruction] | null => {
     let scene: Scene | null = null;
@@ -98,6 +99,7 @@ export function leave(G: UnstableUnicornsGame, ctx: Ctx, param: ParamLeave) {
     // unicorn_leaves_your_stable is unicorn-specific by game semantics
     if (!isUnicorn(G.deck[param.cardID])) return;
     fireReactiveStableTrigger(G, param.playerID, "unicorn_leaves_your_stable");
+    autoFizzleUnsatisfiable(G, ctx);
 }
 
 type ParamEnter = {
@@ -108,9 +110,9 @@ type ParamEnter = {
 export function enter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
     const card = G.deck[param.cardID];
 
-    if (card.type === "upgrade" || card.type === "downgrade") {
+    if (hasType(card, "upgrade") || hasType(card, "downgrade")) {
         G.upgradeDowngradeStable[param.playerID] = [...G.upgradeDowngradeStable[param.playerID], param.cardID];
-    } else if (card.type === "magic") {
+    } else if (hasType(card, "magic")) {
         G.temporaryStable[param.playerID] = [param.cardID];
     } else {
         G.stable[param.playerID] = [...G.stable[param.playerID], param.cardID];
@@ -128,11 +130,12 @@ export function enter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
             if (on.do.type === "auto" && on.do.info.key === "sacrifice_all_downgrades") {
                 const toBeRemoved = _.filter(G.upgradeDowngradeStable[param.playerID], c => {
                     const card = G.deck[c];
-                    return card.type === "downgrade";
+                    return hasType(card, "downgrade");
                 });
 
-                G.upgradeDowngradeStable[param.playerID] = _.difference(G.upgradeDowngradeStable[param.playerID], toBeRemoved);
-
+                toBeRemoved.forEach(cid => {
+                    leave(G, ctx, { playerID: param.playerID, cardID: cid });
+                });
                 G.discardPile = [...G.discardPile, ...toBeRemoved];
             }
         });
@@ -167,12 +170,15 @@ export function enter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
     }
 
     // unicorn_enters_your_stable is unicorn-specific by game semantics
-    if (!isUnicorn(card)) return;
-    fireReactiveStableTrigger(G, param.playerID, "unicorn_enters_your_stable");
+    if (isUnicorn(card)) {
+        fireReactiveStableTrigger(G, param.playerID, "unicorn_enters_your_stable");
+    }
+
+    autoFizzleUnsatisfiable(G, ctx);
 }
 
 export function canEnter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
-    if (G.deck[param.cardID].type === "neigh" || G.deck[param.cardID].type === "super_neigh") {
+    if (hasType(G.deck[param.cardID], "neigh") || hasType(G.deck[param.cardID], "super_neigh")) {
         return false;
     }
 
@@ -182,7 +188,7 @@ export function canEnter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
 
     const card = G.deck[param.cardID];
 
-    if (card.type === "basic") {
+    if (hasType(card, "basic")) {
         let basic_unicorns_cannot_enter_isActive = false;
         _.keys(G.playerEffects).forEach(key => {
             const effect = G.playerEffects[key].find(eff => eff.effect.key === "basic_unicorns_can_only_join_your_stable");

@@ -31,6 +31,8 @@ npm test -- --testPathPattern=<filename>   # run a single test file
 
 > In development, run both `npm start` (frontend) and `npm run serve` (backend) simultaneously. The React dev server proxies game/lobby API requests to `:8000`.
 
+> **Never edit files in `server_build/` directly.** They are compiled artifacts — any changes will be overwritten the next time `npm run build:server` runs. Always edit the source `.ts` files in `src/game/` (or `src/server.ts`), then run `npm run build:server` to regenerate them.
+
 ## Architecture
 
 This is a multiplayer online board game built with **boardgame.io**, **React**, and **TypeScript**.

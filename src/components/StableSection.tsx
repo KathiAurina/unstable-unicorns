@@ -8,7 +8,7 @@ import { canPlayCard } from '../game/game';
 import type { Instruction, Scene, UnstableUnicornsGame, Ctx } from '../game/state';
 import { _findInstruction } from '../game/state';
 import type { AddFromDiscardPileToHandTarget, BringToStableTarget, DiscardTarget, ReviveTarget, SearchTarget } from '../game/operations';
-import { CardID } from '../game/card';
+import { CardID, hasType } from '../game/card';
 import type { Moves } from '../game/types';
 import { BoardState } from '../BoardStateManager';
 
@@ -84,7 +84,7 @@ const StableSection = ({
             const cardsOnHandThatCanBePlayed = G.hand[playerID].map(c => [canPlayCard(G, ctx, playerID, c), c]).filter(s => s[0]).map(s => s[1]) as CardID[];
             if (cardsOnHandThatCanBePlayed.includes(cardID)) {
                 const card = G.deck[cardID];
-                if (card.type === "upgrade" || card.type === "downgrade") {
+                if (hasType(card, "upgrade") || hasType(card, "downgrade")) {
                     setCardInteraction({
                         key: "play_upgradeDowngradeCardFromHand__choose_target",
                         info: {
