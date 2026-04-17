@@ -79,6 +79,7 @@ const UnstableUnicorns = {
             lastNeighResult: undefined,
             owner: setupData?.ownerPlayerID ?? "0",
             lastHeartbeat,
+            deckWasReshuffled: false,
         };
     },
     phases: {
@@ -101,9 +102,11 @@ const UnstableUnicorns = {
                 return;
             }
 
+            G.deckWasReshuffled = false;
+
             // this is run whenever a new player starts its turn
             // perfect for placing players in a stage
-            if (G.drawPile.length > 0) {
+            if (G.drawPile.length > 0 || G.discardPile.length > 0) {
                 G.script = { scenes: [] };
                 G.countPlayedCardsInActionPhase = 0;
                 G.mustEndTurnImmediately = false;

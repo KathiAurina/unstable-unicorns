@@ -70,6 +70,7 @@ const UnstableUnicorns = {
             lastNeighResult: undefined,
             owner: setupData?.ownerPlayerID ?? "0",
             lastHeartbeat,
+            deckWasReshuffled: false,
         };
     },
     phases: {
@@ -90,9 +91,10 @@ const UnstableUnicorns = {
             if (ctx.phase === "pregame") {
                 return;
             }
+            G.deckWasReshuffled = false;
             // this is run whenever a new player starts its turn
             // perfect for placing players in a stage
-            if (G.drawPile.length > 0) {
+            if (G.drawPile.length > 0 || G.discardPile.length > 0) {
                 G.script = { scenes: [] };
                 G.countPlayedCardsInActionPhase = 0;
                 G.mustEndTurnImmediately = false;
@@ -270,6 +272,8 @@ function playUpgradeDowngradeCard(G, ctx, protagonist, targetPlayer, cardID) {
     }
 }
 function playNeigh(G, ctx, cardID, protagonist, roundIndex) {
+    if (G.playerEffects[protagonist].find(e => e.effect.key === "you_cannot_play_neigh"))
+        return;
     if (G.neighDiscussion) {
         G.hand[protagonist] = underscore_1.default.without(G.hand[protagonist], cardID);
         G.discardPile = [...G.discardPile, cardID];
@@ -290,6 +294,8 @@ function playNeigh(G, ctx, cardID, protagonist, roundIndex) {
     }
 }
 function playSuperNeigh(G, ctx, cardID, protagonist, roundIndex) {
+    if (G.playerEffects[protagonist].find(e => e.effect.key === "you_cannot_play_neigh"))
+        return;
     if (G.neighDiscussion) {
         G.hand[protagonist] = underscore_1.default.without(G.hand[protagonist], cardID);
         G.discardPile = [...G.discardPile, cardID];

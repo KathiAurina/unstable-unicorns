@@ -1,8 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.hasType = hasType;
+exports.getPrimaryType = getPrimaryType;
 exports.initializeDeck = initializeDeck;
 exports.isUnicorn = isUnicorn;
-exports.hasType = hasType;
+function hasType(card, type) {
+    return Array.isArray(card.type) ? card.type.includes(type) : card.type === type;
+}
+/** Returns the primary (first) type for display/UI purposes. */
+function getPrimaryType(card) {
+    return Array.isArray(card.type) ? card.type[0] : card.type;
+}
 const Cards = [{
         title: "Baby Unicorn",
         type: "baby",
@@ -552,7 +560,7 @@ const Cards = [{
         }
     }, {
         title: "Narwhal Torpedo",
-        type: "unicorn",
+        type: "narwhal",
         image: "narwhal_torpedo",
         count: 1,
         on: [{
@@ -1836,9 +1844,6 @@ function initializeDeck() {
     return deck.map((c, idx) => ({ ...c, id: idx }));
 }
 // Helper
-function hasType(card, type) {
-    return Array.isArray(card.type) ? card.type.includes(type) : card.type === type;
-}
 function isUnicorn(card) {
     return hasType(card, "baby") || hasType(card, "basic") || hasType(card, "unicorn") || hasType(card, "narwhal");
 }

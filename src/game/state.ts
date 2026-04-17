@@ -45,6 +45,7 @@ export interface UnstableUnicornsGame extends Game {
     lastNeighResult: {id: string, result: "cardWasPlayed" | "cardWasNeighed"} | undefined;
     owner: PlayerID;
     lastHeartbeat: { [key: string]: number };
+    deckWasReshuffled: boolean;
 }
 
 // ─── Script types ─────────────────────────────────────────────────────────────
