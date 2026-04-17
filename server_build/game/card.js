@@ -1,139 +1,203 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.EXPANSION_LABELS = exports.AVAILABLE_EXPANSIONS = void 0;
 exports.initializeDeck = initializeDeck;
 exports.isUnicorn = isUnicorn;
+exports.AVAILABLE_EXPANSIONS = ["base_game", "adventures_2nd_edition"];
+exports.EXPANSION_LABELS = {
+    base_game: "Base Game",
+    adventures_2nd_edition: "Adventures (2nd Edition)"
+};
 const Cards = [{
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby0",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby1",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby2",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby3",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby4",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby5",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby6",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby7",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby8",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby9",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby10",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby11",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Narwhal",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby12",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+        }
+    }, {
+        title: "Baby Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "baby",
+        image: "baby_fisherman",
+        count: 1,
+        on: [],
+        description: {
+            en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+        }
+    }, {
+        title: "Baby Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "baby",
+        image: "baby_forest",
+        count: 1,
+        on: [],
+        description: {
+            en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+        }
+    }, {
+        title: "Baby Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "baby",
+        image: "baby_pirate",
+        count: 1,
+        on: [],
+        description: {
+            en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+        }
+    }, {
+        title: "Baby Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "baby",
+        image: "baby_safari",
+        count: 1,
+        on: [],
+        description: {
+            en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Alluring Narwhal",
+        expansions: ["base_game"],
         type: "narwhal",
         image: "alluring_narwhal",
         count: 1,
@@ -165,6 +229,7 @@ const Cards = [{
         }
     }, {
         title: "Americorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "americorn",
         count: 1,
@@ -193,6 +258,7 @@ const Cards = [{
         }
     }, {
         title: "Annoying Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "annoying_flying_unicorn",
         count: 1,
@@ -226,6 +292,7 @@ const Cards = [{
         }
     }, {
         title: "Chainsaw Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "chainsaw_unicorn",
         count: 2,
@@ -257,6 +324,7 @@ const Cards = [{
         }
     }, {
         title: "Classy Narwhal",
+        expansions: ["base_game"],
         type: "narwhal",
         image: "classy_narwhal",
         count: 1,
@@ -286,6 +354,7 @@ const Cards = [{
         }
     }, {
         title: "Dark Angel Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "dark_angel_unicorn",
         count: 1,
@@ -325,6 +394,7 @@ const Cards = [{
         }
     }, {
         title: "Ginormous Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "ginormous_unicorn",
         count: 1,
@@ -349,6 +419,7 @@ const Cards = [{
         }
     }, {
         title: "Greedy Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "greedy_flying_unicorn",
         count: 1,
@@ -385,6 +456,7 @@ const Cards = [{
         }
     }, {
         title: "Llamacorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "llamacorn",
         count: 1,
@@ -416,6 +488,7 @@ const Cards = [{
         }
     }, {
         title: "Magical Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "magical_flying_unicorn",
         count: 1,
@@ -445,6 +518,7 @@ const Cards = [{
         }
     }, {
         title: "Magical Kittencorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "magical_kittencorn",
         count: 1,
@@ -455,6 +529,7 @@ const Cards = [{
         }
     }, {
         title: "Majestic Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "majestic_flying_unicorn",
         count: 1,
@@ -489,6 +564,7 @@ const Cards = [{
         }
     }, {
         title: "Mother Goose Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "mother_goose_unicorn",
         count: 1,
@@ -517,6 +593,7 @@ const Cards = [{
         }
     }, {
         title: "Mermaid Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "mermaid_unicorn",
         count: 1,
@@ -546,6 +623,7 @@ const Cards = [{
         }
     }, {
         title: "Narwhal Torpedo",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "narwhal_torpedo",
         count: 2,
@@ -565,6 +643,7 @@ const Cards = [{
         }
     }, {
         title: "Necromancer Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "necromancer_unicorn",
         count: 1,
@@ -603,6 +682,7 @@ const Cards = [{
         }
     }, {
         title: "Queen Bee Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "queen_bee_unicorn",
         count: 1,
@@ -620,6 +700,7 @@ const Cards = [{
         }
     }, {
         title: "Rainbow Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "rainbow_unicorn",
         count: 1,
@@ -651,6 +732,7 @@ const Cards = [{
         }
     }, {
         title: "Rhinocorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "rhinocorn",
         count: 1,
@@ -682,6 +764,7 @@ const Cards = [{
         }
     }, {
         title: "Seductive Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "seductive_unicorn",
         count: 1,
@@ -706,7 +789,9 @@ const Cards = [{
                                             key: "steal",
                                             info: { type: "unicorn" }
                                         },
-                                        ui: { type: "card_to_card" }
+                                        ui: {
+                                            type: "card_to_card"
+                                        }
                                     }]
                             }],
                         mandatory: false,
@@ -720,6 +805,7 @@ const Cards = [{
         }
     }, {
         title: "Shabby the Narwhal",
+        expansions: ["base_game"],
         type: "narwhal",
         image: "shabby_the_narwhal",
         count: 1,
@@ -735,7 +821,9 @@ const Cards = [{
                                             key: "search",
                                             info: { type: "downgrade" }
                                         },
-                                        ui: { type: "single_action_popup", info: { singleActionText: "Search" } }
+                                        ui: {
+                                            type: "single_action_popup", info: { singleActionText: "Search" }
+                                        }
                                     }]
                             }],
                         mandatory: false,
@@ -749,6 +837,7 @@ const Cards = [{
         }
     }, {
         title: "Vagabond Unicorn",
+        expansions: ["adventures_2nd_edition"],
         type: "unicorn",
         image: "vagabond_unicorn",
         count: 1,
@@ -786,6 +875,7 @@ const Cards = [{
         }
     }, {
         title: "Survivalist Unicorn",
+        expansions: ["adventures_2nd_edition"],
         type: "unicorn",
         image: "survivalist_unicorn",
         count: 1,
@@ -823,6 +913,7 @@ const Cards = [{
         }
     }, {
         title: "Zombie Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "zombie",
         count: 1,
@@ -860,6 +951,7 @@ const Cards = [{
         }
     }, {
         title: "Swift Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "swift_flying_unicorn",
         count: 1,
@@ -897,6 +989,7 @@ const Cards = [{
         }
     }, {
         title: "The Great Narwhal",
+        expansions: ["base_game"],
         type: "narwhal",
         image: "the_great_narwhal",
         count: 1,
@@ -926,6 +1019,7 @@ const Cards = [{
         }
     }, {
         title: "Unicorn on the Cob",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "unicorn_on_the_cob",
         count: 1,
@@ -964,6 +1058,7 @@ const Cards = [{
         }
     }, {
         title: "Neigh",
+        expansions: ["base_game"],
         type: "neigh",
         image: "neigh",
         count: 14,
@@ -973,6 +1068,7 @@ const Cards = [{
         }
     }, {
         title: "Super Neigh",
+        expansions: ["base_game"],
         type: "super_neigh",
         image: "super_neigh",
         count: 1,
@@ -982,6 +1078,7 @@ const Cards = [{
         }
     }, {
         title: "Yay",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "yay",
         count: 2,
@@ -999,6 +1096,7 @@ const Cards = [{
         }
     }, {
         title: "Stable Artillery",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "stable_artillery",
         count: 3,
@@ -1037,6 +1135,7 @@ const Cards = [{
         }
     }, {
         title: "Rainbow Lasso",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "rainbow_lasso",
         count: 1,
@@ -1075,6 +1174,7 @@ const Cards = [{
         }
     }, {
         title: "Rainbow Aura",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "rainbow_aura",
         count: 1,
@@ -1092,6 +1192,7 @@ const Cards = [{
         }
     }, {
         title: "Glitter Bomb",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "glitter_bomb",
         count: 2,
@@ -1130,6 +1231,7 @@ const Cards = [{
         }
     }, {
         title: "Double Dutch",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "double_dutch",
         count: 1,
@@ -1147,6 +1249,7 @@ const Cards = [{
         }
     }, {
         title: "Claw Machine",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "claw_machine",
         count: 3,
@@ -1187,6 +1290,7 @@ const Cards = [{
         }
     }, {
         title: "Caffeine Overload",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "caffeine_overload",
         count: 1,
@@ -1225,6 +1329,7 @@ const Cards = [{
         }
     }, {
         title: "Barbed Wire",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "barbed_wire",
         count: 1,
@@ -1263,6 +1368,7 @@ const Cards = [{
         }
     }, {
         title: "Blinding Light",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "blinding_light",
         count: 1,
@@ -1280,6 +1386,7 @@ const Cards = [{
         }
     }, {
         title: "Broken Stable",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "broken_stable",
         count: 1,
@@ -1297,6 +1404,7 @@ const Cards = [{
         }
     }, {
         title: "Pandamonium",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "pandamonium",
         count: 1,
@@ -1314,6 +1422,7 @@ const Cards = [{
         }
     }, {
         title: "Slowdown",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "slowdown",
         count: 1,
@@ -1331,6 +1440,7 @@ const Cards = [{
         }
     }, {
         title: "Tiny Stable",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "tiny_stable",
         count: 1,
@@ -1348,6 +1458,7 @@ const Cards = [{
         }
     }, {
         title: "Unicorn Poison",
+        expansions: ["base_game"],
         type: "magic",
         image: "unicorn_poison",
         count: 3,
@@ -1376,6 +1487,7 @@ const Cards = [{
         }
     }, {
         title: "Alignment Change",
+        expansions: ["base_game"],
         type: "magic",
         image: "alignment_change",
         count: 2,
@@ -1412,6 +1524,7 @@ const Cards = [{
         }
     }, {
         title: "Unfair Bargain",
+        expansions: ["base_game"],
         type: "magic",
         image: "unfair_bargain",
         count: 2,
@@ -1440,6 +1553,7 @@ const Cards = [{
         }
     }, {
         title: "Two-For-One",
+        expansions: ["base_game"],
         type: "magic",
         image: "two-for-one",
         count: 2,
@@ -1478,6 +1592,7 @@ const Cards = [{
         }
     }, {
         title: "Targeted Destruction",
+        expansions: ["base_game"],
         type: "magic",
         image: "targeted_destruction",
         count: 1,
@@ -1507,6 +1622,7 @@ const Cards = [{
         }
     }, {
         title: "Shake Up",
+        expansions: ["base_game"],
         type: "magic",
         image: "shake_up",
         count: 1,
@@ -1535,6 +1651,7 @@ const Cards = [{
         }
     }, {
         title: "Reset Button",
+        expansions: ["base_game"],
         type: "magic",
         image: "reset_button",
         count: 1,
@@ -1563,6 +1680,7 @@ const Cards = [{
         }
     }, {
         title: "Mystical Vortex",
+        expansions: ["base_game"],
         type: "magic",
         image: "mystical_vortex",
         count: 1,
@@ -1600,6 +1718,7 @@ const Cards = [{
         }
     }, {
         title: "Kiss of Life",
+        expansions: ["base_game"],
         type: "magic",
         image: "kiss_of_life",
         count: 1,
@@ -1629,6 +1748,7 @@ const Cards = [{
         }
     }, {
         title: "Good Deal",
+        expansions: ["base_game"],
         type: "magic",
         image: "good_deal",
         count: 1,
@@ -1667,6 +1787,7 @@ const Cards = [{
         }
     }, {
         title: "Change of Luck",
+        expansions: ["base_game"],
         type: "magic",
         image: "change_of_luck",
         count: 2,
@@ -1705,6 +1826,7 @@ const Cards = [{
         }
     }, {
         title: "Back Kick",
+        expansions: ["base_game"],
         type: "magic",
         image: "back_kick",
         count: 3,
@@ -1733,6 +1855,7 @@ const Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic0",
         count: 3,
@@ -1743,6 +1866,7 @@ const Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic1",
         count: 3,
@@ -1753,6 +1877,7 @@ const Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic2",
         count: 3,
@@ -1763,6 +1888,7 @@ const Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic3",
         count: 3,
@@ -1773,6 +1899,7 @@ const Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic4",
         count: 3,
@@ -1783,6 +1910,7 @@ const Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic5",
         count: 3,
@@ -1793,6 +1921,7 @@ const Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic6",
         count: 3,
@@ -1803,6 +1932,7 @@ const Cards = [{
         }
     }, {
         title: "Narwhal",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic7",
         count: 3,
@@ -1812,22 +1942,25 @@ const Cards = [{
             de: "Diese Karte hat keine Kräft, aber süß ist sie!"
         }
     }];
-function initializeDeck() {
-    let deck = [];
-    Cards.forEach(c => {
-        for (let i = 0; i < c.count; i++) {
+function initializeDeck(expansions = ["base_game"]) {
+    const deck = [];
+    let currentId = 0;
+    const filteredCards = Cards.filter(c => c.expansions.some(e => expansions.includes(e)));
+    for (const card of filteredCards) {
+        for (let i = 0; i < card.count; i++) {
             deck.push({
-                id: 0,
-                title: c.title,
-                on: c.on,
-                passive: c.passive,
-                type: c.type,
-                image: c.image,
-                description: c.description,
+                id: currentId++,
+                title: card.title,
+                on: card.on,
+                passive: card.passive,
+                expansions: card.expansions,
+                type: card.type,
+                image: card.image,
+                description: card.description,
             });
         }
-    });
-    return deck.map((c, idx) => ({ ...c, id: idx }));
+    }
+    return deck;
 }
 // Helper
 function isUnicorn(card) {

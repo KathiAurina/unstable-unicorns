@@ -25,10 +25,13 @@ const UnstableUnicorns = {
         const players = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
-                name: `Spieler ${idx}`,
+                name: `Player ${idx}`,
             };
         });
-        const deck = (0, card_1.initializeDeck)();
+        const selectedExpansions = setupData?.expansions && setupData.expansions.length > 0
+            ? setupData.expansions
+            : ["base_game"];
+        const deck = (0, card_1.initializeDeck)(selectedExpansions);
         const discardPile = [];
         let nursery = [];
         let drawPile = underscore_1.default.shuffle(deck).filter(c => c.type !== "baby").map(c => c.id);
@@ -158,15 +161,12 @@ const UnstableUnicorns = {
     }
 };
 function initializeGame(G, ctx) {
-    let a = [];
-    for (let i = 0; i < 13; i++) {
-        a.push(i);
-    }
+    let babyIds = G.deck.filter(c => c.type === "baby").map(c => c.id);
     G.babyStarter.forEach(({ cardID, owner }) => {
         G.stable[owner].push(cardID);
-        a = underscore_1.default.without(a, cardID);
+        babyIds = underscore_1.default.without(babyIds, cardID);
     });
-    a.forEach(cardId => {
+    babyIds.forEach(cardId => {
         G.nursery.push(cardId);
     });
 }
