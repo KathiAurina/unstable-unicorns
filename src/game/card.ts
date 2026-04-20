@@ -300,6 +300,50 @@ const Cards: CardDefinition[] = [{
         de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
     }
 }, {
+    title: "Eager Adventurer Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "basic",
+    image: "eager_adventurer_unicorn",
+    count: 1,
+    on: [],
+    description: {
+        en: "\"OOOH! What's that??\"",
+        de: "\"OOOH! Was ist das??\"",
+    }
+}, {
+    title: "Glamping Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "basic",
+    image: "glamping_unicorn",
+    count: 1,
+    on: [],
+    description: {
+        en: "\"What do you mean I'm not roughing it? My phone has, like, zero bars!\"",
+        de: "\"Wie meinst du das, ich bin nicht tough genug? Mein Handy hat keinen Akku mehr!\"",
+    }
+}, {
+    title: "Indoor Rockclimber Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "basic",
+    image: "indoor_rockclimber_unicorn",
+    count: 1,
+    on: [],
+    description: {
+        en: "\"Always reach for new heights. Just don't bump your head on the ceiling.\"",
+        de: "\"Klettere immer höher und höher. Nur nicht den Kopf an der Decke stoßen.\"",
+    }
+}, {
+    title: "Landlubber Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "basic",
+    image: "landlubber_unicorn",
+    count: 1,
+    on: [],
+    description: {
+        en: "\"A little help? I'm still learning the ropes.\"",
+        de: "\"Etwas Hilfe? Ich lerne noch die Grundlagen mit den Seilen.\"",
+    }
+}, {
     title: "Alluring Narwhal",
     expansions: ["base_game"], 
     type: "narwhal",
@@ -1013,6 +1057,345 @@ const Cards: CardDefinition[] = [{
     description: {
         en: "If this card is in your Stable at the beginning of your turn, you may DISCARD a card, then SACRIFICE a Downgrade card.",
         de: "Wenn diese Karte am Anfang deiner Runde in deinem Stall ist, darfst du eine Karte von deiner Hand abwerfen, um eine Downgradekarte zu opfern."
+    }
+}, {
+    title: "Bungee Jumping Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "bungee_jumping_unicorn",
+    count: 1,
+    on: [{
+        trigger: "this_destroyed_or_sacrificed",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    // when there are two instructions for the same protagonist, the protagonist must execute exactly one
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "sacrifice",
+                            info: { type: "downgrade" }
+                        },
+                        ui: { type: "card_to_card" }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "If this card is sacrificed or destroyed, you may SACRIFICE a Downgrade card OR return this card to your hand.",
+        de: "Wenn diese Karte geopfert oder zerstört wird, darfst du eine Downgradekarte opfern ODER diese Karte auf deine Hand zurücknehmen."
+    }
+}, {
+    title: "Cutthroat Captain Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "cutthroat_captain_unicorn",
+    count: 1,
+    on: [{
+        trigger: "enter",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    // two instructions: player picks one
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "steal",
+                            info: { type: "baby" }
+                        },
+                        ui: { type: "card_to_card" }
+                    }, {
+                        protagonist: "owner",
+                        do: {
+                            key: "revive",
+                            info: { type: "basic_unicorn" }
+                        },
+                        ui: { type: "single_action_popup", info: { singleActionText: "Revive Basic Unicorn" } }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "When this card enters your Stable, you may: STEAL a Baby Unicorn card. OR Bring a Basic Unicorn card from the discard pile into your Stable.",
+        de: "Wenn diese Karte deinen Stall betritt, darfst du: Ein Babyeinhorn STEHLEN. ODER Ein Basic Einhorn vom Ablagestapel in deinen Stall legen."
+    }
+}, {
+    title: "Extreme Adventurer Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "extreme_adventurer_unicorn",
+    count: 1,
+    passive: ["basic_unicorns_cannot_enter"],
+    on: [{
+        trigger: "begin_of_turn",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "draw",
+                            info: { count: 1 }
+                        },
+                        ui: { type: "click_on_drawPile" }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "Basic Unicorn cards cannot enter your Stable. If this card is in your Stable at the beginning of your turn, you may DRAW a card.",
+        de: "Basic Einhörner können deinen Stall nicht betreten. Wenn diese Karte am Anfang deiner Runde in deinem Stall ist, darfst du eine Karte ziehen."
+    }
+}, {
+    title: "Fearless Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "fearless_unicorn",
+    count: 1,
+    on: [{
+        trigger: "this_destroyed_or_sacrificed",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "addFromDiscardPileToHand",
+                            info: { type: "neigh" }
+                        },
+                        ui: { type: "single_action_popup", info: { singleActionText: "Add Instant card" } }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "If this card is sacrificed or destroyed, you may add an Instant card from the discard pile to your hand.",
+        de: "Wenn diese Karte geopfert oder zerstört wird, darfst du eine Sofortkarte vom Ablagestapel auf deine Hand nehmen."
+    }
+}, {
+    title: "First Mer-Mate Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "first_mer_mate_unicorn",
+    count: 1,
+    on: [{
+        trigger: "this_destroyed_or_sacrificed",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    // two instructions: player picks one
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "draw",
+                            info: { count: 2 }
+                        },
+                        ui: { type: "click_on_drawPile" }
+                    }, {
+                        protagonist: "owner",
+                        do: {
+                            key: "bringToStable",
+                            info: { type: "basic_unicorn" }
+                        },
+                        ui: { type: "single_action_popup", info: { singleActionText: "Bring Basic Unicorn to Stable" } }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "If this card is sacrificed or destroyed, you may: DRAW 2 cards. OR Bring a Basic Unicorn card from your hand into your Stable.",
+        de: "Wenn diese Karte geopfert oder zerstört wird, darfst du: 2 Karten ZIEHEN. ODER Ein Basic Einhorn von deiner Hand in deinen Stall legen."
+    }
+}, {
+    title: "Fisherman Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "fisherman_unicorn",
+    count: 1,
+    on: [{
+        trigger: "enter",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "pullRandom",
+                        },
+                        ui: { type: "card_to_player" }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "When this card enters your Stable, you may look at another player's hand. Choose a card and add it to your hand.",
+        de: "Wenn diese Karte deinen Stall betritt, darfst du die Hand eines Mitspielers ansehen. Wähle eine Karte und nimm sie auf deine Hand."
+    }
+}, {
+    title: "Hornswoggler Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "hornswoggler_unicorn",
+    count: 1,
+    on: [{
+        trigger: "enter",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    // two instructions: player picks one
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "draw",
+                            info: { count: 3 }
+                        },
+                        ui: { type: "click_on_drawPile" }
+                    }, {
+                        protagonist: "owner",
+                        do: {
+                            key: "swapHands",
+                        },
+                        ui: { type: "card_to_player" }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "When this card enters your Stable, you may: DISCARD your hand, then DRAW 3 cards. OR Trade hands with any other player.",
+        de: "Wenn diese Karte deinen Stall betritt, darfst du: Deine Hand abwerfen und dann 3 Karten ZIEHEN. ODER Tausche deine Hand mit einem anderen Spieler."
+    }
+}, {
+    title: "Pillaging Pirate Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "pillaging_pirate_unicorn",
+    count: 1,
+    on: [{
+        trigger: "enter",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    // two instructions: player picks one
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "steal",
+                            info: { type: "upgrade" }
+                        },
+                        ui: { type: "card_to_card" }
+                    }, {
+                        protagonist: "owner",
+                        do: {
+                            key: "move",
+                            info: { type: "upgradeAndDowngrade" }
+                        },
+                        ui: { type: "card_to_card" }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "When this card enters your Stable, you may: STEAL an Upgrade card. OR Move a Downgrade card in your Stable to another player's Stable.",
+        de: "Wenn diese Karte deinen Stall betritt, darfst du: Eine Upgradekarte STEHLEN. ODER Eine Downgradekarte aus deinem Stall in den Stall eines anderen Spielers verschieben."
+    }
+}, {
+    title: "Salty Seadogicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "salty_seadogicorn",
+    count: 1,
+    on: [{
+        trigger: "enter",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    // two instructions: player picks one
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "makeSomeoneDiscard",
+                        },
+                        ui: { type: "card_to_player" }
+                    }, {
+                        protagonist: "owner",
+                        do: {
+                            key: "draw",
+                            info: { count: 1 }
+                        },
+                        ui: { type: "click_on_drawPile" }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "When this card enters your Stable, you may: Force each other player to DISCARD a card. OR DRAW a card.",
+        de: "Wenn diese Karte deinen Stall betritt, darfst du: Jeden anderen Spieler zwingen eine Karte ABZUWERFEN. ODER Eine Karte ZIEHEN."
+    }
+}, {
+    title: "Stowaway Unicorn",
+    expansions: ["adventures_2nd_edition"],
+    type: "unicorn",
+    image: "stowaway_unicorn",
+    count: 1,
+    on: [{
+        trigger: "enter",
+        do: {
+            type: "add_scene",
+            info: {
+                actions: [{
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "draw",
+                            info: { count: 1 }
+                        },
+                        ui: { type: "click_on_drawPile" }
+                    }]
+                }],
+                mandatory: false,
+                endTurnImmediately: false
+            }
+        }
+    }],
+    description: {
+        en: "When this card enters your Stable, you may DRAW a card and reveal it. If it is a Unicorn, Upgrade, or Downgrade card, bring it into your Stable.",
+        de: "Wenn diese Karte deinen Stall betritt, darfst du eine Karte ZIEHEN und aufdecken. Wenn es ein Einhorn, Upgrade oder Downgrade ist, lege es in deinen Stall."
     }
 }, {
     title: "Zombie Unicorn",

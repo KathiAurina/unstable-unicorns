@@ -9,7 +9,7 @@ export interface DoSteal {
     info: DoStealInfo;
 }
 
-export type DoStealInfo = { type: "unicorn" | "upgrade"; unicornSwap?: boolean }
+export type DoStealInfo = { type: "unicorn" | "upgrade" | "baby"; unicornSwap?: boolean }
 
 export interface DoPull {
     key: "pull";
