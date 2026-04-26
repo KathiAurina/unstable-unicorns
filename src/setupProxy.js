@@ -1,11 +1,13 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
+const devProxyTarget = process.env.DEV_PROXY_TARGET || 'http://127.0.0.1:8000';
+
 module.exports = function(app) {
   // Proxy boardgame.io lobby API
   app.use(
     '/games',
     createProxyMiddleware({
-      target: 'http://localhost:8000',
+      target: devProxyTarget,
       changeOrigin: true,
     })
   );
@@ -16,7 +18,7 @@ module.exports = function(app) {
     createProxyMiddleware(
       (pathname) => pathname.startsWith('/socket.io'),
       {
-        target: 'http://localhost:8000',
+        target: devProxyTarget,
         changeOrigin: true,
         ws: true,
       }

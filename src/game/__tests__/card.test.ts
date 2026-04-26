@@ -17,7 +17,7 @@ describe('initializeDeck', () => {
     });
 
     it('contains at least one of each major card type', () => {
-        const types = new Set(deck.map(c => c.type));
+        const types = new Set(deck.flatMap(c => Array.isArray(c.type) ? c.type : [c.type]));
         expect(types.has('basic')).toBe(true);
         expect(types.has('unicorn')).toBe(true);
         expect(types.has('magic')).toBe(true);
@@ -31,7 +31,8 @@ describe('initializeDeck', () => {
             expect(card.id).toBeGreaterThanOrEqual(0);
             expect(typeof card.title).toBe('string');
             expect(typeof card.image).toBe('string');
-            expect(typeof card.type).toBe('string');
+            const type = card.type;
+            expect(typeof type === 'string' || (Array.isArray(type) && type.every(t => typeof t === 'string'))).toBe(true);
             expect(card.description).toBeDefined();
             expect(card.description.en).toBeDefined();
         });

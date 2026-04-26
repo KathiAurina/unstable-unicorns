@@ -1,4 +1,4 @@
-import { CardID, isUnicorn } from "../card";
+import { CardID, isUnicorn, hasType } from "../card";
 import type { UnstableUnicornsGame, Ctx } from "../state";
 import { _addSceneFromDo } from "../state";
 import type { PlayerID } from "../player";
@@ -19,7 +19,7 @@ export function sacrifice(G: UnstableUnicornsGame, ctx: Ctx, param: ParamSacrifi
 
     leave(G, ctx, { playerID: param.protagonist, cardID: param.cardID });
 
-    if (card.type === "baby") {
+    if (hasType(card, "baby")) {
         G.nursery.push(param.cardID);
     } else {
         G.discardPile.push(param.cardID);
@@ -49,7 +49,7 @@ export function findSacrificeTargets(G: UnstableUnicornsGame, ctx: Ctx, protagon
     if (info.type === "downgrade") {
         G.upgradeDowngradeStable[protagonist].forEach(c => {
             const card = G.deck[c];
-            if (card.type === "downgrade") {
+            if (hasType(card, "downgrade")) {
                 targets.push({ cardID: c });
             }
         })
@@ -67,7 +67,14 @@ export function findSacrificeTargets(G: UnstableUnicornsGame, ctx: Ctx, protagon
     }
 
     if (info.type === "any") {
-        targets = G.stable[protagonist].map(c => ({ cardID: c }));
+        const hasPandamonium = G.playerEffects[protagonist].find(s => s.effect.key === "pandamonium") !== undefined;
+        G.stable[protagonist].forEach(c => {
+            if (hasPandamonium && isUnicorn(G.deck[c])) return;
+            targets.push({ cardID: c });
+        });
+        G.upgradeDowngradeStable[protagonist].forEach(c => {
+            targets.push({ cardID: c });
+        });
     }
 
     return targets;

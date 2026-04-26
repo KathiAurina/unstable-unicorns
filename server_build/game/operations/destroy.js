@@ -24,7 +24,7 @@ function destroy(G, ctx, param) {
     const card = G.deck[param.cardID];
     const targetPlayer = findOwnerOfCard(G, param.cardID);
     (0, enter_1.leave)(G, ctx, { playerID: targetPlayer, cardID: param.cardID });
-    if (card.type === "baby") {
+    if ((0, card_1.hasType)(card, "baby")) {
         G.nursery.push(param.cardID);
     }
     else {
@@ -52,22 +52,19 @@ function findDestroyTargets(G, ctx, protagonist, info, sourceCard) {
         if (info.type === "my_downgrade_other_upgrade") {
             G.upgradeDowngradeStable[pl.id].forEach(cid => {
                 const card = G.deck[cid];
-                if (pl.id === protagonist && card.type === "downgrade") {
+                if (pl.id === protagonist && (0, card_1.hasType)(card, "downgrade")) {
                     targets.push({ playerID: pl.id, cardID: cid });
                 }
-                else if (pl.id !== protagonist && card.type === "upgrade") {
+                else if ((0, card_1.hasType)(card, "upgrade")) {
                     targets.push({ playerID: pl.id, cardID: cid });
                 }
             });
-        }
-        if (pl.id === protagonist) {
-            return;
         }
         if (info.type === "unicorn") {
             G.stable[pl.id].forEach(cid => {
                 const card = G.deck[cid];
                 if ((0, card_1.isUnicorn)(card)) {
-                    if (sourceCard && G.deck[sourceCard].type === "magic" && card.passive?.includes("cannot_be_destroyed_by_magic")) {
+                    if (sourceCard && (0, card_1.hasType)(G.deck[sourceCard], "magic") && card.passive?.includes("cannot_be_destroyed_by_magic")) {
                         return;
                     }
                     if (G.playerEffects[pl.id].find(s => s.effect.key === "your_unicorns_cannot_be_destroyed")) {
@@ -83,7 +80,7 @@ function findDestroyTargets(G, ctx, protagonist, info, sourceCard) {
         else if (info.type === "upgrade") {
             G.upgradeDowngradeStable[pl.id].forEach(cid => {
                 const card = G.deck[cid];
-                if (card.type === "upgrade") {
+                if ((0, card_1.hasType)(card, "upgrade")) {
                     targets.push({ playerID: pl.id, cardID: cid });
                 }
             });
@@ -92,7 +89,7 @@ function findDestroyTargets(G, ctx, protagonist, info, sourceCard) {
             G.stable[pl.id].forEach(cid => {
                 const card = G.deck[cid];
                 if ((0, card_1.isUnicorn)(card)) {
-                    if (sourceCard && G.deck[sourceCard].type === "magic" && card.passive?.includes("cannot_be_destroyed_by_magic")) {
+                    if (sourceCard && (0, card_1.hasType)(G.deck[sourceCard], "magic") && card.passive?.includes("cannot_be_destroyed_by_magic")) {
                         return;
                     }
                     if (G.playerEffects[pl.id].find(s => s.effect.key === "your_unicorns_cannot_be_destroyed")) {

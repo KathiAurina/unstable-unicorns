@@ -1,4 +1,4 @@
-import { CardType } from '../../game/card';
+import { CardType, getPrimaryType } from '../../game/card';
 import BACK from './UU-Back-Main.png';
 import NeighIcon from './neigh-icon.png';
 import MagicIcon from './star-icon.png';
@@ -17,8 +17,8 @@ const ImageLoader = {
         }
         return require(`./square/${key}.png`);
     },
-    icon: (type: CardType) => {
-        switch(type) {
+    icon: (type: CardType | CardType[]) => {
+        switch(getPrimaryType({ type })) {
             case "baby":
             case "basic":
             case "narwhal":

@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import type { UnstableUnicornsGame, Ctx } from '../game/state';
 import type { Moves } from '../game/types';
@@ -17,10 +17,34 @@ type Props = {
     G: UnstableUnicornsGame;
     ctx: Ctx;
     moves: Moves;
+    autoEndTurn: boolean;
+    setAutoEndTurn: (v: boolean) => void;
+    autoDontNeigh: boolean;
+    setAutoDontNeigh: (v: boolean) => void;
 };
 
-const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ctx, moves }: Props) => {
+const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ctx, moves, autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh }: Props) => {
     const languageContext = useContext(LanguageContext);
+    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+    const supportsFullscreen = !!document.documentElement.requestFullscreen;
+
+    useEffect(() => {
+        const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', onFsChange);
+        return () => document.removeEventListener('fullscreenchange', onFsChange);
+    }, []);
+
+    const handleToggleFullscreen = async () => {
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+            } else {
+                await document.documentElement.requestFullscreen();
+            }
+        } catch (e) {
+            // Fullscreen API not supported or blocked (e.g. Safari iOS)
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -92,6 +116,29 @@ const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ct
                 )}
 
                 <Divider />
+                <SectionLabel>Automation</SectionLabel>
+                <CheckboxRow>
+                    <CheckboxLabel>
+                        <input
+                            type="checkbox"
+                            checked={autoEndTurn}
+                            onChange={e => setAutoEndTurn(e.target.checked)}
+                        />
+                        Automatically end turn when no actions remain
+                    </CheckboxLabel>
+                </CheckboxRow>
+                <CheckboxRow>
+                    <CheckboxLabel>
+                        <input
+                            type="checkbox"
+                            checked={autoDontNeigh}
+                            onChange={e => setAutoDontNeigh(e.target.checked)}
+                        />
+                        Automatically pass neigh discussion when not having a neigh card in hand
+                    </CheckboxLabel>
+                </CheckboxRow>
+
+                <Divider />
                 <SectionLabel>Language</SectionLabel>
                 <LangRow>
                     <LangButton
@@ -107,6 +154,16 @@ const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ct
                         English
                     </LangButton>
                 </LangRow>
+
+                {supportsFullscreen && (
+                    <>
+                        <Divider />
+                        <SectionLabel>Display</SectionLabel>
+                        <MenuButton onClick={handleToggleFullscreen}>
+                            {isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                        </MenuButton>
+                    </>
+                )}
 
                 <CloseButton onClick={onClose}>Close</CloseButton>
             </Modal>
@@ -130,9 +187,18 @@ const Modal = styled.div`
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
     padding: 32px 36px;
     width: 320px;
+    max-width: calc(100vw - 32px);
+    max-height: 90dvh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 10px;
+
+    @media (max-height: 500px) {
+        padding: 14px 18px;
+        gap: 7px;
+        border-radius: 12px;
+    }
 `;
 
 const Title = styled.h2`
@@ -141,6 +207,11 @@ const Title = styled.h2`
     color: #333;
     margin: 0 0 8px 0;
     text-align: center;
+
+    @media (max-height: 500px) {
+        font-size: 16px;
+        margin: 0 0 2px 0;
+    }
 `;
 
 const MenuButton = styled.button`
@@ -159,6 +230,11 @@ const MenuButton = styled.button`
     &:hover {
         transform: scale(1.02);
         box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    @media (max-height: 500px) {
+        padding: 8px;
+        font-size: 12px;
     }
 `;
 
@@ -222,6 +298,31 @@ const CloseButton = styled.button`
     &:hover {
         border-color: #aaa;
         color: #555;
+    }
+`;
+
+const CheckboxRow = styled.div`
+    display: flex;
+    align-items: flex-start;
+`;
+
+const CheckboxLabel = styled.label`
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    line-height: 1.4;
+
+    input[type="checkbox"] {
+        margin-top: 2px;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        cursor: pointer;
+        accent-color: #4D96FF;
     }
 `;
 

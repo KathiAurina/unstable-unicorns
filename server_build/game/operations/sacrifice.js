@@ -13,7 +13,7 @@ const enter_1 = require("./enter");
 function sacrifice(G, ctx, param) {
     const card = G.deck[param.cardID];
     (0, enter_1.leave)(G, ctx, { playerID: param.protagonist, cardID: param.cardID });
-    if (card.type === "baby") {
+    if ((0, card_1.hasType)(card, "baby")) {
         G.nursery.push(param.cardID);
     }
     else {
@@ -38,7 +38,7 @@ function findSacrificeTargets(G, ctx, protagonist, info) {
     if (info.type === "downgrade") {
         G.upgradeDowngradeStable[protagonist].forEach(c => {
             const card = G.deck[c];
-            if (card.type === "downgrade") {
+            if ((0, card_1.hasType)(card, "downgrade")) {
                 targets.push({ cardID: c });
             }
         });
@@ -54,7 +54,15 @@ function findSacrificeTargets(G, ctx, protagonist, info) {
         });
     }
     if (info.type === "any") {
-        targets = G.stable[protagonist].map(c => ({ cardID: c }));
+        const hasPandamonium = G.playerEffects[protagonist].find(s => s.effect.key === "pandamonium") !== undefined;
+        G.stable[protagonist].forEach(c => {
+            if (hasPandamonium && (0, card_1.isUnicorn)(G.deck[c]))
+                return;
+            targets.push({ cardID: c });
+        });
+        G.upgradeDowngradeStable[protagonist].forEach(c => {
+            targets.push({ cardID: c });
+        });
     }
     return targets;
 }

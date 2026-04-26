@@ -109,15 +109,32 @@ const InfoPanel = ({ G, ctx, playerID, boardStates }: Props) => {
         text = `Click on ${card.title} and then click on a player to pull a random card from that player.`
     }
 
-    if (!text) {
+    if (boardStates.find(o => o.type === "search__single_action_popup")) {
+        const boardState = boardStates.find(o => o.type === "search__single_action_popup")!;
+        const card = G.deck[boardState.info!.sourceCardID!];
+        text = `Click on ${card.title} in your stable to search the deck for a card.`
+    }
+
+    if (boardStates.find(o => o.type === "stowawaydraw__popup")) {
+        const boardState = boardStates.find(o => o.type === "stowawaydraw__popup")!;
+        const card = G.deck[boardState.info!.sourceCardID!];
+        text = `Click on ${card.title} in your stable to draw and reveal a card.`
+    }
+
+    if (boardStates.find(o => o.type === "returnSelf__popup")) {
+        const boardState = boardStates.find(o => o.type === "returnSelf__popup")!;
+        const card = boardState.info?.sourceCardID != null ? G.deck[boardState.info.sourceCardID] : undefined;
+        text = `${card?.title ?? 'A card'} was destroyed/sacrificed — you may return it to your hand.`
+    }
+
+    if (!text && !G.deckWasReshuffled) {
         return null;
     }
 
     return (
         <InfoLabelWrapper>
-            <InfoLabel>
-                {text}
-            </InfoLabel>
+            {text && <InfoLabel>{text}</InfoLabel>}
+            {G.deckWasReshuffled && <InfoLabel>The draw pile was empty — the discard pile was shuffled in!</InfoLabel>}
         </InfoLabelWrapper>
     );
 }

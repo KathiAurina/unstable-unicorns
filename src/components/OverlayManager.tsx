@@ -1,5 +1,5 @@
-import { CardInteraction, HoverTarget } from '../BoardUtil';
-import type { SearchTarget, AddFromDiscardPileToHandTarget, ReviveTarget } from '../game/operations';
+import { CardInteraction } from '../BoardUtil';
+import type { SearchTarget } from '../game/operations';
 import type { UnstableUnicornsGame } from '../game/state';
 import { _findInstruction } from '../game/state';
 import { CardID } from '../game/card';
@@ -52,8 +52,15 @@ const OverlayManager = ({
             {showDeckFinder &&
                 <Finder
                     cards={showDeckFinder.map(s => G.deck[s.cardID])}
-                    showBackButton={false}
-                    onBackClick={() => 0}
+                    showBackButton={true}
+                    onBackClick={() => setShowDeckFinder(undefined)}
+                    onFailToFindClick={() => {
+                        const boardState = boardStates.find(o => o.type === "search__single_action_popup")!;
+                        const { instruction } = _findInstruction(G, boardState.info!.instructionID)!;
+                        moves.skipExecuteDo(playerID, instruction.id);
+                        setShowDeckFinder(undefined);
+                        setCardInteraction(undefined);
+                    }}
                     onCardClick={cardID => {
                         const boardState = boardStates.find(o => o.type === "search__single_action_popup")!;
                         const { instruction } = _findInstruction(G, boardState.info!.instructionID)!;

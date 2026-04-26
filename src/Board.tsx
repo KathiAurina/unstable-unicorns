@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import _ from 'underscore';
 import HiddenHand from './ui/HiddenHand';
-import Stable, { StableHandle } from './ui/Stable';
+import { StableHandle } from './ui/Stable';
 import PlayerField, { PlayerFieldHandle } from './ui/PlayerField';
 import { motion, AnimateSharedLayout, AnimatePresence } from "framer-motion";
 // game
@@ -30,6 +30,10 @@ import NeighPanel from './components/NeighPanel';
 import InfoPanel from './components/InfoPanel';
 import OverlayManager from './components/OverlayManager';
 import StableSection from './components/StableSection';
+import { useMobile } from './hooks/useMobile';
+import MobileBoard from './mobile/MobileBoard';
+import { useGameSettings } from './hooks/useGameSettings';
+import { useAutoActions } from './hooks/useAutoActions';
 
 type Props = {
     G: UnstableUnicornsGame;
@@ -39,7 +43,14 @@ type Props = {
     isActive: boolean;
 }
 
+// Top-level Board: routes between mobile and desktop based on device detection.
 const Board = (props: Props) => {
+    const isMobile = useMobile();
+    if (isMobile) return <MobileBoard {...props} />;
+    return <DesktopBoard {...props} />;
+};
+
+const DesktopBoard = (props: Props) => {
     const { G, ctx, playerID, moves } = props;
 
     const { playDrawCardSound, playEndTurnButtonSound, playHubMouseOverSound, playExecuteDoSound } = useSoundEffects(G, ctx, playerID);
@@ -54,8 +65,7 @@ const Board = (props: Props) => {
     const playerFieldRef = useRef<PlayerFieldHandle>(null);
     const [hoverTargets, setHoverTargets] = useState<{ sourceCardID: CardID, targets: HoverTarget[] }>();
     const [cardInteraction, setCardInteraction] = useState<CardInteraction | undefined>(undefined);
-    const context = useContext(LanguageContext);
-
+    useContext(LanguageContext);
     let openScenes: Array<[Instruction, Scene]> = _findInProgressScenesWithProtagonist(G, playerID);
     if (openScenes.length === 0) {
         openScenes = _findOpenScenesWithProtagonist(G, playerID);
@@ -112,9 +122,11 @@ const Board = (props: Props) => {
         }
     }
 
-    const [C2CArrow, setC2CArrow] = useState<{ fromX: number, fromY: number, toX: number, toY: number } | undefined>(undefined);
+    const [C2CArrow] = useState<{ fromX: number, fromY: number, toX: number, toY: number } | undefined>(undefined);
     const [escapeMenuOpen, setEscapeMenuOpen] = useState(false);
     const [gameoverDismissed, setGameoverDismissed] = useState(false);
+    const { autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh } = useGameSettings();
+    useAutoActions(G, ctx, playerID, moves, { autoEndTurn, autoDontNeigh }, boardStates);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -136,6 +148,10 @@ const Board = (props: Props) => {
             G={G}
             ctx={ctx}
             moves={moves}
+            autoEndTurn={autoEndTurn}
+            setAutoEndTurn={setAutoEndTurn}
+            autoDontNeigh={autoDontNeigh}
+            setAutoDontNeigh={setAutoDontNeigh}
         />
     );
 
@@ -175,6 +191,9 @@ const Board = (props: Props) => {
         <>
         {escapeMenu}
         {gameoverOverlay}
+        <MenuToggleButton onClick={() => setEscapeMenuOpen(prev => !prev)} title="Menu (Esc)">
+            ☰
+        </MenuToggleButton>
         <AnimateSharedLayout>
             <Wrapper layout onMouseMove={wrapperOnMouseMove}>
                 <OverlayManager
@@ -231,7 +250,8 @@ const Board = (props: Props) => {
                             if (cardInteraction?.key === "card_to_player") {
                                 console.log("Detected click for cardInteraction with key <card_to_player>");
 
-                                if (G.deck[cardInteraction.info.sourceCardID].title === "Blatant Thievery") {
+                                const bsType = boardStates.find(s => s.info?.instructionID === cardInteraction.info.instructionID)?.type;
+                                if (bsType === "blatantThievery1") {
                                     setShowBlatantThievery(plid);
                                     return;
                                 }
@@ -358,6 +378,29 @@ const renderEndTurnButton = (moves: Moves, playerID: PlayerID, playEndTurnButton
 }
 
 ////////////////////////////////
+
+const MenuToggleButton = styled.button`
+    position: fixed;
+    top: 10px;
+    right: 12px;
+    z-index: 9999;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.45);
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.65);
+    }
+`;
 
 const Wrapper = styled(motion.div)`
     width: 100%;

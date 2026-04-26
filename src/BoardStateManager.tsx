@@ -3,7 +3,7 @@ import { _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist } 
 import { canDraw } from "./game/game";
 import type { PlayerID } from "./game/player";
 import _ from 'underscore';
-import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets } from "./game/operations";
+import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets, canDiscard, canSatisfyDo } from "./game/operations";
 import type { DoDraw, DoSteal, DoDestroy, DoSacrifice, DoDiscard, DoBringToStable, DoReturnToHand, DoRevive, DoSearch, DoAddFromDiscardPileToHand, DoMove } from "./game/do-types";
 import type { BoardStateInfo } from "./game/types";
 
@@ -12,7 +12,7 @@ export type BoardState = {
     info?: BoardStateInfo;
 }
 
-type BoardStateKey = "playCard" | "drawCard" | "steal__cardToCard" | "destroy__cardToCard" | "destroy__click_on_card_in_stable" | "sacrifice__cardToCard" | "sacrifice__clickOnCardInStable" | "draw__clickOnDrawPile" | "endTurn" | "neigh__playNeigh" | "neigh__wait" | "discard__popup__committed" | "discard__popup__ask" | "bring__popup__committed" | "bring__popup__ask" | "discard" | "swapHands__cardToPlayer" | "shakeUp" | "move__cardToCard" | "move2__cardToPlayer" | "unicornswap1" | "unicornswap2" | "reset" | "shuffleDiscardPileIntoDrawPile" | "wait_for_other_players" | "revive" | "reviveFromNursery" | "pullRandom__cardToPlayer" | "backKick__card_to_card" | "blatantThievery1" | "addFromDiscardPileToHand__single_action_popup" | "search__single_action_popup" | "returnToHand__cardToCard" | "makeSomeoneDiscard__cardToPlayer";
+type BoardStateKey = "playCard" | "drawCard" | "steal__cardToCard" | "destroy__cardToCard" | "destroy__click_on_card_in_stable" | "sacrifice__cardToCard" | "sacrifice__clickOnCardInStable" | "draw__clickOnDrawPile" | "endTurn" | "neigh__playNeigh" | "neigh__wait" | "discard__popup__committed" | "discard__popup__ask" | "bring__popup__committed" | "bring__popup__ask" | "discard" | "swapHands__cardToPlayer" | "shakeUp" | "move__cardToCard" | "move2__cardToPlayer" | "unicornswap1" | "unicornswap2" | "reset" | "shuffleDiscardPileIntoDrawPile" | "wait_for_other_players" | "revive" | "reviveFromNursery" | "pullRandom__cardToPlayer" | "backKick__card_to_card" | "blatantThievery1" | "addFromDiscardPileToHand__single_action_popup" | "search__single_action_popup" | "returnToHand__cardToCard" | "makeSomeoneDiscard__cardToPlayer" | "returnSelf__popup" | "stowawaydraw__popup";
 
 export function getBoardState(G: UnstableUnicornsGame, ctx: Ctx, playerID: PlayerID): BoardState[] {
     const openScenes = _findOpenScenesWithProtagonist(G, playerID);
@@ -189,6 +189,18 @@ const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
         const doInfo = (ins.do as DoDiscard).info;
         if (ins.ui.type === "single_action_popup") {
             const targets = findDiscardTargets(G, ctx, playerID, doInfo);
+            if (scene.mandatory === false) {
+                // Block the opt-in popup if:
+                // 1. Player cannot pay the full discard cost, or
+                // 2. Any subsequent action in the scene cannot be satisfied
+                // (prevents discarding cards only to have the effect fizzle)
+                if (!canDiscard(G, ctx, playerID, doInfo)) return [];
+                const actionIdx = scene.actions.findIndex(ac => ac.instructions.some(i => i.id === ins.id));
+                const subsequentSatisfiable = scene.actions.slice(actionIdx + 1).every(ac =>
+                    ac.instructions.every(i => canSatisfyDo(G, ctx, i.protagonist, i.do, i.ui.info?.source))
+                );
+                if (!subsequentSatisfiable) return [];
+            }
             const base = { targets, instructionID: ins.id, sourceCardID: ins.ui.info?.source, singleActionText: ins.ui.info?.singleActionText };
             return [{ type: scene.mandatory === false ? "discard__popup__ask" : "discard__popup__committed", info: base }];
         }
@@ -261,6 +273,15 @@ const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
     addFromDiscardPileToHand: (G, ctx, playerID, ins) => {
         if (ins.ui.type !== "single_action_popup") return [];
         return [{ type: "addFromDiscardPileToHand__single_action_popup", info: { targets: findAddFromDiscardPileToHand(G, ctx, playerID, (ins.do as DoAddFromDiscardPileToHand).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+    },
+    returnSelf: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "single_action_popup") return [];
+        return [{ type: "returnSelf__popup", info: { instructionID: ins.id, sourceCardID: ins.ui.info?.source, singleActionText: ins.ui.info?.singleActionText } }];
+    },
+    stowawaydraw: (G, ctx, playerID, ins) => {
+        if (ins.ui.type !== "single_action_popup") return [];
+        if (G.drawPile.length === 0) return [];
+        return [{ type: "stowawaydraw__popup", info: { instructionID: ins.id, sourceCardID: ins.ui.info?.source, singleActionText: ins.ui.info?.singleActionText } }];
     },
 };
 

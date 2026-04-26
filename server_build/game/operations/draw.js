@@ -7,10 +7,15 @@ exports.draw = draw;
 exports.canDraw = canDraw;
 const underscore_1 = __importDefault(require("underscore"));
 function draw(G, ctx, param) {
+    if (G.drawPile.length < param.count && G.discardPile.length > 0) {
+        G.drawPile = [...G.drawPile, ...underscore_1.default.shuffle(G.discardPile)];
+        G.discardPile = [];
+        G.deckWasReshuffled = true;
+    }
     const toDraw = underscore_1.default.first(G.drawPile, param.count);
     G.drawPile = underscore_1.default.rest(G.drawPile, param.count);
     G.hand[param.protagonist] = [...G.hand[param.protagonist], ...toDraw];
 }
 function canDraw(G, ctx, param) {
-    return G.drawPile.length >= param.count;
+    return G.drawPile.length + G.discardPile.length >= param.count;
 }

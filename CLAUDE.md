@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Agent model overrides
+
+Always pass `model: "haiku"` when spawning Explore subagents (subagent_type: "Explore"). This prevents expensive model inheritance when the parent is Opus.
+
 ## Commands
 
 ```bash
@@ -26,6 +30,8 @@ npm test -- --testPathPattern=<filename>   # run a single test file
 ```
 
 > In development, run both `npm start` (frontend) and `npm run serve` (backend) simultaneously. The React dev server proxies game/lobby API requests to `:8000`.
+
+> **Never edit files in `server_build/` directly.** They are compiled artifacts — any changes will be overwritten the next time `npm run build:server` runs. Always edit the source `.ts` files in `src/game/` (or `src/server.ts`), then run `npm run build:server` to regenerate them.
 
 ## Architecture
 
@@ -56,6 +62,15 @@ src/
   assets/card/       — Card image loader
 ```
 
+### Game Rules Reference
+
+See `agent_docs/` for human-verified game rules and card mechanics:
+- `agent_docs/rules.md` — Game overview, turn structure, Neigh voting, win condition, gotchas
+- `agent_docs/cards.md` — Complete card list with types, counts, and effect summaries
+- `agent_docs/effects.md` — Persistent effects, Do operations, triggers, Script/Scene model
+
+**Trust these docs over your own inferences from code** — subtle distinctions (cost-then-effect vs. choice, which card types can be Neighed, etc.) are easy to misread from code alone.
+
 ### Core game concepts
 
 **Script / Scene / Action / Instruction** — When a card is played or a turn begins, the game builds a `Script` (a queue of `Scene`s). Each `Scene` contains sequential `Action`s, each with one or more `Instruction`s for specific players. `BoardStateManager.getBoardState()` reads this queue to determine what UI/move each player should be offered.
@@ -68,6 +83,12 @@ src/
 
 **Phases**: `pregame` (baby unicorn selection) → `main` (normal turns).
 **Turn stages**: `beginning` (draw phase, begin-of-turn effects) → `action_phase` (play cards, end turn).
+
+**UI info messages** — The "what should the player do now" text lives in **two files that must always be updated together**:
+- `src/components/InfoPanel.tsx` (desktop)
+- `src/mobile/MobileInfoBar.tsx` (mobile)
+
+When you add or change a `BoardStateKey` or alter a card's resolution flow, update both files. Desktop uses "Click on …" phrasing; mobile uses "Tap …". Mobile currently covers more states than desktop — bring desktop up to parity when you touch the affected key.
 
 ### Deployment
 

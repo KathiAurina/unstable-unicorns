@@ -12,6 +12,7 @@ type Props = {
     cards: Card[];
     showBackButton?: boolean;
     onBackClick: () => void;
+    onFailToFindClick?: () => void;
     onCardClick: (cardID: CardID) => void;
     title?: string;
     hide?: boolean;
@@ -27,6 +28,11 @@ const Finder = (props: Props) => {
                 <Button onClick={() => props.onBackClick()}>
                     Go back
                 </Button>
+            }
+            {props.onFailToFindClick &&
+                <FailButton onClick={props.onFailToFindClick}>
+                    Fail to Find
+                </FailButton>
             }
 
             {props.title && <p style={{padding: "1em", backgroundColor: "#F8B500", borderRadius: "12px", color: "white"}}>{props.title}</p>}
@@ -73,6 +79,16 @@ const Button = styled.div`
     padding: 1em;
     cursor: pointer;
     width: 200px;
+`;
+
+const FailButton = styled.div`
+    background-color: #c0392b;
+    color: white;
+    border-radius: 12px;
+    padding: 1em;
+    cursor: pointer;
+    width: 200px;
+    margin-top: 8px;
 `;
 
 const List = styled.div`

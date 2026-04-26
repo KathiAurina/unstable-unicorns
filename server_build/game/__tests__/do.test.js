@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const do_1 = require("../do");
+const game_1 = require("../game");
 const testHelpers_1 = require("../testHelpers");
 // ─── enter / canEnter ────────────────────────────────────────────────────────
 describe('canEnter', () => {
@@ -22,12 +23,19 @@ describe('canEnter', () => {
         const superNeigh = G.deck.find(c => c.type === 'super_neigh');
         expect((0, do_1.canEnter)(G, ctx, { playerID: '0', cardID: superNeigh.id })).toBe(false);
     });
-    it('blocks upgrade when you_cannot_play_upgrades effect is active', () => {
+    it('allows upgrade to enter via canEnter when you_cannot_play_upgrades is active (steal/move not blocked)', () => {
         const G = (0, testHelpers_1.setupTestGame)();
         const ctx = (0, testHelpers_1.createCtx)();
         const upgrade = G.deck.find(c => c.type === 'upgrade');
         G.playerEffects['0'] = [{ effect: { key: 'you_cannot_play_upgrades' } }];
-        expect((0, do_1.canEnter)(G, ctx, { playerID: '0', cardID: upgrade.id })).toBe(false);
+        expect((0, do_1.canEnter)(G, ctx, { playerID: '0', cardID: upgrade.id })).toBe(true);
+    });
+    it('blocks playing an upgrade via canPlayCard when you_cannot_play_upgrades is active', () => {
+        const G = (0, testHelpers_1.setupTestGame)();
+        const ctx = (0, testHelpers_1.createCtx)();
+        const upgrade = G.deck.find(c => c.type === 'upgrade');
+        G.playerEffects['0'] = [{ effect: { key: 'you_cannot_play_upgrades' } }];
+        expect((0, game_1.canPlayCard)(G, ctx, '0', upgrade.id)).toBe(false);
     });
     it('blocks basic unicorn when basic_unicorns_can_only_join_your_stable is active for another player', () => {
         const G = (0, testHelpers_1.setupTestGame)();
@@ -75,6 +83,9 @@ describe('enter', () => {
     it('adds magic card to temporaryStable', () => {
         const G = (0, testHelpers_1.setupTestGame)();
         const ctx = (0, testHelpers_1.createCtx)();
+        // Give player 1 a unicorn so Unicorn Poison's destroy-unicorn scene is satisfiable
+        // (otherwise autoFizzleUnsatisfiable flushes the temp stable immediately).
+        (0, testHelpers_1.giveCardToStable)(G, '1', 'basic');
         const magic = G.deck.find(c => c.type === 'magic');
         G.drawPile = G.drawPile.filter(id => id !== magic.id);
         (0, do_1.enter)(G, ctx, { playerID: '0', cardID: magic.id });
@@ -191,12 +202,12 @@ describe('findDestroyTargets', () => {
         const targets = (0, do_1.findDestroyTargets)(G, ctx, '0', { type: 'unicorn' }, undefined);
         expect(targets.length).toBe(0);
     });
-    it('does not target own cards', () => {
+    it('can target own cards (destroy is allowed on own stable)', () => {
         const G = (0, testHelpers_1.setupTestGame)();
         const ctx = (0, testHelpers_1.createCtx)();
         (0, testHelpers_1.giveCardToStable)(G, '0', 'basic');
         const targets = (0, do_1.findDestroyTargets)(G, ctx, '0', { type: 'unicorn' }, undefined);
-        expect(targets.every(t => t.playerID !== '0')).toBe(true);
+        expect(targets.some(t => t.playerID === '0')).toBe(true);
     });
 });
 // ─── discard ─────────────────────────────────────────────────────────────────
@@ -225,7 +236,8 @@ describe('findDiscardTargets', () => {
         const targets = (0, do_1.findDiscardTargets)(G, ctx, '0', { count: 1, type: 'unicorn' });
         targets.forEach(t => {
             const card = G.deck[G.hand['0'][t.handIndex]];
-            expect(['baby', 'basic', 'unicorn', 'narwhal']).toContain(card.type);
+            const cardTypes = Array.isArray(card.type) ? card.type : [card.type];
+            expect(cardTypes.some(t => ['baby', 'basic', 'unicorn', 'narwhal'].includes(t))).toBe(true);
         });
     });
 });
@@ -288,6 +300,27 @@ describe('findSacrificeTargets', () => {
         const cardID = (0, testHelpers_1.giveCardToUpgradeStable)(G, '0', 'downgrade');
         const targets = (0, do_1.findSacrificeTargets)(G, ctx, '0', { type: 'downgrade' });
         expect(targets.some(t => t.cardID === cardID)).toBe(true);
+    });
+    it('returns own unicorns AND upgrades AND downgrades for type=any', () => {
+        const G = (0, testHelpers_1.setupTestGame)();
+        const ctx = (0, testHelpers_1.createCtx)();
+        const unicornID = (0, testHelpers_1.giveCardToStable)(G, '0', 'basic');
+        const upgradeID = (0, testHelpers_1.giveCardToUpgradeStable)(G, '0', 'upgrade');
+        const downgradeID = (0, testHelpers_1.giveCardToUpgradeStable)(G, '0', 'downgrade');
+        const targets = (0, do_1.findSacrificeTargets)(G, ctx, '0', { type: 'any' });
+        expect(targets.some(t => t.cardID === unicornID)).toBe(true);
+        expect(targets.some(t => t.cardID === upgradeID)).toBe(true);
+        expect(targets.some(t => t.cardID === downgradeID)).toBe(true);
+    });
+    it('excludes pandamonium unicorns from type=any', () => {
+        const G = (0, testHelpers_1.setupTestGame)();
+        const ctx = (0, testHelpers_1.createCtx)();
+        const unicornID = (0, testHelpers_1.giveCardToStable)(G, '0', 'basic');
+        const upgradeID = (0, testHelpers_1.giveCardToUpgradeStable)(G, '0', 'upgrade');
+        G.playerEffects['0'] = [{ effect: { key: 'pandamonium' } }];
+        const targets = (0, do_1.findSacrificeTargets)(G, ctx, '0', { type: 'any' });
+        expect(targets.some(t => t.cardID === unicornID)).toBe(false);
+        expect(targets.some(t => t.cardID === upgradeID)).toBe(true);
     });
 });
 // ─── findReviveTarget ─────────────────────────────────────────────────────────

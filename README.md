@@ -27,20 +27,28 @@ npm install
 
 You need two terminal windows running simultaneously:
 
-**Terminal 1 — Game server** (port 8000)
+**Terminal 1 - Game server** (port 8000)
 ```bash
-npm run build:server
-npm run serve
+npm run dev:backend
 ```
 
-**Terminal 2 — Frontend** (port 3000, with hot-reload)
+**Terminal 2 - Frontend** (port 3000, with hot-reload)
 ```bash
-npm start
+npm run dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
-> The frontend dev server automatically proxies all game API requests to the backend on port 8000 — no extra configuration needed.
+The development frontend is configured to:
+
+- run on `0.0.0.0:3000`
+- stay reachable from devices on your home network
+- hot-reload when frontend files change
+- proxy `/games` and `/socket.io` requests to the backend on `127.0.0.1:8000`
+
+If you want the frontend to proxy to a different backend, set `DEV_PROXY_TARGET` before starting `npm run dev`.
+
+> Keep your browser on `:3000` during development. Port `:8000` is the backend / production-style server.
 
 ---
 
@@ -48,7 +56,7 @@ Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
 1. Open the **Lobby** at [http://localhost:3000](http://localhost:3000).
 2. Enter a name and the number of players, then click **Create Game**.
-3. The game appears in the list below — click **Join** to enter.
+3. The game appears in the list below - click **Join** to enter.
 4. Share the lobby URL with your friends so they can join the same game.
 5. Once everyone has joined, each player picks a baby unicorn and the game starts.
 6. On your turn: draw a card, then optionally play one from your hand.
@@ -63,9 +71,9 @@ Then open [http://localhost:3000](http://localhost:3000) in your browser.
 If you want a single optimized server (no hot-reload):
 
 ```bash
-npm run build         # builds the frontend
-npm run build:server  # builds the backend
-npm run serve         # serves everything on port 8000
+npm run build
+npm run build:server
+npm run serve
 ```
 
 Open [http://localhost:8000](http://localhost:8000).
@@ -76,7 +84,7 @@ Open [http://localhost:8000](http://localhost:8000).
 
 ```bash
 npm test
-npm test -- --testPathPattern=<filename>   # run a single test file
+npm test -- --testPathPattern=<filename>
 ```
 
 ---
@@ -84,13 +92,13 @@ npm test -- --testPathPattern=<filename>   # run a single test file
 ## Known Limitations
 
 - **~90% of cards implemented.** A handful of edge-case card interactions are still missing.
-- **Emergency escape hatches:** If the game gets stuck (e.g. a player must discard but has no cards in hand), there are invisible buttons in the top-left and top-right corners of the board. Clicking the top-right button force-ends the current turn; the top-left button skips the current action.
+- **Emergency escape hatches:** If the game gets stuck (for example a player must discard but has no cards in hand), there are invisible buttons in the top-left and top-right corners of the board. Clicking the top-right button force-ends the current turn; the top-left button skips the current action.
 
 ---
 
 ## Technical Overview
 
-Built with **React**, **TypeScript**, and **[boardgame.io](https://boardgame.io)**. The backend is a Node.js/Koa server that runs the game logic and syncs state to all clients in real-time via WebSockets. Game rules and card definitions are shared between client and server.
+Built with **React**, **TypeScript**, and **[boardgame.io](https://boardgame.io)**. The backend is a Node.js/Koa server that runs the game logic and syncs state to all clients in real time via WebSockets. Game rules and card definitions are shared between client and server.
 
 ### Stack
 
@@ -105,11 +113,13 @@ Built with **React**, **TypeScript**, and **[boardgame.io](https://boardgame.io)
 
 All game state lives on the server. When a player takes an action (plays a card, steals a unicorn, etc.), the client sends a **move** to the server. The server validates and applies it, then broadcasts the updated state to every connected client.
 
-Card effects are modelled as a queue of **scenes** (`G.script`). Each scene contains instructions for specific players (e.g. "player 2 must now choose a card to discard"). `BoardStateManager.getBoardState()` reads this queue and translates it into the concrete UI actions shown to each player.
+Card effects are modelled as a queue of **scenes** (`G.script`). Each scene contains instructions for specific players (for example "player 2 must now choose a card to discard"). `BoardStateManager.getBoardState()` reads this queue and translates it into the concrete UI actions shown to each player.
 
 ### Environment variables
 
 | Variable | Default | Description |
 |---|---|---|
 | `PORT` | `8000` | Server port |
-| `CORS_ORIGIN` | `http://localhost:3000` | Allowed CORS origin |
+| `CORS_ORIGIN` | `https://uu.clicque.de` | Primary allowed CORS origin |
+| `LOCAL_ORIGIN` | unset | Extra allowed origin for local or LAN access |
+| `DEV_PROXY_TARGET` | `http://127.0.0.1:8000` | Backend target used by the frontend dev server proxy |

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hasEffect = hasEffect;
 exports.isCardBasicDueToEffect = isCardBasicDueToEffect;
+const card_1 = require("./card");
 function hasEffect(playerEffects, key) {
     return playerEffects.some(e => e.effect.key === key);
 }
@@ -12,5 +13,5 @@ function isCardBasicDueToEffect(playerEffects, card) {
         return false;
     if (hasEffect(playerEffects, "pandamonium"))
         return false;
-    return card.type === "narwhal" || card.type === "unicorn";
+    return (0, card_1.hasType)(card, "narwhal") || (0, card_1.hasType)(card, "unicorn");
 }

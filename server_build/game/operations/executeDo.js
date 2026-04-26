@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.autoFizzleUnsatisfiable = void 0;
 exports.executeDo = executeDo;
 const state_1 = require("../state");
 const underscore_1 = __importDefault(require("underscore"));
@@ -16,6 +17,11 @@ const draw_1 = require("./draw");
 const move_1 = require("./move");
 const misc_1 = require("./misc");
 const swap_1 = require("./swap");
+const card_1 = require("../card");
+const canSatisfy_1 = require("./canSatisfy");
+const enter_1 = require("./enter");
+var canSatisfy_2 = require("./canSatisfy");
+Object.defineProperty(exports, "autoFizzleUnsatisfiable", { enumerable: true, get: function () { return canSatisfy_2.autoFizzleUnsatisfiable; } });
 // KeyToFunc is a runtime dispatch table keyed on Do.key.
 // The param type is intentionally loose — callers (executeDo) cast before passing.
 // The public move APIs (steal, destroy, etc.) are each fully typed above.
@@ -58,6 +64,30 @@ function executeDo(G, ctx, instructionID, param) {
         }
         instruction.do.info.count = instruction.do.info.count - 1;
     }
+    else if (instruction.do.key === "returnSelf") {
+        // Card was sacrificed/destroyed; return it from discard pile to hand
+        const sourceCardID = instruction.ui.info?.source;
+        if (sourceCardID !== undefined) {
+            G.discardPile = underscore_1.default.without(G.discardPile, sourceCardID);
+            G.hand[param.protagonist].push(sourceCardID);
+        }
+        action.instructions.filter(ins => ins.protagonist === param.protagonist).forEach(ins => ins.state = "executed");
+    }
+    else if (instruction.do.key === "stowawaydraw") {
+        // Draw top card; if unicorn/upgrade/downgrade put it in stable, otherwise in hand
+        const drawnCardID = G.drawPile[0];
+        G.drawPile = G.drawPile.slice(1);
+        if (drawnCardID !== undefined) {
+            const drawnCard = G.deck[drawnCardID];
+            if ((0, card_1.isUnicorn)(drawnCard) || (0, card_1.hasType)(drawnCard, "upgrade") || (0, card_1.hasType)(drawnCard, "downgrade")) {
+                (0, enter_1.enter)(G, ctx, { playerID: param.protagonist, cardID: drawnCardID });
+            }
+            else {
+                G.hand[param.protagonist].push(drawnCardID);
+            }
+        }
+        action.instructions.filter(ins => ins.protagonist === param.protagonist).forEach(ins => ins.state = "executed");
+    }
     else {
         KeyToFunc[instruction.do.key](G, ctx, param);
         action.instructions.filter(ins => ins.protagonist === param.protagonist).forEach(ins => ins.state = "executed");
@@ -82,4 +112,7 @@ function executeDo(G, ctx, instructionID, param) {
             }
         }
     }
+    // After every execution, check if any mandatory instructions have become
+    // unsatisfiable (no valid targets) and auto-skip them.
+    (0, canSatisfy_1.autoFizzleUnsatisfiable)(G, ctx);
 }
