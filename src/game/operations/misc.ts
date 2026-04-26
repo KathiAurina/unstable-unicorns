@@ -1,5 +1,6 @@
 import type { UnstableUnicornsGame, Ctx } from "../state";
 import type { PlayerID } from "../player";
+import type { CardID } from "../card";
 import _ from 'underscore';
 import { canDiscard } from "./discard";
 import { pull, PullTarget, findPullTargets } from "./steal";
@@ -21,6 +22,7 @@ export function findPullRandomTargets(G: UnstableUnicornsGame, ctx: Ctx, protago
 export type ParamMakeSomeoneDiscard = {
     playerID: PlayerID;
     protagonist: PlayerID;
+    source?: CardID;
 }
 
 export function makeSomeoneDiscard(G: UnstableUnicornsGame, ctx: Ctx, param: ParamMakeSomeoneDiscard) {
@@ -34,7 +36,8 @@ export function makeSomeoneDiscard(G: UnstableUnicornsGame, ctx: Ctx, param: Par
                 protagonist: param.playerID,
                 state: "open",
                 ui: {
-                    type: "click_on_own_card_in_hand"
+                    type: "click_on_own_card_in_hand",
+                    info: param.source !== undefined ? { source: param.source } : undefined
                 },
                 do: {
                     key: "discard",

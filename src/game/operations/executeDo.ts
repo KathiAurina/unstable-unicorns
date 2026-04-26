@@ -14,6 +14,7 @@ import { makeSomeoneDiscard, blatantThievery1, pullRandom } from "./misc";
 import { swapHands, shakeUp, reset, shuffleDiscardPileIntoDrawPile, unicornSwap1, unicornSwap2 } from "./swap";
 import { CardID } from "../card";
 import { autoFizzleUnsatisfiable } from "./canSatisfy";
+import { pushLog } from "../log";
 export { autoFizzleUnsatisfiable } from "./canSatisfy";
 export type { Do } from '../do-types';
 
@@ -40,6 +41,10 @@ export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: stri
 
     instruction.state = "in_progress";
 
+    const sourceCardID = instruction.ui.info?.source;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p = param as any;
+
     // execute instruction
     if (instruction.do.key === "destroy") {
         const paramDestroy = <ParamDestroy>param;
@@ -48,6 +53,7 @@ export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: stri
         if (G.playerEffects[targetPlayer].find(eff => eff.effect.key === "save_mate_by_sacrifice")) {
         } else {
             KeyToFunc[instruction.do.key](G, ctx, param);
+            pushLog(G, ctx, { actor: param.protagonist, kind: 'destroy', sourceCardID, targetCardID: paramDestroy.cardID, targetPlayer });
         }
 
         if (instruction.do.info.count !== undefined) {
@@ -60,6 +66,7 @@ export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: stri
         }
     } else if (instruction.do.key === "discard") {
         discard(G, ctx, param as ParamDiscard);
+        pushLog(G, ctx, { actor: param.protagonist, kind: 'discard', sourceCardID, targetCardID: p.cardID });
         if (instruction.do.info.count === 1) {
             action.instructions.filter(ins => ins.protagonist === param.protagonist).forEach(ins => ins.state = "executed");
 
@@ -69,7 +76,12 @@ export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: stri
         }
         instruction.do.info.count = instruction.do.info.count - 1;
     } else {
-        KeyToFunc[instruction.do.key](G, ctx, param);
+        // capture owner before the operation mutates G (steal, returnToHand change card location)
+        const preOpOwner = p.cardID !== undefined ? findOwnerOfCard(G, p.cardID) ?? undefined : undefined;
+        // pass source through to operations that create sub-scenes (e.g. backKick → makeSomeoneDiscard)
+        const paramWithSource = sourceCardID !== undefined ? { ...param, source: sourceCardID } : param;
+        KeyToFunc[instruction.do.key](G, ctx, paramWithSource);
+        _logDoOperation(G, ctx, instruction.do.key, param.protagonist, sourceCardID, p, preOpOwner);
         action.instructions.filter(ins => ins.protagonist === param.protagonist).forEach(ins => ins.state = "executed");
     }
 
@@ -96,5 +108,58 @@ export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: stri
     // After every execution, check if any mandatory instructions have become
     // unsatisfiable (no valid targets) and auto-skip them.
     autoFizzleUnsatisfiable(G, ctx);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function _logDoOperation(G: UnstableUnicornsGame, ctx: Ctx, key: string, protagonist: PlayerID, sourceCardID: CardID | undefined, p: any, preOpOwner?: PlayerID) {
+    switch (key) {
+        case 'sacrifice':
+            pushLog(G, ctx, { actor: protagonist, kind: 'sacrifice', sourceCardID, targetCardID: p.cardID });
+            break;
+        case 'steal':
+            pushLog(G, ctx, { actor: protagonist, kind: 'steal', sourceCardID, targetCardID: p.cardID, targetPlayer: preOpOwner });
+            break;
+        case 'pull':
+        case 'pullRandom':
+        case 'blatantThievery1':
+            pushLog(G, ctx, { actor: protagonist, kind: 'pull', sourceCardID, targetPlayer: p.from ?? p.playerID });
+            break;
+        case 'draw':
+            pushLog(G, ctx, { actor: protagonist, kind: 'draw', sourceCardID, count: p.count });
+            break;
+        case 'search':
+            pushLog(G, ctx, { actor: protagonist, kind: 'search', sourceCardID });
+            break;
+        case 'revive':
+        case 'addFromDiscardPileToHand':
+        case 'reviveFromNursery':
+            pushLog(G, ctx, { actor: protagonist, kind: 'revive', sourceCardID, targetCardID: p.cardID });
+            break;
+        case 'returnToHand':
+            pushLog(G, ctx, { actor: protagonist, kind: 'return_to_hand', sourceCardID, targetCardID: p.cardID, targetPlayer: preOpOwner });
+            break;
+        case 'bringToStable':
+            pushLog(G, ctx, { actor: protagonist, kind: 'bring_to_stable', sourceCardID, targetCardID: p.cardID });
+            break;
+        case 'move':
+        case 'move2':
+            pushLog(G, ctx, { actor: protagonist, kind: 'move', sourceCardID, targetCardID: p.cardID });
+            break;
+        case 'backKick':
+            pushLog(G, ctx, { actor: protagonist, kind: 'return_to_hand', sourceCardID, targetCardID: p.cardID, targetPlayer: preOpOwner });
+            break;
+        case 'swapHands':
+        case 'unicornSwap1':
+        case 'unicornSwap2':
+            pushLog(G, ctx, { actor: protagonist, kind: 'swap', sourceCardID, targetPlayer: p.playerID });
+            break;
+        case 'shakeUp':
+        case 'reset':
+        case 'shuffleDiscardPileIntoDrawPile':
+            pushLog(G, ctx, { actor: protagonist, kind: 'shuffle', sourceCardID });
+            break;
+        default:
+            break;
+    }
 }
 

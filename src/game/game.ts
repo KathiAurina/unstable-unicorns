@@ -17,6 +17,7 @@ import {
     _findInProgressScenesWithProtagonist,
     _findInstruction,
 } from './state';
+import { pushLog } from './log';
 
 export type { Ctx };
 export type { UnstableUnicornsGame, Scene, Action, Instruction } from './state';
@@ -80,6 +81,7 @@ const UnstableUnicorns = {
             owner: setupData?.ownerPlayerID ?? "0",
             lastHeartbeat,
             deckWasReshuffled: false,
+            gameLog: [],
         };
     },
     phases: {
@@ -271,6 +273,8 @@ function playCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, card
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
     G.hand[protagonist] = _.without(G.hand[protagonist], cardID);
 
+    pushLog(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID });
+
     if (G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
         enter(G, ctx, { playerID: protagonist, cardID });
     } else {
@@ -294,6 +298,8 @@ function initialNeighVote(G: UnstableUnicornsGame, playerID: PlayerID, protagoni
 function playUpgradeDowngradeCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, targetPlayer: PlayerID, cardID: CardID) {
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
     G.hand[protagonist] = _.without(G.hand[protagonist], cardID);
+
+    pushLog(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID });
 
     if (G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
         enter(G, ctx, { playerID: targetPlayer, cardID });
@@ -325,6 +331,22 @@ function playNeigh(G: UnstableUnicornsGame, ctx: Ctx, cardID: CardID, protagonis
         // hence neigh the round and add a next round
         round.playerState[protagonist] = { vote: "neigh" };
         round.state = "neigh";
+        round.neighCardID = cardID;
+        round.neighedBy = protagonist;
+
+        // determine the neigh target: round 0 = original card, otherwise = previous round's neigh card
+        let targetCardID: CardID;
+        let targetPlayer: PlayerID;
+        if (roundIndex === 0) {
+            targetCardID = G.neighDiscussion.cardID;
+            targetPlayer = G.neighDiscussion.protagonist;
+        } else {
+            const prev = G.neighDiscussion.rounds[roundIndex - 1];
+            targetCardID = prev.neighCardID!;
+            targetPlayer = prev.neighedBy!;
+        }
+        pushLog(G, ctx, { actor: protagonist, kind: 'play_neigh', sourceCardID: cardID, targetCardID, targetPlayer });
+
         G.neighDiscussion.rounds.push({
             state: "open",
             playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }])))
@@ -348,11 +370,30 @@ function playSuperNeigh(G: UnstableUnicornsGame, ctx: Ctx, cardID: CardID, prota
         // hence neigh the round and add a next round
         round.playerState[protagonist] = { vote: "neigh" };
         round.state = "neigh";
+        round.neighCardID = cardID;
+        round.neighedBy = protagonist;
+
+        const superNeighOrigCard = G.neighDiscussion.cardID;
+        const superNeighOrigPlayer = G.neighDiscussion.protagonist;
+
+        // determine super-neigh target: round 0 = original card, otherwise = previous round's neigh card
+        let targetCardID: CardID;
+        let targetPlayer: PlayerID;
+        if (roundIndex === 0) {
+            targetCardID = superNeighOrigCard;
+            targetPlayer = superNeighOrigPlayer;
+        } else {
+            const prev = G.neighDiscussion.rounds[roundIndex - 1];
+            targetCardID = prev.neighCardID!;
+            targetPlayer = prev.neighedBy!;
+        }
+        pushLog(G, ctx, { actor: protagonist, kind: 'play_super_neigh', sourceCardID: cardID, targetCardID, targetPlayer });
 
         const cardWasNeighed = (G.neighDiscussion.rounds.length+1) % 2 === 0;
         if (cardWasNeighed) {
             G.discardPile.push(G.neighDiscussion.cardID);
             G.lastNeighResult = {id: _.uniqueId(), result: "cardWasNeighed"};
+            pushLog(G, ctx, { actor: superNeighOrigPlayer, kind: 'card_neighed', sourceCardID: superNeighOrigCard });
         } else {
             enter(G, ctx, { playerID: G.neighDiscussion.protagonist, cardID: G.neighDiscussion.cardID })
             G.lastNeighResult = {id: _.uniqueId(), result: "cardWasPlayed"};
@@ -370,11 +411,15 @@ function dontPlayNeigh(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID,
         if (_.findKey(round.playerState, val => val.vote === "undecided") === undefined) {
             // everyone has voted => advance the game
             const cardWasNeighed = G.neighDiscussion.rounds.length % 2 === 0;
+            const resolvedCardID = G.neighDiscussion.cardID;
+            const resolvedProtagonist = G.neighDiscussion.protagonist;
+            const resolvedTarget = G.neighDiscussion.target;
             if (cardWasNeighed) {
                 G.discardPile.push(G.neighDiscussion.cardID);
                 G.lastNeighResult = {id: _.uniqueId(), result: "cardWasNeighed"};
+                pushLog(G, ctx, { actor: resolvedProtagonist, kind: 'card_neighed', sourceCardID: resolvedCardID });
             } else {
-                enter(G, ctx, { playerID: G.neighDiscussion.target, cardID: G.neighDiscussion.cardID })
+                enter(G, ctx, { playerID: resolvedTarget, cardID: resolvedCardID })
                 G.lastNeighResult = {id: _.uniqueId(), result: "cardWasPlayed"};
             }
             G.neighDiscussion = undefined;

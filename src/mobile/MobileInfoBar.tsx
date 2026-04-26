@@ -15,6 +15,8 @@ type Props = {
     onShowNursery: () => void;
     onShowDiscard: () => void;
     onEscapeMenu: () => void;
+    onShowLog: () => void;
+    logBadgeCount: number;
     playDrawCardSound: () => void;
     playEndTurnSound: () => void;
 };
@@ -145,7 +147,7 @@ function getInfoText(G: UnstableUnicornsGame, ctx: Ctx, playerID: string, boardS
     return undefined;
 }
 
-const MobileInfoBar = ({ G, ctx, playerID, moves, boardStates, onShowNursery, onShowDiscard, onEscapeMenu, playDrawCardSound, playEndTurnSound }: Props) => {
+const MobileInfoBar = ({ G, ctx, playerID, moves, boardStates, onShowNursery, onShowDiscard, onEscapeMenu, onShowLog, logBadgeCount, playDrawCardSound, playEndTurnSound }: Props) => {
     const canDraw = !!(boardStates.find(s => s.type === 'drawCard' || s.type === 'draw__clickOnDrawPile'));
     const canEndTurn = !!(boardStates.find(s => s.type === 'endTurn'));
     const infoText = getInfoText(G, ctx, playerID, boardStates);
@@ -203,6 +205,14 @@ const MobileInfoBar = ({ G, ctx, playerID, moves, boardStates, onShowNursery, on
                         End Turn
                     </EndTurnBtn>
                 )}
+                <LogBtnWrapper
+                    onTouchEnd={e => { e.preventDefault(); onShowLog(); }}
+                    onClick={onShowLog}
+                    title="Game log"
+                >
+                    <LogBtnIcon>📋</LogBtnIcon>
+                    {logBadgeCount > 0 && <LogBadge>{logBadgeCount > 9 ? '9+' : logBadgeCount}</LogBadge>}
+                </LogBtnWrapper>
                 <MenuBtn
                     onTouchEnd={e => { e.preventDefault(); onEscapeMenu(); }}
                     onClick={onEscapeMenu}
@@ -317,6 +327,36 @@ const MenuBtn = styled.div`
     cursor: pointer;
     padding: 4px 6px;
     -webkit-tap-highlight-color: transparent;
+`;
+
+const LogBtnWrapper = styled.div`
+    position: relative;
+    cursor: pointer;
+    padding: 4px 6px;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+`;
+
+const LogBtnIcon = styled.span`
+    font-size: 16px;
+    line-height: 1;
+`;
+
+const LogBadge = styled.span`
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #FF4450;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 8px;
+    font-weight: 800;
+    border-radius: 6px;
+    padding: 1px 3px;
+    line-height: 1;
+    min-width: 12px;
+    text-align: center;
 `;
 
 export default MobileInfoBar;

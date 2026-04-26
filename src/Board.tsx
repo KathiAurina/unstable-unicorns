@@ -30,6 +30,7 @@ import NeighPanel from './components/NeighPanel';
 import InfoPanel from './components/InfoPanel';
 import OverlayManager from './components/OverlayManager';
 import StableSection from './components/StableSection';
+import GameLogPanel from './components/GameLogPanel';
 import { useMobile } from './hooks/useMobile';
 import MobileBoard from './mobile/MobileBoard';
 import { useGameSettings } from './hooks/useGameSettings';
@@ -338,6 +339,7 @@ const DesktopBoard = (props: Props) => {
                 </Bottom>
             </Wrapper>
             </AnimateSharedLayout>
+            <GameLogPanel gameLog={G.gameLog} players={G.players} deck={G.deck} />
         </>
     );
 }

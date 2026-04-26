@@ -3,7 +3,7 @@ import { _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist } 
 import { canDraw } from "./game/game";
 import type { PlayerID } from "./game/player";
 import _ from 'underscore';
-import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets, canDiscard, canSatisfyDo } from "./game/operations";
+import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets, canDiscard } from "./game/operations";
 import type { DoDraw, DoSteal, DoDestroy, DoSacrifice, DoDiscard, DoBringToStable, DoReturnToHand, DoRevive, DoSearch, DoAddFromDiscardPileToHand, DoMove } from "./game/do-types";
 import type { BoardStateInfo } from "./game/types";
 
@@ -190,16 +190,11 @@ const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
         if (ins.ui.type === "single_action_popup") {
             const targets = findDiscardTargets(G, ctx, playerID, doInfo);
             if (scene.mandatory === false) {
-                // Block the opt-in popup if:
-                // 1. Player cannot pay the full discard cost, or
-                // 2. Any subsequent action in the scene cannot be satisfied
-                // (prevents discarding cards only to have the effect fizzle)
+                // Only block the opt-in popup if the player cannot pay the discard cost.
+                // Don't block on subsequent-action satisfiability: the discard itself can
+                // change game state (e.g. discarding a unicorn enables a follow-up revive),
+                // and autoFizzleUnsatisfiable will cleanly skip any genuinely dead step.
                 if (!canDiscard(G, ctx, playerID, doInfo)) return [];
-                const actionIdx = scene.actions.findIndex(ac => ac.instructions.some(i => i.id === ins.id));
-                const subsequentSatisfiable = scene.actions.slice(actionIdx + 1).every(ac =>
-                    ac.instructions.every(i => canSatisfyDo(G, ctx, i.protagonist, i.do, i.ui.info?.source))
-                );
-                if (!subsequentSatisfiable) return [];
             }
             const base = { targets, instructionID: ins.id, sourceCardID: ins.ui.info?.source, singleActionText: ins.ui.info?.singleActionText };
             return [{ type: scene.mandatory === false ? "discard__popup__ask" : "discard__popup__committed", info: base }];

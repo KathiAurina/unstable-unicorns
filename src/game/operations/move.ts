@@ -17,13 +17,16 @@ export type ParamReturnToHand = {
 export function returnToHand(G: UnstableUnicornsGame, ctx: Ctx, param: ParamReturnToHand) {
     const card = G.deck[param.cardID];
     const playerID = findOwnerOfCard(G, param.cardID)!;
-    leave(G, ctx, { playerID: playerID, cardID: param.cardID });
 
+    // Add to hand before leave() so autoFizzleUnsatisfiable sees the card when
+    // checking whether reactive triggers (e.g. Barbed Wire) can be satisfied.
     if (hasType(card, "baby")) {
         G.nursery.push(param.cardID);
     } else {
         G.hand[playerID].push(param.cardID);
     }
+
+    leave(G, ctx, { playerID: playerID, cardID: param.cardID });
 }
 
 export type ReturnToHandTarget = {
@@ -116,10 +119,10 @@ export function findMoveTargets2(G: UnstableUnicornsGame, ctx: Ctx, protagonist:
     return targets;
 }
 
-export function backKick(G: UnstableUnicornsGame, ctx: Ctx, param: {protagonist: PlayerID, cardID: CardID}) {
+export function backKick(G: UnstableUnicornsGame, ctx: Ctx, param: {protagonist: PlayerID, cardID: CardID, source?: CardID}) {
     const owner = findOwnerOfCard(G, param.cardID)!;
     returnToHand(G, ctx, {cardID: param.cardID, protagonist: param.protagonist});
-    makeSomeoneDiscard(G, ctx, {protagonist: param.protagonist, playerID: owner});
+    makeSomeoneDiscard(G, ctx, {protagonist: param.protagonist, playerID: owner, source: param.source});
 }
 
 export type BackKickTarget = {

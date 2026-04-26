@@ -33,7 +33,8 @@ function makeSomeoneDiscard(G, ctx, param) {
                         protagonist: param.playerID,
                         state: "open",
                         ui: {
-                            type: "click_on_own_card_in_hand"
+                            type: "click_on_own_card_in_hand",
+                            info: param.source !== undefined ? { source: param.source } : undefined
                         },
                         do: {
                             key: "discard",

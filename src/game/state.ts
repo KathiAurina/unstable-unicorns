@@ -17,6 +17,7 @@ import { isCardBasicDueToEffect } from './effect';
 import type { Effect } from './effect';
 import type { NeighDiscussion } from './neigh';
 import type { Clipboard, SetupData } from './types';
+import type { LogEntry } from './log';
 import _ from 'underscore';
 
 export type { Ctx };
@@ -46,6 +47,7 @@ export interface UnstableUnicornsGame extends Game {
     owner: PlayerID;
     lastHeartbeat: { [key: string]: number };
     deckWasReshuffled: boolean;
+    gameLog: LogEntry[];
 }
 
 // ─── Script types ─────────────────────────────────────────────────────────────

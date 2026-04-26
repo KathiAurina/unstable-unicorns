@@ -28,6 +28,7 @@ import { useAutoActions } from '../hooks/useAutoActions';
 import CharacterSelectionPage from '../components/pregame/CharacterSelectionPage';
 import LandscapeGuard from './LandscapeGuard';
 import MobileInfoBar from './MobileInfoBar';
+import MobileGameLogDrawer from './MobileGameLogDrawer';
 import MobilePlayerField from './MobilePlayerField';
 import MobileHand, { DragResult } from './MobileHand';
 import MobileCardDetail from './MobileCardDetail';
@@ -54,6 +55,11 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
     const [showNurseryFinder, setShowNurseryFinder] = useState(false);
     const [showPlayerHand, setShowPlayerHand] = useState<string | undefined>(undefined);
     const [showBlatantThievery, setShowBlatantThievery] = useState<string | undefined>(undefined);
+
+    // ── Game log state ────────────────────────────────────────────────────────
+    const [showLog, setShowLog] = useState(false);
+    const [seenLogCount, setSeenLogCount] = useState(0);
+    const logBadgeCount = Math.max(0, G.gameLog.length - seenLogCount);
 
     // ── Interaction state ─────────────────────────────────────────────────────
     const [cardInteraction, setCardInteraction] = useState<CardInteraction | undefined>(undefined);
@@ -582,6 +588,16 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                     </ShowNeighBtn>
                 )}
 
+                {/* Game log drawer */}
+                {showLog && (
+                    <MobileGameLogDrawer
+                        gameLog={G.gameLog}
+                        players={G.players}
+                        deck={G.deck}
+                        onClose={() => setShowLog(false)}
+                    />
+                )}
+
                 {/* Main board */}
                 <MobileInfoBar
                     G={G}
@@ -592,6 +608,8 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                     onShowNursery={() => setShowNurseryFinder(true)}
                     onShowDiscard={() => setShowDiscardFinder(G.discardPile.map(c => ({ cardID: c })))}
                     onEscapeMenu={() => setEscapeMenuOpen(prev => !prev)}
+                    onShowLog={() => { setShowLog(true); setSeenLogCount(G.gameLog.length); }}
+                    logBadgeCount={logBadgeCount}
                     playDrawCardSound={playDrawCardSound}
                     playEndTurnSound={playEndTurnButtonSound}
                 />
