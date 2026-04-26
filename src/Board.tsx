@@ -182,7 +182,7 @@ const DesktopBoard = (props: Props) => {
             <>
                 {escapeMenu}
                 {gameoverOverlay}
-                <CharacterSelectionPage G={G} babyCards={_.first(G.deck, 13)} playerID={playerID} moves={moves} />
+                <CharacterSelectionPage G={G} babyCards={G.deck.filter(c => c.type === "baby")} playerID={playerID} moves={moves} />
             </>
         );
     }
@@ -250,7 +250,8 @@ const DesktopBoard = (props: Props) => {
                             if (cardInteraction?.key === "card_to_player") {
                                 console.log("Detected click for cardInteraction with key <card_to_player>");
 
-                                if (G.deck[cardInteraction.info.sourceCardID].title === "Blatant Thievery") {
+                                const bsType = boardStates.find(s => s.info?.instructionID === cardInteraction.info.instructionID)?.type;
+                                if (bsType === "blatantThievery1") {
                                     setShowBlatantThievery(plid);
                                     return;
                                 }

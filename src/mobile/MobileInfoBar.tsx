@@ -138,6 +138,14 @@ function getInfoText(G: UnstableUnicornsGame, ctx: Ctx, playerID: string, boardS
         const bs = boardStates.find(o => o.type === 'addFromDiscardPileToHand__single_action_popup')!;
         return `Tap ${cardName(bs)} in your stable to add a card from the discard pile to your hand.`;
     }
+    if (boardStates.find(o => o.type === 'stowawaydraw__popup')) {
+        const bs = boardStates.find(o => o.type === 'stowawaydraw__popup')!;
+        return `Tap ${cardName(bs)} in your stable to draw and reveal a card.`;
+    }
+    if (boardStates.find(o => o.type === 'returnSelf__popup')) {
+        const bs = boardStates.find(o => o.type === 'returnSelf__popup')!;
+        return `${cardName(bs) ?? 'A card'} was destroyed/sacrificed — you may return it to your hand.`;
+    }
     if (boardStates.find(o => o.type === 'search__single_action_popup')) {
         const bs = boardStates.find(o => o.type === 'search__single_action_popup')!;
         return `Tap ${cardName(bs)} in your stable to search the deck for a card.`;

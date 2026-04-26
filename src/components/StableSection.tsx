@@ -1,5 +1,6 @@
 import _ from 'underscore';
 import React from 'react';
+import styled from 'styled-components';
 import Stable, { StableHandle } from '../ui/Stable';
 import Hand from '../ui/Hand';
 import CardPopupSingleAction from '../ui/CardPopupSingleAction';
@@ -123,6 +124,19 @@ const StableSection = ({
             }
         }
     }
+
+    const stableCardIDs = new Set([
+        ...G.stable[playerID],
+        ...G.upgradeDowngradeStable[playerID],
+        ...G.temporaryStable[playerID],
+    ]);
+
+    const ORPHANED_TYPES = ['returnSelf__popup', 'addFromDiscardPileToHand__single_action_popup', 'bring__popup__ask'] as const;
+    const orphanedBoardStates = boardStates.filter(bs =>
+        (ORPHANED_TYPES as readonly string[]).includes(bs.type) &&
+        bs.info?.sourceCardID !== undefined &&
+        !stableCardIDs.has(bs.info.sourceCardID)
+    );
 
     return (
         <>
@@ -333,6 +347,21 @@ const StableSection = ({
                         }
                     }
 
+                    boardState = boardStates.find(s => (s.type === "stowawaydraw__popup") && s.info?.sourceCardID === cardID);
+                    if (boardState) {
+                        const { instruction } = _findInstruction(G, boardState.info!.instructionID)!;
+                        if (instruction.do.key === "stowawaydraw" && instruction.ui.type === "single_action_popup") {
+                            return (
+                                <CardPopupSingleAction
+                                    text={instruction.ui.info?.singleActionText ?? "Draw and reveal"}
+                                    onClick={() => {
+                                        moves.executeDo(instruction.id, { protagonist: playerID });
+                                    }}
+                                />
+                            );
+                        }
+                    }
+
                     return undefined;
                 }}
                 onPlaceHereClick={() => {
@@ -353,8 +382,100 @@ const StableSection = ({
                     setHoveringOverHandCard(false);
                 }}
             />
+            {orphanedBoardStates.length > 0 && (
+                <OrphanedSceneBar>
+                    {orphanedBoardStates.map(bs => {
+                        const found = _findInstruction(G, bs.info!.instructionID!);
+                        if (!found) return null;
+                        const { instruction, scene } = found;
+                        const sourceCard = G.deck[bs.info!.sourceCardID!];
+
+                        let onActivate: () => void;
+                        let activateText: string;
+
+                        if (bs.type === 'returnSelf__popup') {
+                            activateText = (instruction.ui as any).info?.singleActionText ?? 'Return to hand';
+                            onActivate = () => moves.executeDo(instruction.id, { protagonist: playerID });
+                        } else if (bs.type === 'addFromDiscardPileToHand__single_action_popup') {
+                            activateText = (instruction.ui as any).info?.singleActionText ?? 'Add card from discard pile';
+                            onActivate = () => setShowDiscardFinder(bs.info!.targets?.map((t: AddFromDiscardPileToHandTarget) => ({ cardID: t.cardID })));
+                        } else if (bs.type === 'bring__popup__ask') {
+                            activateText = (instruction.ui as any).info?.singleActionText ?? 'Bring card to Stable';
+                            onActivate = () => moves.commit(scene!.id);
+                        } else {
+                            return null;
+                        }
+
+                        return (
+                            <OrphanedEntry key={bs.info!.instructionID}>
+                                <OrphanedLabel>{sourceCard?.title}:</OrphanedLabel>
+                                <OrphanedBtn onClick={onActivate}>{activateText}</OrphanedBtn>
+                                <OrphanedSkipBtn onClick={() => moves.skipExecuteDo(playerID, instruction.id)}>Skip</OrphanedSkipBtn>
+                            </OrphanedEntry>
+                        );
+                    })}
+                </OrphanedSceneBar>
+            )}
         </>
     );
 }
 
 export default StableSection;
+
+const OrphanedSceneBar = styled.div`
+    position: fixed;
+    bottom: 170px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 500;
+    pointer-events: all;
+`;
+
+const OrphanedEntry = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(20, 20, 40, 0.92);
+    border: 1.5px solid rgba(180, 120, 255, 0.6);
+    border-radius: 8px;
+    padding: 6px 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+`;
+
+const OrphanedLabel = styled.span`
+    color: #ccc;
+    font-size: 12px;
+    font-family: 'Nunito', sans-serif;
+    white-space: nowrap;
+`;
+
+const OrphanedBtn = styled.button`
+    background: linear-gradient(135deg, #9B59B6, #6C3483);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { opacity: 0.85; }
+`;
+
+const OrphanedSkipBtn = styled.button`
+    background: transparent;
+    color: #aaa;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: 'Nunito', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { color: #fff; border-color: #aaa; }
+`;
+

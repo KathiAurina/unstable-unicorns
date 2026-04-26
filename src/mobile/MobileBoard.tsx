@@ -315,12 +315,19 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
             setShowDeckFinder(bs.info?.targets);
             return;
         }
+        // stowawaydraw
+        bs = boardStates.find(s => s.type === 'stowawaydraw__popup' && s.info?.sourceCardID === cardID);
+        if (bs) {
+            moves.executeDo(bs.info!.instructionID, { protagonist: playerID });
+            return;
+        }
     };
 
     /** Tap on a player cell (not a specific card) */
     const handlePlayerTap = (targetPlayerID: string) => {
         if (cardInteraction?.key === 'card_to_player') {
-            if (G.deck[cardInteraction.info.sourceCardID]?.title === 'Blatant Thievery') {
+            const bsType = boardStates.find(s => s.info?.instructionID === cardInteraction.info.instructionID)?.type;
+            if (bsType === 'blatantThievery1') {
                 setShowBlatantThievery(targetPlayerID);
                 return;
             }
@@ -596,6 +603,59 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                     playEndTurnSound={playEndTurnButtonSound}
                 />
 
+                {/* Orphaned scene actions: source card no longer in stable (destroyed/sacrificed triggers) */}
+                {(() => {
+                    const stableIDs = new Set([
+                        ...G.stable[playerID],
+                        ...G.upgradeDowngradeStable[playerID],
+                        ...G.temporaryStable[playerID],
+                    ]);
+                    const ORPHANED_TYPES = ['returnSelf__popup', 'addFromDiscardPileToHand__single_action_popup', 'bring__popup__ask'] as const;
+                    const orphaned = boardStates.filter(bs =>
+                        (ORPHANED_TYPES as readonly string[]).includes(bs.type) &&
+                        bs.info?.sourceCardID !== undefined &&
+                        !stableIDs.has(bs.info.sourceCardID)
+                    );
+                    if (orphaned.length === 0) return null;
+                    return (
+                        <MobileOrphanedBar>
+                            {orphaned.map(bs => {
+                                const found = _findInstruction(G, bs.info!.instructionID!);
+                                if (!found) return null;
+                                const { instruction, scene } = found;
+                                const sourceCard = G.deck[bs.info!.sourceCardID!];
+                                let onActivate: () => void;
+                                let activateText: string;
+                                if (bs.type === 'returnSelf__popup') {
+                                    activateText = (instruction.ui as any).info?.singleActionText ?? 'Return to hand';
+                                    onActivate = () => moves.executeDo(instruction.id, { protagonist: playerID });
+                                } else if (bs.type === 'addFromDiscardPileToHand__single_action_popup') {
+                                    activateText = (instruction.ui as any).info?.singleActionText ?? 'Add from discard';
+                                    onActivate = () => setShowDiscardFinder(bs.info!.targets?.map((t: AddFromDiscardPileToHandTarget) => ({ cardID: t.cardID })));
+                                } else if (bs.type === 'bring__popup__ask') {
+                                    activateText = (instruction.ui as any).info?.singleActionText ?? 'Bring to Stable';
+                                    onActivate = () => moves.commit(scene!.id);
+                                } else {
+                                    return null;
+                                }
+                                return (
+                                    <MobileOrphanedEntry key={bs.info!.instructionID}>
+                                        <MobileOrphanedLabel>{sourceCard?.title}:</MobileOrphanedLabel>
+                                        <MobileOrphanedBtn
+                                            onTouchEnd={e => { e.preventDefault(); onActivate(); }}
+                                            onClick={onActivate}
+                                        >{activateText}</MobileOrphanedBtn>
+                                        <MobileOrphanedSkip
+                                            onTouchEnd={e => { e.preventDefault(); moves.skipExecuteDo(playerID, instruction.id); }}
+                                            onClick={() => moves.skipExecuteDo(playerID, instruction.id)}
+                                        >Skip</MobileOrphanedSkip>
+                                    </MobileOrphanedEntry>
+                                );
+                            })}
+                        </MobileOrphanedBar>
+                    );
+                })()}
+
                 <MobilePlayerField
                     G={G}
                     ctx={ctx}
@@ -716,3 +776,62 @@ const DismissBtn = styled.div`
 `;
 
 export default MobileBoard;
+
+const MobileOrphanedBar = styled.div`
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 300;
+    pointer-events: all;
+    max-width: 90vw;
+`;
+
+const MobileOrphanedEntry = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(20, 20, 40, 0.94);
+    border: 1.5px solid rgba(180, 120, 255, 0.6);
+    border-radius: 8px;
+    padding: 5px 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+`;
+
+const MobileOrphanedLabel = styled.span`
+    color: #ccc;
+    font-size: 10px;
+    font-family: 'Nunito', sans-serif;
+    white-space: nowrap;
+`;
+
+const MobileOrphanedBtn = styled.div`
+    background: linear-gradient(135deg, #9B59B6, #6C3483);
+    color: white;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+`;
+
+const MobileOrphanedSkip = styled.div`
+    color: #999;
+    font-size: 10px;
+    font-family: 'Nunito', sans-serif;
+    cursor: pointer;
+    padding: 2px 4px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    border: 1px solid #555;
+    border-radius: 4px;
+    white-space: nowrap;
+`;
+

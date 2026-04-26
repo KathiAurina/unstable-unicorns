@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import RainbowButton from '../shared/RainbowButton';
+import { Expansion, AVAILABLE_EXPANSIONS, EXPANSION_LABELS } from '../../game/card';
 import StyledInput from '../shared/StyledInput';
 
 interface Props {
@@ -8,12 +9,20 @@ interface Props {
     setMatchName: (name: string) => void;
     numPlayers: number;
     setNumPlayers: (n: number) => void;
+    setExpansions: React.Dispatch<React.SetStateAction<Expansion[]>>;
+    currentExpansions: Expansion[];
     onSubmit: () => void;
 }
 
-const CreateGameCard = ({ matchName, setMatchName, numPlayers, setNumPlayers, onSubmit }: Props) => {
+const CreateGameCard = ({ matchName, setMatchName, numPlayers, setNumPlayers, setExpansions, currentExpansions, onSubmit }: Props) => {
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') onSubmit();
+    };
+
+    const toggleExpansion = (id: Expansion) => {
+        setExpansions(prev => 
+            prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]
+        );
     };
 
     return (
@@ -45,6 +54,21 @@ const CreateGameCard = ({ matchName, setMatchName, numPlayers, setNumPlayers, on
                     <RainbowButton onClick={onSubmit}>Create Game</RainbowButton>
                 </ButtonWrapper>
             </FormRow>
+            <ExpansionSection>
+                <Label>Expansions</Label>
+                <CheckboxGrid>
+                    {AVAILABLE_EXPANSIONS.map((id) => (
+                        <CheckboxLabel key={id}>
+                            <input
+                                type="checkbox"
+                                checked={currentExpansions.includes(id)}
+                                onChange={() => toggleExpansion(id)}
+                            />
+                            <span>{EXPANSION_LABELS[id]}</span>
+                        </CheckboxLabel>
+                    ))}
+                </CheckboxGrid>
+            </ExpansionSection>
         </Card>
     );
 };
@@ -106,5 +130,34 @@ const Select = styled.select`
 const ButtonWrapper = styled.div`
     padding-bottom: 1px;
 `;
+
+const ExpansionSection = styled.div`
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #f0f0f0;
+    width: 100%;
+`;
+
+const CheckboxGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+`;
+
+const CheckboxLabel = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #444;
+    cursor: pointer;
+    
+    input {
+        cursor: pointer;
+        accent-color: #4D96FF;
+    }
+`;
+
 
 export default CreateGameCard;

@@ -31,11 +31,15 @@ const UnstableUnicorns = {
         const players: Player[] = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
-                name: `Spieler ${idx}`,
+                name: `Player ${idx}`,
             };
         });
+        
+        const selectedExpansions = setupData?.expansions && setupData.expansions.length > 0 
+            ? setupData.expansions 
+            : ["base_game"];
 
-        const deck = initializeDeck();
+        const deck = initializeDeck(selectedExpansions);
         const discardPile: CardID[] = [];
         let nursery: CardID[] = [];
         let drawPile = _.shuffle(deck).filter(c => !hasType(c, "baby")).map(c => c.id);
@@ -187,19 +191,16 @@ const UnstableUnicorns = {
 }
 
 function initializeGame(G: UnstableUnicornsGame, ctx: Ctx) {
-    let a: number[] = [];
-    for (let i=0; i<13; i++) {
-        a.push(i);
-    }
+    let babyIds = G.deck.filter(c => c.type === "baby").map(c => c.id);
 
     G.babyStarter.forEach(({cardID, owner}) => {
         G.stable[owner].push(cardID);
-        a = _.without(a, cardID);
+        babyIds = _.without(babyIds, cardID);
     });
 
-    a.forEach(cardId => {
+    babyIds.forEach(cardId => {
         G.nursery.push(cardId);
-    })
+    });
 }
 
 function changeName(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, name: string) {

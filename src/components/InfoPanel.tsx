@@ -115,6 +115,18 @@ const InfoPanel = ({ G, ctx, playerID, boardStates }: Props) => {
         text = `Click on ${card.title} in your stable to search the deck for a card.`
     }
 
+    if (boardStates.find(o => o.type === "stowawaydraw__popup")) {
+        const boardState = boardStates.find(o => o.type === "stowawaydraw__popup")!;
+        const card = G.deck[boardState.info!.sourceCardID!];
+        text = `Click on ${card.title} in your stable to draw and reveal a card.`
+    }
+
+    if (boardStates.find(o => o.type === "returnSelf__popup")) {
+        const boardState = boardStates.find(o => o.type === "returnSelf__popup")!;
+        const card = boardState.info?.sourceCardID != null ? G.deck[boardState.info.sourceCardID] : undefined;
+        text = `${card?.title ?? 'A card'} was destroyed/sacrificed — you may return it to your hand.`
+    }
+
     if (!text && !G.deckWasReshuffled) {
         return null;
     }

@@ -12,8 +12,9 @@ import { draw } from "./draw";
 import { returnToHand, bringToStable, move, move2, backKick } from "./move";
 import { makeSomeoneDiscard, blatantThievery1, pullRandom } from "./misc";
 import { swapHands, shakeUp, reset, shuffleDiscardPileIntoDrawPile, unicornSwap1, unicornSwap2 } from "./swap";
-import { CardID } from "../card";
+import { CardID, isUnicorn, hasType } from "../card";
 import { autoFizzleUnsatisfiable } from "./canSatisfy";
+import { enter } from "./enter";
 export { autoFizzleUnsatisfiable } from "./canSatisfy";
 export type { Do } from '../do-types';
 
@@ -68,6 +69,27 @@ export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: stri
             }
         }
         instruction.do.info.count = instruction.do.info.count - 1;
+    } else if (instruction.do.key === "returnSelf") {
+        // Card was sacrificed/destroyed; return it from discard pile to hand
+        const sourceCardID = instruction.ui.info?.source;
+        if (sourceCardID !== undefined) {
+            G.discardPile = _.without(G.discardPile, sourceCardID);
+            G.hand[param.protagonist].push(sourceCardID);
+        }
+        action.instructions.filter(ins => ins.protagonist === param.protagonist).forEach(ins => ins.state = "executed");
+    } else if (instruction.do.key === "stowawaydraw") {
+        // Draw top card; if unicorn/upgrade/downgrade put it in stable, otherwise in hand
+        const drawnCardID = G.drawPile[0];
+        G.drawPile = G.drawPile.slice(1);
+        if (drawnCardID !== undefined) {
+            const drawnCard = G.deck[drawnCardID];
+            if (isUnicorn(drawnCard) || hasType(drawnCard, "upgrade") || hasType(drawnCard, "downgrade")) {
+                enter(G, ctx, { playerID: param.protagonist, cardID: drawnCardID });
+            } else {
+                G.hand[param.protagonist].push(drawnCardID);
+            }
+        }
+        action.instructions.filter(ins => ins.protagonist === param.protagonist).forEach(ins => ins.state = "executed");
     } else {
         KeyToFunc[instruction.do.key](G, ctx, param);
         action.instructions.filter(ins => ins.protagonist === param.protagonist).forEach(ins => ins.state = "executed");
