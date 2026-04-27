@@ -39,6 +39,8 @@ export function pushLog(
     ctx: Ctx,
     entry: Omit<LogEntry, 'id' | 'turn' | 'timestamp'>
 ) {
+    // Defensive: rescue sessions that started before gameLog was added to setup.
+    if (!G.gameLog) G.gameLog = [];
     G.gameLog.push({
         id: _.uniqueId('log_'),
         turn: ctx.turn,
