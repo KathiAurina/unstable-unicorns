@@ -1,6 +1,7 @@
 import type { UnstableUnicornsGame, Ctx, Instruction, Scene } from "./game/state";
 import { _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist } from "./game/state";
 import { canDraw } from "./game/game";
+import { sandboxBypassActionLimit } from "./game/sandbox/sandboxOverrides";
 import type { PlayerID } from "./game/player";
 import _ from 'underscore';
 import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets, canDiscard, canSatisfyDo } from "./game/operations";
@@ -71,6 +72,23 @@ export function getBoardState(G: UnstableUnicornsGame, ctx: Ctx, playerID: Playe
     }
 
     if (playerID === ctx.currentPlayer) {
+        // Sandbox infinite-actions: always offer draw + play + endTurn during action_phase,
+        // regardless of countPlayedCardsInActionPhase. Mirrors the structure of the bottom
+        // action_phase block but without the count gating.
+        if (sandboxBypassActionLimit(G) && G.neighDiscussion === undefined && ctx.activePlayers![playerID] === "action_phase") {
+            if (inProgressScenes.length > 0) {
+                return [...getExecutionDoState(G, ctx, playerID, inProgressScenes)];
+            }
+            const otherInProgress = G.players.filter(pl => pl.id !== playerID).map(pl => _findInProgressScenesWithProtagonist(G, pl.id)).find(ar => ar.length > 0);
+            if (otherInProgress) {
+                return [{ type: "wait_for_other_players" }];
+            }
+            if (openScenes.length > 0) {
+                return [...getExecutionDoState(G, ctx, playerID, openScenes), { type: "endTurn" }, { type: "playCard" }, { type: "drawCard" }];
+            }
+            return [{ type: "drawCard" }, { type: "playCard" }, { type: "endTurn" }];
+        }
+
         if (G.countPlayedCardsInActionPhase === 0 && G.neighDiscussion === undefined && ctx.activePlayers![playerID] === "action_phase") {
             // action phase and no card has been played or drawn
             // player may draw a card or play a card

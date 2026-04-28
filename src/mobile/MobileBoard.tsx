@@ -69,7 +69,11 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
 
     // ── Computed ──────────────────────────────────────────────────────────────
     const boardStates = getBoardState(G, ctx, playerID);
-    useAutoActions(G, ctx, playerID, moves, { autoEndTurn, autoDontNeigh }, boardStates);
+    const isSandboxDummy = G.sandbox === true && playerID !== G.owner;
+    useAutoActions(G, ctx, playerID, moves, {
+        autoEndTurn: isSandboxDummy ? false : autoEndTurn,
+        autoDontNeigh: isSandboxDummy ? false : autoDontNeigh,
+    }, boardStates);
 
     let openScenes: Array<[Instruction, Scene]> = _findInProgressScenesWithProtagonist(G, playerID);
     if (openScenes.length === 0) {

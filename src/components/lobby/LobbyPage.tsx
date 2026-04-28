@@ -92,12 +92,20 @@ const LobbyPage = () => {
         }
     };
 
+    const openSandbox = () => {
+        const w = window.open('/sandbox', '_blank');
+        if (w) w.opener = null;
+    };
+
     return (
         <PageWrapper>
             <ContentColumn>
                 <LogoWrapper>
                     <Logo>Unstable Unicorns</Logo>
                 </LogoWrapper>
+                <SandboxRow>
+                    <SandboxButton onClick={openSandbox}>Open Sandbox</SandboxButton>
+                </SandboxRow>
                 <CreateGameCard
                     matchName={matchName}
                     setMatchName={setMatchName}
@@ -136,6 +144,30 @@ const ContentColumn = styled.div`
 const LogoWrapper = styled.div`
     text-align: center;
     margin-bottom: 32px;
+`;
+
+const SandboxRow = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+`;
+
+const SandboxButton = styled.button`
+    background: transparent;
+    color: #9d7fe0;
+    border: 1px solid #9d7fe0;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+
+    &:hover {
+        background: #9d7fe0;
+        color: #fff;
+    }
 `;
 
 const Logo = styled.h1`

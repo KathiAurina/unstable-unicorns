@@ -46,6 +46,11 @@ export interface UnstableUnicornsGame extends Game {
     owner: PlayerID;
     lastHeartbeat: { [key: string]: number };
     deckWasReshuffled: boolean;
+    sandbox?: boolean;
+    sandboxSettings?: {
+        infiniteActions: boolean;
+        skipNeigh: boolean;
+    };
 }
 
 // ─── Script types ─────────────────────────────────────────────────────────────
