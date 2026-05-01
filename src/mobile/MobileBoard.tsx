@@ -24,6 +24,9 @@ import EscapeMenu from '../components/EscapeMenu';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useGameSettings } from '../hooks/useGameSettings';
 import { useAutoActions } from '../hooks/useAutoActions';
+import { useSandboxControl } from '../sandbox/sandboxContext';
+import SandboxPanel from '../sandbox/SandboxPanel';
+import SandboxActionBanner from '../sandbox/SandboxActionBanner';
 
 import CharacterSelectionPage from '../components/pregame/CharacterSelectionPage';
 import LandscapeGuard from './LandscapeGuard';
@@ -66,10 +69,15 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
 
     // ── Settings & automation ─────────────────────────────────────────────────
     const { autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh } = useGameSettings();
+    const { sandboxAction, setSandboxAction } = useSandboxControl();
 
     // ── Computed ──────────────────────────────────────────────────────────────
     const boardStates = getBoardState(G, ctx, playerID);
-    useAutoActions(G, ctx, playerID, moves, { autoEndTurn, autoDontNeigh }, boardStates);
+    const isSandboxDummy = G.sandbox === true && playerID !== G.owner;
+    useAutoActions(G, ctx, playerID, moves, {
+        autoEndTurn: isSandboxDummy ? false : autoEndTurn,
+        autoDontNeigh: isSandboxDummy ? false : autoDontNeigh,
+    }, boardStates);
 
     let openScenes: Array<[Instruction, Scene]> = _findInProgressScenesWithProtagonist(G, playerID);
     if (openScenes.length === 0) {
@@ -205,6 +213,20 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
 
     /** Tap on any stable card (own or opponent) */
     const handleStableCardTap = (cardID: CardID) => {
+        // Sandbox interactive actions take priority
+        if (sandboxAction) {
+            if (sandboxAction.type === 'bounce') {
+                moves.sandboxBounceCard(cardID);
+                setSandboxAction(null);
+            } else if (sandboxAction.type === 'destroy') {
+                moves.sandboxDestroyCard(cardID);
+                setSandboxAction(null);
+            } else if (sandboxAction.type === 'steal' && sandboxAction.step === 'pick_card') {
+                setSandboxAction({ type: 'steal', step: 'pick_target', cardID });
+            }
+            return;
+        }
+
         // If in click_on_other_stable_card mode and card is a valid target → execute
         if (
             (cardInteraction?.key === 'click_on_other_stable_card' || cardInteraction?.key === 'card_to_card') &&
@@ -392,6 +414,17 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
     /** Tap on a hand card (non-drag, second tap on peeked = play) */
     const handleHandCardTap = (cardID: CardID) => {
         const card = G.deck[cardID];
+
+        // Sandbox interactive actions
+        if (sandboxAction) {
+            if (sandboxAction.type === 'move_to_stable' && sandboxAction.step === 'pick_card') {
+                setSandboxAction({ type: 'move_to_stable', step: 'pick_stable', cardID });
+            } else if (sandboxAction.type === 'force_discard') {
+                moves.sandboxForceDiscardCard(sandboxAction.playerID, cardID);
+                setSandboxAction(null);
+            }
+            return;
+        }
 
         // Neigh discussion
         if (boardStates.find(s => s.type === 'neigh__playNeigh')) {
@@ -617,6 +650,12 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                     onCardLongPress={card => setDetailCard(card)}
                 />
             </Wrapper>
+            {G.sandbox && (
+                <>
+                    <SandboxActionBanner />
+                    <SandboxPanel G={G} ctx={ctx} moves={moves as any} playerID={playerID} />
+                </>
+            )}
         </AnimateSharedLayout>
     );
 };
