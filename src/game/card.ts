@@ -13,7 +13,7 @@ export interface Card {
     description: {en: string, de: string};
 }
 
-interface CardDefinition {
+export interface CardDefinition {
     title: string;
     image: string;
     count: number;
@@ -112,7 +112,7 @@ type Passive = ("count_as_two" | "cannot_be_destroyed_by_magic" | "basic_unicorn
 
 
 
-const Cards: CardDefinition[] = [{
+export const Cards: CardDefinition[] = [{
     title: "Baby Unicorn",
     type: "baby",
     image: "baby0",

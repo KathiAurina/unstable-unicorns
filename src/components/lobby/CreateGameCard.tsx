@@ -36,6 +36,7 @@ const CreateGameCard = ({ matchName, setMatchName, numPlayers, setNumPlayers, on
                         value={numPlayers}
                         onChange={(e) => setNumPlayers(parseInt(e.target.value))}
                     >
+                        <option value={1}>1 Player (Sandbox)</option>
                         {[2, 3, 4, 5, 6, 7, 8].map((n) => (
                             <option key={n} value={n}>{n} Players</option>
                         ))}

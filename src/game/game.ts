@@ -9,6 +9,8 @@ import { CONSTANTS } from './constants';
 import { Effect, isCardBasicDueToEffect } from './effect';
 import _ from 'underscore';
 import type { SetupData } from './types';
+import { sandboxStageMoves } from './sandbox/registerStages';
+import { sandboxBypassActionLimit, sandboxSkipNeigh } from './sandbox/sandboxOverrides';
 import {
     UnstableUnicornsGame,
     Scene,
@@ -29,10 +31,13 @@ export { _findInstruction, _findOpenScenesWithProtagonist, _findInProgressScenes
 const UnstableUnicorns = {
     name: "unstable_unicorns",
     setup: (ctx: Ctx, setupData: SetupData): UnstableUnicornsGame => {
+        const sandboxMode = setupData?.sandbox === true;
+
+        const sandboxNames = ["player", "dummy_1", "dummy_2"];
         const players: Player[] = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
-                name: `Spieler ${idx}`,
+                name: sandboxMode ? (sandboxNames[idx] ?? `dummy_${idx}`) : `Spieler ${idx}`,
             };
         });
 
@@ -59,6 +64,21 @@ const UnstableUnicorns = {
             lastHeartbeat[pl.id] = Date.now();
         });
 
+        let babyStarter: { cardID: CardID, owner: PlayerID }[] = [];
+
+        if (sandboxMode) {
+            // Pre-assign one random baby unicorn per player; remaining go to nursery.
+            const babyIDs = deck.filter(c => hasType(c, "baby")).map(c => c.id);
+            const shuffledBabies = _.shuffle(babyIDs);
+            players.forEach((pl, idx) => {
+                const babyID = shuffledBabies[idx];
+                stable[pl.id] = [babyID];
+                babyStarter.push({ cardID: babyID, owner: pl.id });
+                ready[pl.id] = true;
+            });
+            nursery = shuffledBabies.slice(players.length);
+        }
+
         return {
             players,
             deck,
@@ -75,19 +95,25 @@ const UnstableUnicorns = {
             countPlayedCardsInActionPhase: 0,
             clipboard: {},
             endGame: false,
-            babyStarter: [],
+            babyStarter,
             ready,
             lastNeighResult: undefined,
             owner: setupData?.ownerPlayerID ?? "0",
             lastHeartbeat,
             deckWasReshuffled: false,
             gameLog: [],
+            sandbox: sandboxMode || undefined,
+            sandboxSettings: sandboxMode ? { infiniteActions: true, skipNeigh: true } : undefined,
         };
     },
     phases: {
         pregame: {
             start: true,
             onBegin: (G: UnstableUnicornsGame, ctx: Ctx) => {
+                if (G.sandbox) {
+                    ctx.events?.setPhase!("main");
+                    return;
+                }
                 ctx.events?.setActivePlayers!({all: "pregame"})
             }
         },
@@ -155,11 +181,15 @@ const UnstableUnicorns = {
                 moves: { ready, selectBaby, deselectBaby, changeName, abolishGame, heartbeat, cancelAbandonedGame }
             },
             beginning: {
-                moves: { drawAndAdvance, executeDo, end, commit, skipExecuteDo, abolishGame }
+                moves: {
+                    drawAndAdvance, executeDo, end, commit, skipExecuteDo, abolishGame,
+                    ...sandboxStageMoves,
+                }
             },
             action_phase: {
                 moves: {
-                    commit, executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, abolishGame
+                    commit, executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, abolishGame,
+                    ...sandboxStageMoves,
                 }
             }
         }
@@ -259,14 +289,13 @@ function drawAndAdvance(G: UnstableUnicornsGame, ctx: Ctx) {
 }
 
 export function canPlayCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, cardID: CardID) {
-    if (ctx.currentPlayer === protagonist && ctx.activePlayers![protagonist] === "action_phase" && (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch")))) {
-        const card = G.deck[cardID];
-        if (hasType(card, "upgrade") && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) {
-            return false;
-        }
+    if (ctx.currentPlayer !== protagonist || ctx.activePlayers![protagonist] !== "action_phase") return false;
+    const card = G.deck[cardID];
+    if (hasType(card, "upgrade") && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) return false;
+    if (sandboxBypassActionLimit(G)) return canEnter(G, ctx, { playerID: protagonist, cardID });
+    if (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch"))) {
         return canEnter(G, ctx, { playerID: protagonist, cardID });
     }
-
     return false;
 }
 
@@ -276,7 +305,7 @@ function playCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, card
 
     pushLog(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID });
 
-    if (G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
+    if (sandboxSkipNeigh(G) || G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
         enter(G, ctx, { playerID: protagonist, cardID });
     } else {
         // resolve neigh
@@ -302,7 +331,7 @@ function playUpgradeDowngradeCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist
 
     pushLog(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID, targetPlayer });
 
-    if (G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
+    if (sandboxSkipNeigh(G) || G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
         enter(G, ctx, { playerID: targetPlayer, cardID });
     } else {
         // resolve neigh
@@ -429,6 +458,11 @@ function dontPlayNeigh(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID,
 }
 
 export function canDraw(G: UnstableUnicornsGame, ctx: Ctx) {
+    if (sandboxBypassActionLimit(G)) {
+        const stage = ctx.activePlayers?.[ctx.currentPlayer];
+        return stage === "action_phase" || stage === "beginning";
+    }
+
     if (G.mustEndTurnImmediately === true) {
         return false;
     }
@@ -455,6 +489,11 @@ export function canDraw(G: UnstableUnicornsGame, ctx: Ctx) {
 }
 
 function drawAndEnd(G: UnstableUnicornsGame, ctx: Ctx) {
+    if (sandboxBypassActionLimit(G)) {
+        G.hand[ctx.currentPlayer].push(_.first(G.drawPile)!);
+        G.drawPile = _.rest(G.drawPile, 1);
+        return;
+    }
     G.script = { scenes: [] };
     G.hand[ctx.currentPlayer].push(_.first(G.drawPile)!);
     G.drawPile = _.rest(G.drawPile, 1);

@@ -35,6 +35,9 @@ import { useMobile } from './hooks/useMobile';
 import MobileBoard from './mobile/MobileBoard';
 import { useGameSettings } from './hooks/useGameSettings';
 import { useAutoActions } from './hooks/useAutoActions';
+import SandboxPanel from './sandbox/SandboxPanel';
+import SandboxActionBanner from './sandbox/SandboxActionBanner';
+import { useSandboxControl } from './sandbox/sandboxContext';
 
 type Props = {
     G: UnstableUnicornsGame;
@@ -55,6 +58,7 @@ const DesktopBoard = (props: Props) => {
     const { G, ctx, playerID, moves } = props;
 
     const { playDrawCardSound, playEndTurnButtonSound, playHubMouseOverSound, playExecuteDoSound } = useSoundEffects(G, ctx, playerID);
+    const { sandboxAction, setSandboxAction } = useSandboxControl();
 
     const [showDeckFinder, setShowDeckFinder] = useState<SearchTarget[] | undefined>(undefined);
     const [showPlayerHand, setShowPlayerHand] = useState<PlayerID | undefined>(undefined);
@@ -127,7 +131,11 @@ const DesktopBoard = (props: Props) => {
     const [escapeMenuOpen, setEscapeMenuOpen] = useState(false);
     const [gameoverDismissed, setGameoverDismissed] = useState(false);
     const { autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh } = useGameSettings();
-    useAutoActions(G, ctx, playerID, moves, { autoEndTurn, autoDontNeigh }, boardStates);
+    const isSandboxDummy = G.sandbox === true && playerID !== G.owner;
+    useAutoActions(G, ctx, playerID, moves, {
+        autoEndTurn: isSandboxDummy ? false : autoEndTurn,
+        autoDontNeigh: isSandboxDummy ? false : autoDontNeigh,
+    }, boardStates);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -231,6 +239,18 @@ const DesktopBoard = (props: Props) => {
                         highlightMode={stableHighlightMode}
                         onHandClick={playerID => setShowPlayerHand(playerID)}
                         onStableCardClick={cardID => {
+                            if (sandboxAction) {
+                                if (sandboxAction.type === 'bounce') {
+                                    moves.sandboxBounceCard(cardID);
+                                    setSandboxAction(null);
+                                } else if (sandboxAction.type === 'destroy') {
+                                    moves.sandboxDestroyCard(cardID);
+                                    setSandboxAction(null);
+                                } else if (sandboxAction.type === 'steal' && sandboxAction.step === 'pick_card') {
+                                    setSandboxAction({ type: 'steal', step: 'pick_target', cardID });
+                                }
+                                return;
+                            }
                             if (cardInteraction?.key === "click_on_other_stable_card" || cardInteraction?.key === "card_to_card") {
                                 console.log("Detected click for cardInteraction with key <click_on_other_stable_card | card_to_card>");
                                 // is clicked card a valid target?
@@ -340,6 +360,12 @@ const DesktopBoard = (props: Props) => {
             </Wrapper>
             </AnimateSharedLayout>
             <GameLogPanel gameLog={G.gameLog} players={G.players} deck={G.deck} />
+            {G.sandbox && (
+                <>
+                    <SandboxActionBanner />
+                    <SandboxPanel G={G} ctx={ctx} moves={moves as any} playerID={playerID} />
+                </>
+            )}
         </>
     );
 }

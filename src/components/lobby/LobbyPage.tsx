@@ -30,6 +30,11 @@ const LobbyPage = () => {
     }, []);
 
     const createMatch = async () => {
+        if (numPlayers === 1) {
+            const w = window.open('/sandbox', '_blank');
+            if (w) w.opener = null;
+            return;
+        }
         try {
             const response = await fetch(`${API_URL}/games/unstable_unicorns/create`, {
                 method: 'POST',
