@@ -12,6 +12,7 @@ const effect_1 = require("../effect");
 const underscore_1 = __importDefault(require("underscore"));
 const constants_1 = require("../constants");
 const canSatisfy_1 = require("./canSatisfy");
+const log_1 = require("../log");
 const _findInstructionInProgress = (G) => {
     let scene = null;
     let action = null;
@@ -115,6 +116,7 @@ function enter(G, ctx, param) {
                 });
                 toBeRemoved.forEach(cid => {
                     leave(G, ctx, { playerID: param.playerID, cardID: cid });
+                    (0, log_1.pushLog)(G, ctx, { actor: param.playerID, kind: 'sacrifice', sourceCardID: param.cardID, targetCardID: cid });
                 });
                 G.discardPile = [...G.discardPile, ...toBeRemoved];
             }

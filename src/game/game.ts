@@ -252,6 +252,7 @@ function cancelAbandonedGame(G: UnstableUnicornsGame, ctx: Ctx) {
 function drawAndAdvance(G: UnstableUnicornsGame, ctx: Ctx) {
     G.hand[ctx.currentPlayer].push(_.first(G.drawPile)!);
     G.drawPile = _.rest(G.drawPile, 1);
+    pushLog(G, ctx, { actor: ctx.currentPlayer, kind: 'draw', count: 1 });
     ctx.events?.setActivePlayers!({ all: "action_phase" });
 
     G.script = { scenes: [] };
@@ -299,7 +300,7 @@ function playUpgradeDowngradeCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
     G.hand[protagonist] = _.without(G.hand[protagonist], cardID);
 
-    pushLog(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID });
+    pushLog(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID, targetPlayer });
 
     if (G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
         enter(G, ctx, { playerID: targetPlayer, cardID });
@@ -484,8 +485,10 @@ function _createDiscardOverLimitScene(G: UnstableUnicornsGame, protagonist: Play
 
 function end(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
     if (ctx.playerID !== protagonist && ctx.playerID !== G.owner) return INVALID_MOVE;
-    if (G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck")) {
+    const changeOfLuckEffect = G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck");
+    if (changeOfLuckEffect) {
         G.playerEffects[protagonist] = G.playerEffects[protagonist].filter(o => o.effect.key !== "change_of_luck");
+        pushLog(G, ctx, { actor: protagonist, kind: 'extra_turn', sourceCardID: changeOfLuckEffect.cardID });
 
         if (G.hand[protagonist].length > 7) {
             _createDiscardOverLimitScene(G, protagonist);

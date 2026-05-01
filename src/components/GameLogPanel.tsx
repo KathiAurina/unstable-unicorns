@@ -32,7 +32,7 @@ export function formatLogEntry(entry: LogEntry, players: Player[], deck: Card[])
     let content: React.ReactNode;
     switch (entry.kind) {
         case 'play':
-            content = <>{actor} played {src}</>;
+            content = <>{actor} played {src}{targetPlayerName ? <> on {targetPlayerName}'s stable</> : null}</>;
             break;
         case 'play_neigh':
             content = <>{actor} neighed {targetPlayerName ? `${targetPlayerName}'s ` : ''}{tgt}{src ? <> with {src}</> : null}</>;
@@ -60,7 +60,8 @@ export function formatLogEntry(entry: LogEntry, players: Player[], deck: Card[])
             break;
         case 'draw': {
             const n = entry.count ?? 1;
-            content = <>{actor} drew {n === 1 ? 'a card' : `${n} cards`}{src ? <> ({src})</> : null}</>;
+            const drawSuffix = src ? <> ({src})</> : ' (turn draw)';
+            content = <>{actor} drew {n === 1 ? 'a card' : `${n} cards`}{drawSuffix}</>;
             break;
         }
         case 'search':
@@ -72,6 +73,9 @@ export function formatLogEntry(entry: LogEntry, players: Player[], deck: Card[])
         case 'return_to_hand':
             content = <>{actor} returned {tgt ?? 'a card'}{targetPlayerName && targetPlayerName !== actor ? ` (${targetPlayerName})` : ''} to hand{src ? <> ({src})</> : null}</>;
             break;
+        case 'return_to_hand_from_discard':
+            content = <>{actor} returned {tgt ?? 'a card'} to hand from discard pile{src ? <> ({src})</> : null}</>;
+            break;
         case 'bring_to_stable':
             content = <>{actor} brought {tgt} to stable{src ? <> ({src})</> : null}</>;
             break;
@@ -82,7 +86,10 @@ export function formatLogEntry(entry: LogEntry, players: Player[], deck: Card[])
             content = <>{actor} swapped hands{targetPlayerName ? ` with ${targetPlayerName}` : ''}{src ? <> ({src})</> : null}</>;
             break;
         case 'shuffle':
-            content = <>{actor} shuffled{src ? <> ({src})</> : null}</>;
+            content = <>{actor} shuffled the discard pile into the deck{src ? <> ({src})</> : null}</>;
+            break;
+        case 'extra_turn':
+            content = <>{actor} takes an extra turn{src ? <> ({src})</> : null}</>;
             break;
         default:
             return null;

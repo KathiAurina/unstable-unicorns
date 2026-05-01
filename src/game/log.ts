@@ -17,10 +17,12 @@ export type LogEntryKind =
     | 'search'
     | 'revive'
     | 'return_to_hand'
+    | 'return_to_hand_from_discard'
     | 'bring_to_stable'
     | 'move'
     | 'swap'
-    | 'shuffle';
+    | 'shuffle'
+    | 'extra_turn';
 
 export interface LogEntry {
     id: string;
