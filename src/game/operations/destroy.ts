@@ -5,6 +5,7 @@ import type { PlayerID } from "../player";
 import { isCardBasicDueToEffect } from "../effect";
 import _ from 'underscore';
 import { leave } from "./enter";
+import { pushLog } from "../log";
 
 import type { DoDestroyInfo } from '../do-types';
 export type { DoDestroy } from '../do-types';
@@ -46,6 +47,7 @@ export function destroy(G: UnstableUnicornsGame, ctx: Ctx, param: ParamDestroy) 
         if (on.do.type === "return_to_hand") {
             G.discardPile = _.without(G.discardPile, param.cardID);
             G.hand[targetPlayer] = [...G.hand[targetPlayer], param.cardID];
+            pushLog(G, ctx, { actor: targetPlayer, kind: 'return_to_hand', targetCardID: param.cardID, targetPlayer });
         } else if (on.do.type === "add_scene") {
             _addSceneFromDo(G, ctx, card.id, targetPlayer, "any");
         }

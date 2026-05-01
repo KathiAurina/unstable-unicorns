@@ -71,7 +71,7 @@ export function executeDo(G: UnstableUnicornsGame, ctx: Ctx, instructionID: stri
             action.instructions.filter(ins => ins.protagonist === param.protagonist).forEach(ins => ins.state = "executed");
 
             if (instruction.do.info.changeOfLuck === true) {
-                G.playerEffects[param.protagonist] = [...G.playerEffects[param.protagonist], {effect: {key: "change_of_luck"}}]
+                G.playerEffects[param.protagonist] = [...G.playerEffects[param.protagonist], {effect: {key: "change_of_luck"}, cardID: sourceCardID}]
             }
         }
         instruction.do.info.count = instruction.do.info.count - 1;
@@ -131,9 +131,11 @@ function _logDoOperation(G: UnstableUnicornsGame, ctx: Ctx, key: string, protago
             pushLog(G, ctx, { actor: protagonist, kind: 'search', sourceCardID });
             break;
         case 'revive':
-        case 'addFromDiscardPileToHand':
         case 'reviveFromNursery':
             pushLog(G, ctx, { actor: protagonist, kind: 'revive', sourceCardID, targetCardID: p.cardID });
+            break;
+        case 'addFromDiscardPileToHand':
+            pushLog(G, ctx, { actor: protagonist, kind: 'return_to_hand_from_discard', sourceCardID, targetCardID: p.cardID });
             break;
         case 'returnToHand':
             pushLog(G, ctx, { actor: protagonist, kind: 'return_to_hand', sourceCardID, targetCardID: p.cardID, targetPlayer: preOpOwner });
