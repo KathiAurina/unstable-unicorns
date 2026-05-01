@@ -89,6 +89,7 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
     useEffect(() => {
         if (!autoSkipRef.current) return;
         if (ctx.currentPlayer === playerID) return;
+        if (playerID !== G.owner) return; // only owner panel drives auto-skip
         if (G.neighDiscussion) return;
         const pendingScenes = G.script?.scenes?.filter(s =>
             s.actions.some(a => a.instructions.some(i => i.protagonist === ctx.currentPlayer && (i.state === "open" || i.state === "in_progress")))
@@ -104,6 +105,7 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
 
     // Belt-and-braces: auto-resolve any neigh discussion that sneaks through when skipNeigh is on
     useEffect(() => {
+        if (playerID !== G.owner) return; // only owner panel resolves neigh
         if (!G.neighDiscussion) return;
         if (!G.sandboxSettings?.skipNeigh) return;
         moves.sandboxResolveNeighAsPlayed();
@@ -574,13 +576,13 @@ const Drawer = styled.div`
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    @media (max-width: 768px) {
-        width: 100vw;
-        height: 45vh;
-        top: auto;
-        bottom: 0;
-        border-left: none;
-        border-top: 2px solid #7c4dff;
+    @media (pointer: coarse) {
+        width: 33vw;
+        height: 100vh;
+        top: 0;
+        bottom: auto;
+        border-left: 2px solid #7c4dff;
+        border-top: none;
     }
 `;
 
@@ -638,6 +640,9 @@ const DrawerBody = styled.div`
     flex: 1;
     overflow-y: auto;
     padding-bottom: 16px;
+    @media (pointer: coarse) {
+        font-size: 10px;
+    }
 `;
 
 const Section = styled.div`
@@ -664,6 +669,9 @@ const ButtonGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 4px;
+    @media (pointer: coarse) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 const baseBtn = `

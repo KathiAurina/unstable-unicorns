@@ -11,6 +11,14 @@ const SandboxGame = {
     ...UnstableUnicorns,
     setup: (ctx: Ctx) =>
         (UnstableUnicorns as any).setup(ctx, { sandbox: true, ownerPlayerID: "0" }),
+    turn: {
+        ...(UnstableUnicorns as any).turn,
+        order: {
+            playOrder: () => ["0", "1", "2"],
+            first: () => 0,
+            next: (_G: any, ctx: any) => (ctx.playOrderPos + 1) % ctx.numPlayers,
+        },
+    },
 };
 
 const SandboxBoardgameClient = Client({
