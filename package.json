@@ -34,6 +34,7 @@
     "dev:backend": "npm run build:server && npm run serve",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "coverage": "CI=true react-scripts test --coverage --watchAll=false",
     "eject": "react-scripts eject",
     "build:server": "tsc --project tsconfig.server.json",
     "serve": "node server_build/server.js",
