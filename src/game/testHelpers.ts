@@ -2,6 +2,7 @@ import type { Ctx } from 'boardgame.io';
 import UnstableUnicorns, { UnstableUnicornsGame } from './game';
 import type { CardID } from './card';
 import type { PlayerID } from './player';
+import { hasType } from './card';
 
 export function createCtx(overrides: Partial<Ctx> = {}): Ctx {
     return {
@@ -60,6 +61,35 @@ export function giveCardToUpgradeStable(G: UnstableUnicornsGame, playerID: Playe
 export function giveCardToHand(G: UnstableUnicornsGame, playerID: PlayerID, type: string): CardID {
     const cardID = G.deck.find(c => c.type === type && G.drawPile.includes(c.id))?.id
         ?? G.deck.find(c => c.type === type && !G.hand[playerID].includes(c.id))!.id;
+    G.drawPile = G.drawPile.filter(id => id !== cardID);
+    G.hand[playerID] = [...G.hand[playerID], cardID];
+    return cardID;
+}
+
+export function setupSandboxTestGame(numPlayers = 2): UnstableUnicornsGame {
+    const ctx = createCtx({ numPlayers });
+    return (UnstableUnicorns.setup as Function)(ctx, { sandbox: true }) as UnstableUnicornsGame;
+}
+
+export function giveCardByTitleToStable(G: UnstableUnicornsGame, playerID: PlayerID, title: string): CardID {
+    const cardID = G.deck.find(c => c.title === title && G.drawPile.includes(c.id))?.id
+        ?? G.deck.find(c => c.title === title)!.id;
+    G.drawPile = G.drawPile.filter(id => id !== cardID);
+    G.stable[playerID] = [...G.stable[playerID], cardID];
+    return cardID;
+}
+
+export function giveCardByTitleToUpgradeStable(G: UnstableUnicornsGame, playerID: PlayerID, title: string): CardID {
+    const cardID = G.deck.find(c => c.title === title && G.drawPile.includes(c.id))?.id
+        ?? G.deck.find(c => c.title === title)!.id;
+    G.drawPile = G.drawPile.filter(id => id !== cardID);
+    G.upgradeDowngradeStable[playerID] = [...G.upgradeDowngradeStable[playerID], cardID];
+    return cardID;
+}
+
+export function giveCardByTitleToHand(G: UnstableUnicornsGame, playerID: PlayerID, title: string): CardID {
+    const cardID = G.deck.find(c => c.title === title && G.drawPile.includes(c.id))?.id
+        ?? G.deck.find(c => c.title === title && !G.hand[playerID].includes(c.id))!.id;
     G.drawPile = G.drawPile.filter(id => id !== cardID);
     G.hand[playerID] = [...G.hand[playerID], cardID];
     return cardID;
