@@ -62,7 +62,8 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
     // ── Game log state ────────────────────────────────────────────────────────
     const [showLog, setShowLog] = useState(false);
     const [seenLogCount, setSeenLogCount] = useState(0);
-    const logBadgeCount = Math.max(0, G.gameLog.length - seenLogCount);
+    const gameLog = G.gameLog ?? [];
+    const logBadgeCount = Math.max(0, gameLog.length - seenLogCount);
 
     // ── Interaction state ─────────────────────────────────────────────────────
     const [cardInteraction, setCardInteraction] = useState<CardInteraction | undefined>(undefined);
@@ -624,7 +625,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                 {/* Game log drawer */}
                 {showLog && (
                     <MobileGameLogDrawer
-                        gameLog={G.gameLog}
+                        gameLog={gameLog}
                         players={G.players}
                         deck={G.deck}
                         onClose={() => setShowLog(false)}
@@ -641,7 +642,7 @@ const MobileBoard = ({ G, ctx, playerID, moves }: Props) => {
                     onShowNursery={() => setShowNurseryFinder(true)}
                     onShowDiscard={() => setShowDiscardFinder(G.discardPile.map(c => ({ cardID: c })))}
                     onEscapeMenu={() => setEscapeMenuOpen(prev => !prev)}
-                    onShowLog={() => { setShowLog(true); setSeenLogCount(G.gameLog.length); }}
+                    onShowLog={() => { setShowLog(true); setSeenLogCount(gameLog.length); }}
                     logBadgeCount={logBadgeCount}
                     playDrawCardSound={playDrawCardSound}
                     playEndTurnSound={playEndTurnButtonSound}

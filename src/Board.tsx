@@ -359,7 +359,7 @@ const DesktopBoard = (props: Props) => {
                 </Bottom>
             </Wrapper>
             </AnimateSharedLayout>
-            <GameLogPanel gameLog={G.gameLog} players={G.players} deck={G.deck} />
+            <GameLogPanel gameLog={G.gameLog ?? []} players={G.players} deck={G.deck} />
             {G.sandbox && (
                 <>
                     <SandboxActionBanner />
