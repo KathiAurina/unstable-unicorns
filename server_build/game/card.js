@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Cards = void 0;
 exports.hasType = hasType;
 exports.getPrimaryType = getPrimaryType;
 exports.initializeDeck = initializeDeck;
@@ -11,7 +12,7 @@ function hasType(card, type) {
 function getPrimaryType(card) {
     return Array.isArray(card.type) ? card.type[0] : card.type;
 }
-const Cards = [{
+exports.Cards = [{
         title: "Baby Unicorn",
         type: "baby",
         image: "baby0",
@@ -1828,7 +1829,7 @@ const Cards = [{
     }];
 function initializeDeck() {
     let deck = [];
-    Cards.forEach(c => {
+    exports.Cards.forEach(c => {
         for (let i = 0; i < c.count; i++) {
             deck.push({
                 id: 0,
