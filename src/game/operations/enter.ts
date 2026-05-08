@@ -6,6 +6,7 @@ import { isCardBasicDueToEffect } from "../effect";
 import _ from 'underscore';
 import { CONSTANTS } from "../constants";
 import { autoFizzleUnsatisfiable } from "./canSatisfy";
+import { pushLog } from "../log";
 
 const _findInstructionInProgress = (G: UnstableUnicornsGame): [Scene, Action, Instruction] | null => {
     let scene: Scene | null = null;
@@ -135,6 +136,7 @@ export function enter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
 
                 toBeRemoved.forEach(cid => {
                     leave(G, ctx, { playerID: param.playerID, cardID: cid });
+                    pushLog(G, ctx, { actor: param.playerID, kind: 'sacrifice', sourceCardID: param.cardID, targetCardID: cid });
                 });
                 G.discardPile = [...G.discardPile, ...toBeRemoved];
             }

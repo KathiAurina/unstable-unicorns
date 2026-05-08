@@ -57,3 +57,33 @@ describe('isUnicorn', () => {
         expect((0, card_1.isUnicorn)(downgrade)).toBe(false);
     });
 });
+// ─── hasType ────────────────────────────────────────────────────────────────────
+describe('hasType', () => {
+    it('returns true when card type is a string matching the query', () => {
+        expect((0, card_1.hasType)({ type: 'basic' }, 'basic')).toBe(true);
+    });
+    it('returns false when card type is a string not matching the query', () => {
+        expect((0, card_1.hasType)({ type: 'magic' }, 'basic')).toBe(false);
+    });
+    it('returns true when card type is an array containing the query', () => {
+        expect((0, card_1.hasType)({ type: ['basic', 'unicorn'] }, 'unicorn')).toBe(true);
+    });
+    it('returns false when card type is an array not containing the query', () => {
+        expect((0, card_1.hasType)({ type: ['basic', 'unicorn'] }, 'magic')).toBe(false);
+    });
+    it('returns false for an empty type array', () => {
+        expect((0, card_1.hasType)({ type: [] }, 'basic')).toBe(false);
+    });
+});
+// ─── getPrimaryType ───────────────────────────────────────────────────────────
+describe('getPrimaryType', () => {
+    it('returns the type directly when it is a single string', () => {
+        expect((0, card_1.getPrimaryType)({ type: 'magic' })).toBe('magic');
+    });
+    it('returns the first element when type is an array', () => {
+        expect((0, card_1.getPrimaryType)({ type: ['basic', 'unicorn'] })).toBe('basic');
+    });
+    it('returns the only element when the array has one entry', () => {
+        expect((0, card_1.getPrimaryType)({ type: ['upgrade'] })).toBe('upgrade');
+    });
+});
