@@ -22,13 +22,15 @@ const misc_1 = require("./misc");
 function returnToHand(G, ctx, param) {
     const card = G.deck[param.cardID];
     const playerID = (0, destroy_1.findOwnerOfCard)(G, param.cardID);
-    (0, enter_1.leave)(G, ctx, { playerID: playerID, cardID: param.cardID });
+    // Add to hand before leave() so autoFizzleUnsatisfiable sees the card when
+    // checking whether reactive triggers (e.g. Barbed Wire) can be satisfied.
     if ((0, card_1.hasType)(card, "baby")) {
         G.nursery.push(param.cardID);
     }
     else {
         G.hand[playerID].push(param.cardID);
     }
+    (0, enter_1.leave)(G, ctx, { playerID: playerID, cardID: param.cardID });
 }
 function findReturnToHandTargets(G, ctx, protagonist, info) {
     let targets = [];
@@ -83,7 +85,7 @@ function findMoveTargets2(G, ctx, protagonist) {
 function backKick(G, ctx, param) {
     const owner = (0, destroy_1.findOwnerOfCard)(G, param.cardID);
     returnToHand(G, ctx, { cardID: param.cardID, protagonist: param.protagonist });
-    (0, misc_1.makeSomeoneDiscard)(G, ctx, { protagonist: param.protagonist, playerID: owner });
+    (0, misc_1.makeSomeoneDiscard)(G, ctx, { protagonist: param.protagonist, playerID: owner, source: param.source });
 }
 function findBackKickTargets(G, ctx, protagonist) {
     let targets = [];

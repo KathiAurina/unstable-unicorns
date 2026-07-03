@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Switch, Route, Redirect } from "react-router-dom";
 import Client from './Client';
 import LobbyPage from './components/lobby/LobbyPage';
+import SandboxClient from './sandbox/SandboxClient';
 
 const App = () => {
   return (
@@ -9,6 +10,9 @@ const App = () => {
         <Switch>
           <Route path="/test">
             <Client debug={"test"}/>
+          </Route>
+          <Route path="/sandbox">
+            <SandboxClient />
           </Route>
           <Route path="/lobby">
             <LobbyPage />

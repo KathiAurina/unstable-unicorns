@@ -5,6 +5,7 @@
 
 import type { CardID, Expansion } from './card';
 import type { PlayerID } from './player';
+import type { Effect } from './effect';
 
 // ─── Clipboard ────────────────────────────────────────────────────────────────
 // Temporary multi-step operation state stored on G.clipboard.
@@ -31,6 +32,7 @@ export type SetupData = {
     matchName?: string;
     ownerPlayerID?: PlayerID;
     expansions?: Expansion[];
+    sandbox?: boolean;
 } | undefined;
 
 // ─── BoardStateInfo ───────────────────────────────────────────────────────────
@@ -82,4 +84,28 @@ export type Moves = {
     abolishGame: (protagonist: PlayerID) => void;
     heartbeat: (protagonist: PlayerID) => void;
     cancelAbandonedGame: () => void;
+    // sandbox cheat moves (only active when G.sandbox === true)
+    sandboxAddToHand: (playerID: PlayerID, defIndex: number) => void;
+    sandboxAddToStable: (playerID: PlayerID, defIndex: number, withEnter: boolean) => void;
+    sandboxAddToDiscard: (defIndex: number) => void;
+    sandboxAddToDeckTop: (defIndex: number) => void;
+    sandboxAddToNursery: (defIndex: number) => void;
+    sandboxDraw: (playerID: PlayerID, count: number) => void;
+    sandboxDiscardRandom: (playerID: PlayerID) => void;
+    sandboxEmptyHand: (playerID: PlayerID) => void;
+    sandboxForceEndTurn: () => void;
+    sandboxReshuffleDiscard: () => void;
+    sandboxAddEffect: (playerID: PlayerID, effectKey: Effect["key"]) => void;
+    sandboxRemoveEffect: (playerID: PlayerID, index: number) => void;
+    sandboxClearAllEffects: () => void;
+    sandboxClearSceneQueue: () => void;
+    sandboxCancelNeigh: () => void;
+    sandboxLoadState: (snapshot: any) => void;
+    sandboxSetSetting: (key: "infiniteActions" | "skipNeigh", value: boolean) => void;
+    sandboxResolveNeighAsPlayed: () => void;
+    sandboxBounceCard: (cardID: CardID) => void;
+    sandboxDestroyCard: (cardID: CardID) => void;
+    sandboxStealCard: (cardID: CardID, toPlayerID: PlayerID) => void;
+    sandboxHandToStable: (cardID: CardID, toPlayerID: PlayerID) => void;
+    sandboxForceDiscardCard: (playerID: PlayerID, cardID: CardID) => void;
 };

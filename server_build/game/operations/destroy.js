@@ -11,6 +11,7 @@ const state_1 = require("../state");
 const effect_1 = require("../effect");
 const underscore_1 = __importDefault(require("underscore"));
 const enter_1 = require("./enter");
+const log_1 = require("../log");
 function findOwnerOfCard(G, cardID) {
     let playerID = null;
     G.players.forEach(pl => {
@@ -38,6 +39,7 @@ function destroy(G, ctx, param) {
         if (on.do.type === "return_to_hand") {
             G.discardPile = underscore_1.default.without(G.discardPile, param.cardID);
             G.hand[targetPlayer] = [...G.hand[targetPlayer], param.cardID];
+            (0, log_1.pushLog)(G, ctx, { actor: targetPlayer, kind: 'return_to_hand', targetCardID: param.cardID, targetPlayer });
         }
         else if (on.do.type === "add_scene") {
             (0, state_1._addSceneFromDo)(G, ctx, card.id, targetPlayer, "any");

@@ -13,7 +13,10 @@ const card_1 = require("./card");
 const constants_1 = require("./constants");
 const effect_1 = require("./effect");
 const underscore_1 = __importDefault(require("underscore"));
+const registerStages_1 = require("./sandbox/registerStages");
+const sandboxOverrides_1 = require("./sandbox/sandboxOverrides");
 const state_1 = require("./state");
+const log_1 = require("./log");
 var state_2 = require("./state");
 Object.defineProperty(exports, "_findInstruction", { enumerable: true, get: function () { return state_2._findInstruction; } });
 Object.defineProperty(exports, "_findOpenScenesWithProtagonist", { enumerable: true, get: function () { return state_2._findOpenScenesWithProtagonist; } });
@@ -22,10 +25,12 @@ Object.defineProperty(exports, "_addSceneFromDo", { enumerable: true, get: funct
 const UnstableUnicorns = {
     name: "unstable_unicorns",
     setup: (ctx, setupData) => {
+        const sandboxMode = setupData?.sandbox === true;
+        const sandboxNames = ["player", "dummy_1", "dummy_2"];
         const players = Array.from({ length: ctx.numPlayers }, (val, idx) => {
             return {
                 id: `${idx}`,
-                name: `Player ${idx}`,
+                name: sandboxMode ? (sandboxNames[idx] ?? `dummy_${idx}`) : `Player ${idx}`,
             };
         });
         const selectedExpansions = setupData?.expansions && setupData.expansions.length > 0
@@ -52,6 +57,19 @@ const UnstableUnicorns = {
             playerEffects[pl.id] = [];
             lastHeartbeat[pl.id] = Date.now();
         });
+        let babyStarter = [];
+        if (sandboxMode) {
+            // Pre-assign one random baby unicorn per player; remaining go to nursery.
+            const babyIDs = deck.filter(c => (0, card_1.hasType)(c, "baby")).map(c => c.id);
+            const shuffledBabies = underscore_1.default.shuffle(babyIDs);
+            players.forEach((pl, idx) => {
+                const babyID = shuffledBabies[idx];
+                stable[pl.id] = [babyID];
+                babyStarter.push({ cardID: babyID, owner: pl.id });
+                ready[pl.id] = true;
+            });
+            nursery = shuffledBabies.slice(players.length);
+        }
         return {
             players,
             deck,
@@ -68,18 +86,25 @@ const UnstableUnicorns = {
             countPlayedCardsInActionPhase: 0,
             clipboard: {},
             endGame: false,
-            babyStarter: [],
+            babyStarter,
             ready,
             lastNeighResult: undefined,
             owner: setupData?.ownerPlayerID ?? "0",
             lastHeartbeat,
             deckWasReshuffled: false,
+            gameLog: [],
+            sandbox: sandboxMode || undefined,
+            sandboxSettings: sandboxMode ? { infiniteActions: true, skipNeigh: true } : undefined,
         };
     },
     phases: {
         pregame: {
             start: true,
             onBegin: (G, ctx) => {
+                if (G.sandbox) {
+                    ctx.events?.setPhase("main");
+                    return;
+                }
                 ctx.events?.setActivePlayers({ all: "pregame" });
             }
         },
@@ -139,11 +164,15 @@ const UnstableUnicorns = {
                 moves: { ready, selectBaby, deselectBaby, changeName, abolishGame, heartbeat, cancelAbandonedGame }
             },
             beginning: {
-                moves: { drawAndAdvance, executeDo: operations_2.executeDo, end, commit, skipExecuteDo, abolishGame }
+                moves: {
+                    drawAndAdvance, executeDo: operations_2.executeDo, end, commit, skipExecuteDo, abolishGame,
+                    ...registerStages_1.sandboxStageMoves,
+                }
             },
             action_phase: {
                 moves: {
-                    commit, executeDo: operations_2.executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, abolishGame
+                    commit, executeDo: operations_2.executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, abolishGame,
+                    ...registerStages_1.sandboxStageMoves,
                 }
             }
         }
@@ -222,15 +251,19 @@ function cancelAbandonedGame(G, ctx) {
 function drawAndAdvance(G, ctx) {
     G.hand[ctx.currentPlayer].push(underscore_1.default.first(G.drawPile));
     G.drawPile = underscore_1.default.rest(G.drawPile, 1);
+    (0, log_1.pushLog)(G, ctx, { actor: ctx.currentPlayer, kind: 'draw', count: 1 });
     ctx.events?.setActivePlayers({ all: "action_phase" });
     G.script = { scenes: [] };
 }
 function canPlayCard(G, ctx, protagonist, cardID) {
-    if (ctx.currentPlayer === protagonist && ctx.activePlayers[protagonist] === "action_phase" && (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch")))) {
-        const card = G.deck[cardID];
-        if ((0, card_1.hasType)(card, "upgrade") && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) {
-            return false;
-        }
+    if (ctx.currentPlayer !== protagonist || ctx.activePlayers[protagonist] !== "action_phase")
+        return false;
+    const card = G.deck[cardID];
+    if ((0, card_1.hasType)(card, "upgrade") && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades"))
+        return false;
+    if ((0, sandboxOverrides_1.sandboxBypassActionLimit)(G))
+        return (0, operations_1.canEnter)(G, ctx, { playerID: protagonist, cardID });
+    if (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch"))) {
         return (0, operations_1.canEnter)(G, ctx, { playerID: protagonist, cardID });
     }
     return false;
@@ -238,7 +271,8 @@ function canPlayCard(G, ctx, protagonist, cardID) {
 function playCard(G, ctx, protagonist, cardID) {
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
     G.hand[protagonist] = underscore_1.default.without(G.hand[protagonist], cardID);
-    if (G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
+    (0, log_1.pushLog)(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID });
+    if ((0, sandboxOverrides_1.sandboxSkipNeigh)(G) || G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
         (0, operations_1.enter)(G, ctx, { playerID: protagonist, cardID });
     }
     else {
@@ -262,7 +296,8 @@ function initialNeighVote(G, playerID, protagonist) {
 function playUpgradeDowngradeCard(G, ctx, protagonist, targetPlayer, cardID) {
     G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
     G.hand[protagonist] = underscore_1.default.without(G.hand[protagonist], cardID);
-    if (G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
+    (0, log_1.pushLog)(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID, targetPlayer });
+    if ((0, sandboxOverrides_1.sandboxSkipNeigh)(G) || G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
         (0, operations_1.enter)(G, ctx, { playerID: targetPlayer, cardID });
     }
     else {
@@ -292,6 +327,21 @@ function playNeigh(G, ctx, cardID, protagonist, roundIndex) {
         // hence neigh the round and add a next round
         round.playerState[protagonist] = { vote: "neigh" };
         round.state = "neigh";
+        round.neighCardID = cardID;
+        round.neighedBy = protagonist;
+        // determine the neigh target: round 0 = original card, otherwise = previous round's neigh card
+        let targetCardID;
+        let targetPlayer;
+        if (roundIndex === 0) {
+            targetCardID = G.neighDiscussion.cardID;
+            targetPlayer = G.neighDiscussion.protagonist;
+        }
+        else {
+            const prev = G.neighDiscussion.rounds[roundIndex - 1];
+            targetCardID = prev.neighCardID;
+            targetPlayer = prev.neighedBy;
+        }
+        (0, log_1.pushLog)(G, ctx, { actor: protagonist, kind: 'play_neigh', sourceCardID: cardID, targetCardID, targetPlayer });
         G.neighDiscussion.rounds.push({
             state: "open",
             playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }])))
@@ -314,10 +364,28 @@ function playSuperNeigh(G, ctx, cardID, protagonist, roundIndex) {
         // hence neigh the round and add a next round
         round.playerState[protagonist] = { vote: "neigh" };
         round.state = "neigh";
+        round.neighCardID = cardID;
+        round.neighedBy = protagonist;
+        const superNeighOrigCard = G.neighDiscussion.cardID;
+        const superNeighOrigPlayer = G.neighDiscussion.protagonist;
+        // determine super-neigh target: round 0 = original card, otherwise = previous round's neigh card
+        let targetCardID;
+        let targetPlayer;
+        if (roundIndex === 0) {
+            targetCardID = superNeighOrigCard;
+            targetPlayer = superNeighOrigPlayer;
+        }
+        else {
+            const prev = G.neighDiscussion.rounds[roundIndex - 1];
+            targetCardID = prev.neighCardID;
+            targetPlayer = prev.neighedBy;
+        }
+        (0, log_1.pushLog)(G, ctx, { actor: protagonist, kind: 'play_super_neigh', sourceCardID: cardID, targetCardID, targetPlayer });
         const cardWasNeighed = (G.neighDiscussion.rounds.length + 1) % 2 === 0;
         if (cardWasNeighed) {
             G.discardPile.push(G.neighDiscussion.cardID);
             G.lastNeighResult = { id: underscore_1.default.uniqueId(), result: "cardWasNeighed" };
+            (0, log_1.pushLog)(G, ctx, { actor: superNeighOrigPlayer, kind: 'card_neighed', sourceCardID: superNeighOrigCard });
         }
         else {
             (0, operations_1.enter)(G, ctx, { playerID: G.neighDiscussion.protagonist, cardID: G.neighDiscussion.cardID });
@@ -334,12 +402,16 @@ function dontPlayNeigh(G, ctx, protagonist, roundIndex) {
         if (underscore_1.default.findKey(round.playerState, val => val.vote === "undecided") === undefined) {
             // everyone has voted => advance the game
             const cardWasNeighed = G.neighDiscussion.rounds.length % 2 === 0;
+            const resolvedCardID = G.neighDiscussion.cardID;
+            const resolvedProtagonist = G.neighDiscussion.protagonist;
+            const resolvedTarget = G.neighDiscussion.target;
             if (cardWasNeighed) {
                 G.discardPile.push(G.neighDiscussion.cardID);
                 G.lastNeighResult = { id: underscore_1.default.uniqueId(), result: "cardWasNeighed" };
+                (0, log_1.pushLog)(G, ctx, { actor: resolvedProtagonist, kind: 'card_neighed', sourceCardID: resolvedCardID });
             }
             else {
-                (0, operations_1.enter)(G, ctx, { playerID: G.neighDiscussion.target, cardID: G.neighDiscussion.cardID });
+                (0, operations_1.enter)(G, ctx, { playerID: resolvedTarget, cardID: resolvedCardID });
                 G.lastNeighResult = { id: underscore_1.default.uniqueId(), result: "cardWasPlayed" };
             }
             G.neighDiscussion = undefined;
@@ -347,6 +419,10 @@ function dontPlayNeigh(G, ctx, protagonist, roundIndex) {
     }
 }
 function canDraw(G, ctx) {
+    if ((0, sandboxOverrides_1.sandboxBypassActionLimit)(G)) {
+        const stage = ctx.activePlayers?.[ctx.currentPlayer];
+        return stage === "action_phase" || stage === "beginning";
+    }
     if (G.mustEndTurnImmediately === true) {
         return false;
     }
@@ -367,6 +443,11 @@ function canDraw(G, ctx) {
     return false;
 }
 function drawAndEnd(G, ctx) {
+    if ((0, sandboxOverrides_1.sandboxBypassActionLimit)(G)) {
+        G.hand[ctx.currentPlayer].push(underscore_1.default.first(G.drawPile));
+        G.drawPile = underscore_1.default.rest(G.drawPile, 1);
+        return;
+    }
     G.script = { scenes: [] };
     G.hand[ctx.currentPlayer].push(underscore_1.default.first(G.drawPile));
     G.drawPile = underscore_1.default.rest(G.drawPile, 1);
@@ -396,8 +477,10 @@ function _createDiscardOverLimitScene(G, protagonist) {
 function end(G, ctx, protagonist) {
     if (ctx.playerID !== protagonist && ctx.playerID !== G.owner)
         return core_1.INVALID_MOVE;
-    if (G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck")) {
+    const changeOfLuckEffect = G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck");
+    if (changeOfLuckEffect) {
         G.playerEffects[protagonist] = G.playerEffects[protagonist].filter(o => o.effect.key !== "change_of_luck");
+        (0, log_1.pushLog)(G, ctx, { actor: protagonist, kind: 'extra_turn', sourceCardID: changeOfLuckEffect.cardID });
         if (G.hand[protagonist].length > 7) {
             _createDiscardOverLimitScene(G, protagonist);
         }

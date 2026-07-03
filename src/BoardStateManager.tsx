@@ -1,9 +1,10 @@
 import type { UnstableUnicornsGame, Ctx, Instruction, Scene } from "./game/state";
 import { _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist } from "./game/state";
 import { canDraw } from "./game/game";
+import { sandboxBypassActionLimit } from "./game/sandbox/sandboxOverrides";
 import type { PlayerID } from "./game/player";
 import _ from 'underscore';
-import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets, canDiscard, canSatisfyDo } from "./game/operations";
+import { canBringToStableTargets, findAddFromDiscardPileToHand, findBackKickTargets, findBringToStableTargets, findDestroyTargets, findDiscardTargets, findMakeSomeoneDiscardTarget, findMoveTargets, findMoveTargets2, findPullRandomTargets, findReturnToHandTargets, findReviveTarget, findSacrificeTargets, findSearchTargets, findStealTargets, findSwapHandsTargets, findUnicornSwap1Targets, findUnicornSwap2Targets, canDiscard } from "./game/operations";
 import type { DoDraw, DoSteal, DoDestroy, DoSacrifice, DoDiscard, DoBringToStable, DoReturnToHand, DoRevive, DoSearch, DoAddFromDiscardPileToHand, DoMove } from "./game/do-types";
 import type { BoardStateInfo } from "./game/types";
 
@@ -71,6 +72,23 @@ export function getBoardState(G: UnstableUnicornsGame, ctx: Ctx, playerID: Playe
     }
 
     if (playerID === ctx.currentPlayer) {
+        // Sandbox infinite-actions: always offer draw + play + endTurn during action_phase,
+        // regardless of countPlayedCardsInActionPhase. Mirrors the structure of the bottom
+        // action_phase block but without the count gating.
+        if (sandboxBypassActionLimit(G) && G.neighDiscussion === undefined && ctx.activePlayers![playerID] === "action_phase") {
+            if (inProgressScenes.length > 0) {
+                return [...getExecutionDoState(G, ctx, playerID, inProgressScenes)];
+            }
+            const otherInProgress = G.players.filter(pl => pl.id !== playerID).map(pl => _findInProgressScenesWithProtagonist(G, pl.id)).find(ar => ar.length > 0);
+            if (otherInProgress) {
+                return [{ type: "wait_for_other_players" }];
+            }
+            if (openScenes.length > 0) {
+                return [...getExecutionDoState(G, ctx, playerID, openScenes), { type: "endTurn" }, { type: "playCard" }, { type: "drawCard" }];
+            }
+            return [{ type: "drawCard" }, { type: "playCard" }, { type: "endTurn" }];
+        }
+
         if (G.countPlayedCardsInActionPhase === 0 && G.neighDiscussion === undefined && ctx.activePlayers![playerID] === "action_phase") {
             // action phase and no card has been played or drawn
             // player may draw a card or play a card
@@ -190,16 +208,11 @@ const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
         if (ins.ui.type === "single_action_popup") {
             const targets = findDiscardTargets(G, ctx, playerID, doInfo);
             if (scene.mandatory === false) {
-                // Block the opt-in popup if:
-                // 1. Player cannot pay the full discard cost, or
-                // 2. Any subsequent action in the scene cannot be satisfied
-                // (prevents discarding cards only to have the effect fizzle)
+                // Only block the opt-in popup if the player cannot pay the discard cost.
+                // Don't block on subsequent-action satisfiability: the discard itself can
+                // change game state (e.g. discarding a unicorn enables a follow-up revive),
+                // and autoFizzleUnsatisfiable will cleanly skip any genuinely dead step.
                 if (!canDiscard(G, ctx, playerID, doInfo)) return [];
-                const actionIdx = scene.actions.findIndex(ac => ac.instructions.some(i => i.id === ins.id));
-                const subsequentSatisfiable = scene.actions.slice(actionIdx + 1).every(ac =>
-                    ac.instructions.every(i => canSatisfyDo(G, ctx, i.protagonist, i.do, i.ui.info?.source))
-                );
-                if (!subsequentSatisfiable) return [];
             }
             const base = { targets, instructionID: ins.id, sourceCardID: ins.ui.info?.source, singleActionText: ins.ui.info?.singleActionText };
             return [{ type: scene.mandatory === false ? "discard__popup__ask" : "discard__popup__committed", info: base }];

@@ -10,6 +10,8 @@ export interface NeighDiscussion {
 
 type NeighRound = {
     state: "open" | "neigh" | "no_neigh";
+    neighCardID?: CardID;
+    neighedBy?: PlayerID;
     playerState: {[key: string]: {
         vote: "undecided" | "neigh" | "no_neigh";
     }};
