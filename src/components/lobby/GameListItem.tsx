@@ -1,11 +1,12 @@
 import React from 'react';
 import styled from 'styled-components';
+import { EXPANSION_LABELS, type Expansion } from '../../game/card';
 
 interface Match {
     gameID: string;
     matchID: string;
     players: { id: number; name?: string; }[];
-    setupData?: { matchName?: string; ownerPlayerID?: string };
+    setupData?: { matchName?: string; ownerPlayerID?: string; expansions?: Expansion[] };
     gameover?: unknown;
 }
 
@@ -32,6 +33,14 @@ const GameListItem = ({ match, onJoin }: Props) => {
                         {isFull ? 'FULL' : `${takenCount}/${totalCount} Players`}
                     </PlayerBadge>
                 </ItemHeader>
+                <ExpansionRow>
+                    {(match.setupData?.expansions && match.setupData.expansions.length > 0
+                        ? match.setupData.expansions
+                        : ["base_game"] as Expansion[]
+                    ).map(exp => (
+                        <ExpansionTag key={exp}>{EXPANSION_LABELS[exp]}</ExpansionTag>
+                    ))}
+                </ExpansionRow>
                 <ButtonRow>
                     {match.players.map((player) => (
                         <JoinButton
@@ -91,6 +100,23 @@ const PlayerBadge = styled.span<{ $full: boolean }>`
     border-radius: 20px;
     background: ${({ $full }) => $full ? '#ffeded' : '#edf6ee'};
     color: ${({ $full }) => $full ? '#cc3333' : '#2d7d35'};
+`;
+
+const ExpansionRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+`;
+
+const ExpansionTag = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #f0eaff;
+    color: #7c3aed;
+    letter-spacing: 0.3px;
 `;
 
 const ButtonRow = styled.div`

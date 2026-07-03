@@ -3,7 +3,7 @@
  * Centralised here to make the type surface explicit and searchable.
  */
 
-import type { CardID } from './card';
+import type { CardID, Expansion } from './card';
 import type { PlayerID } from './player';
 import type { Effect } from './effect';
 
@@ -31,6 +31,7 @@ export type Clipboard = {
 export type SetupData = {
     matchName?: string;
     ownerPlayerID?: PlayerID;
+    expansions?: Expansion[];
     sandbox?: boolean;
 } | undefined;
 

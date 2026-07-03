@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cards = void 0;
+exports.EXPANSION_LABELS = exports.AVAILABLE_EXPANSIONS = void 0;
 exports.hasType = hasType;
 exports.getPrimaryType = getPrimaryType;
 exports.initializeDeck = initializeDeck;
@@ -12,138 +13,245 @@ function hasType(card, type) {
 function getPrimaryType(card) {
     return Array.isArray(card.type) ? card.type[0] : card.type;
 }
+exports.AVAILABLE_EXPANSIONS = ["base_game", "adventures_2nd_edition"];
+exports.EXPANSION_LABELS = {
+    base_game: "Base Game",
+    adventures_2nd_edition: "Adventures (2nd Edition)"
+};
 exports.Cards = [{
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby0",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby1",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby2",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby3",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby4",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby5",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby6",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby7",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby8",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby9",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby10",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Unicorn",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby11",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
         }
     }, {
         title: "Baby Narwhal",
+        expansions: ["base_game"],
         type: "baby",
         image: "baby12",
         count: 1,
         on: [],
         description: {
             en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
-            de: "Wenn diese Karte geopfert, zerstört oder zurück auf die Hand gelegt wird, lege sie in die Kita stattdessen."
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+        }
+    }, {
+        title: "Baby Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "baby",
+        image: "baby_fisherman",
+        count: 1,
+        on: [],
+        description: {
+            en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+        }
+    }, {
+        title: "Baby Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "baby",
+        image: "baby_forest",
+        count: 1,
+        on: [],
+        description: {
+            en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+        }
+    }, {
+        title: "Baby Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "baby",
+        image: "baby_pirate",
+        count: 1,
+        on: [],
+        description: {
+            en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+        }
+    }, {
+        title: "Baby Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "baby",
+        image: "baby_safari",
+        count: 1,
+        on: [],
+        description: {
+            en: "If this card would be sacrificed, destroyed, or returned to your hand, return it to the Nursery instead.",
+            de: "Falls diese Karte geopfert, zerstört oder auf deine Hand zurückgeschickt werden würde, lege sie stattdessen zurück in den Kindergarten."
+        }
+    }, {
+        title: "Eager Adventurer Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "basic",
+        image: "eager_adventurer_unicorn",
+        count: 1,
+        on: [],
+        description: {
+            en: "\"OOOH! What's that??\"",
+            de: "\"OOOH! Was ist das??\"",
+        }
+    }, {
+        title: "Glamping Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "basic",
+        image: "glamping_unicorn",
+        count: 1,
+        on: [],
+        description: {
+            en: "\"What do you mean I'm not roughing it? My phone has, like, zero bars!\"",
+            de: "\"Wie meinst du das, ich bin nicht tough genug? Mein Handy hat keinen Akku mehr!\"",
+        }
+    }, {
+        title: "Indoor Rockclimbing Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "basic",
+        image: "indoor_rockclimbing_unicorn",
+        count: 1,
+        on: [],
+        description: {
+            en: "\"Always reach for new heights. Just don't bump your head on the ceiling.\"",
+            de: "\"Klettere immer höher und höher. Nur nicht den Kopf an der Decke stoßen.\"",
+        }
+    }, {
+        title: "Landlubber Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "basic",
+        image: "landlubber_unicorn",
+        count: 1,
+        on: [],
+        description: {
+            en: "\"A little help? I'm still learning the ropes.\"",
+            de: "\"Etwas Hilfe? Ich lerne noch die Grundlagen mit den Seilen.\"",
         }
     }, {
         title: "Alluring Narwhal",
+        expansions: ["base_game"],
         type: "narwhal",
         image: "alluring_narwhal",
         count: 1,
@@ -175,6 +283,7 @@ exports.Cards = [{
         }
     }, {
         title: "Americorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "americorn",
         count: 1,
@@ -203,6 +312,7 @@ exports.Cards = [{
         }
     }, {
         title: "Annoying Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "annoying_flying_unicorn",
         count: 1,
@@ -236,6 +346,7 @@ exports.Cards = [{
         }
     }, {
         title: "Chainsaw Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "chainsaw_unicorn",
         count: 1,
@@ -267,6 +378,7 @@ exports.Cards = [{
         }
     }, {
         title: "Classy Narwhal",
+        expansions: ["base_game"],
         type: "narwhal",
         image: "classy_narwhal",
         count: 1,
@@ -296,6 +408,7 @@ exports.Cards = [{
         }
     }, {
         title: "Dark Angel Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "dark_angel_unicorn",
         count: 1,
@@ -335,6 +448,7 @@ exports.Cards = [{
         }
     }, {
         title: "Ginormous Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "ginormous_unicorn",
         count: 1,
@@ -359,6 +473,7 @@ exports.Cards = [{
         }
     }, {
         title: "Greedy Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "greedy_flying_unicorn",
         count: 1,
@@ -395,6 +510,7 @@ exports.Cards = [{
         }
     }, {
         title: "Llamacorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "llamacorn",
         count: 1,
@@ -426,6 +542,7 @@ exports.Cards = [{
         }
     }, {
         title: "Magical Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "magical_flying_unicorn",
         count: 1,
@@ -460,6 +577,7 @@ exports.Cards = [{
         }
     }, {
         title: "Magical Kittencorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "magical_kittencorn",
         count: 1,
@@ -470,6 +588,7 @@ exports.Cards = [{
         }
     }, {
         title: "Majestic Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "majestic_flying_unicorn",
         count: 1,
@@ -504,6 +623,7 @@ exports.Cards = [{
         }
     }, {
         title: "Mother Goose Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "mother_goose_unicorn",
         count: 1,
@@ -532,6 +652,7 @@ exports.Cards = [{
         }
     }, {
         title: "Mermaid Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "mermaid_unicorn",
         count: 1,
@@ -561,6 +682,7 @@ exports.Cards = [{
         }
     }, {
         title: "Narwhal Torpedo",
+        expansions: ["base_game"],
         type: "narwhal",
         image: "narwhal_torpedo",
         count: 1,
@@ -580,6 +702,7 @@ exports.Cards = [{
         }
     }, {
         title: "Necromancer Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "necromancer_unicorn",
         count: 1,
@@ -618,6 +741,7 @@ exports.Cards = [{
         }
     }, {
         title: "Queen Bee Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "queen_bee_unicorn",
         count: 1,
@@ -635,6 +759,7 @@ exports.Cards = [{
         }
     }, {
         title: "Rainbow Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "rainbow_unicorn",
         count: 1,
@@ -666,6 +791,7 @@ exports.Cards = [{
         }
     }, {
         title: "Rhinocorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "rhinocorn",
         count: 1,
@@ -697,6 +823,7 @@ exports.Cards = [{
         }
     }, {
         title: "Seductive Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "seductive_unicorn",
         count: 1,
@@ -721,7 +848,9 @@ exports.Cards = [{
                                             key: "steal",
                                             info: { type: "unicorn" }
                                         },
-                                        ui: { type: "card_to_card" }
+                                        ui: {
+                                            type: "card_to_card"
+                                        }
                                     }]
                             }],
                         mandatory: false,
@@ -735,6 +864,7 @@ exports.Cards = [{
         }
     }, {
         title: "Shabby the Narwhal",
+        expansions: ["base_game"],
         type: "narwhal",
         image: "shabby_the_narwhal",
         count: 1,
@@ -750,7 +880,9 @@ exports.Cards = [{
                                             key: "search",
                                             info: { type: "downgrade" }
                                         },
-                                        ui: { type: "single_action_popup", info: { singleActionText: "Search" } }
+                                        ui: {
+                                            type: "single_action_popup", info: { singleActionText: "Search" }
+                                        }
                                     }]
                             }],
                         mandatory: false,
@@ -764,6 +896,7 @@ exports.Cards = [{
         }
     }, {
         title: "Vagabond Unicorn",
+        expansions: ["adventures_2nd_edition"],
         type: "unicorn",
         image: "vagabond_unicorn",
         count: 1,
@@ -801,6 +934,7 @@ exports.Cards = [{
         }
     }, {
         title: "Survivalist Unicorn",
+        expansions: ["adventures_2nd_edition"],
         type: "unicorn",
         image: "survivalist_unicorn",
         count: 1,
@@ -837,7 +971,352 @@ exports.Cards = [{
             de: "Wenn diese Karte am Anfang deiner Runde in deinem Stall ist, darfst du eine Karte von deiner Hand abwerfen, um eine Downgradekarte zu opfern."
         }
     }, {
+        title: "Bungee Jumping Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "bungee_jumping_unicorn",
+        count: 1,
+        on: [{
+                trigger: "this_destroyed_or_sacrificed",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                // when there are two instructions for the same protagonist, the protagonist must execute exactly one
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "sacrifice",
+                                            info: { type: "downgrade" }
+                                        },
+                                        ui: { type: "click_on_card_in_stable" }
+                                    }, {
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "returnSelf"
+                                        },
+                                        ui: { type: "single_action_popup", info: { singleActionText: "Return to hand" } }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "If this card is sacrificed or destroyed, you may SACRIFICE a Downgrade card OR return this card to your hand.",
+            de: "Wenn diese Karte geopfert oder zerstört wird, darfst du eine Downgradekarte opfern ODER diese Karte auf deine Hand zurücknehmen."
+        }
+    }, {
+        title: "Cutthroat Captain Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "cutthroat_captain_unicorn",
+        count: 1,
+        on: [{
+                trigger: "enter",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                // two instructions: player picks one
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "steal",
+                                            info: { type: "baby" }
+                                        },
+                                        ui: { type: "card_to_card" }
+                                    }, {
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "revive",
+                                            info: { type: "basic_unicorn" }
+                                        },
+                                        ui: { type: "single_action_popup", info: { singleActionText: "Revive Basic Unicorn" } }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "When this card enters your Stable, you may: STEAL a Baby Unicorn card. OR Bring a Basic Unicorn card from the discard pile into your Stable.",
+            de: "Wenn diese Karte deinen Stall betritt, darfst du: Ein Babyeinhorn STEHLEN. ODER Ein Basic Einhorn vom Ablagestapel in deinen Stall legen."
+        }
+    }, {
+        title: "Extreme Adventurer Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "extreme_adventurer_unicorn",
+        count: 1,
+        passive: ["basic_unicorns_cannot_enter"],
+        on: [{
+                trigger: "begin_of_turn",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "draw",
+                                            info: { count: 1 }
+                                        },
+                                        ui: { type: "click_on_drawPile" }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "Basic Unicorn cards cannot enter your Stable. If this card is in your Stable at the beginning of your turn, you may DRAW a card.",
+            de: "Basic Einhörner können deinen Stall nicht betreten. Wenn diese Karte am Anfang deiner Runde in deinem Stall ist, darfst du eine Karte ziehen."
+        }
+    }, {
+        title: "Fearless Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "fearless_unicorn",
+        count: 1,
+        on: [{
+                trigger: "this_destroyed_or_sacrificed",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "addFromDiscardPileToHand",
+                                            info: { type: "neigh" }
+                                        },
+                                        ui: { type: "single_action_popup", info: { singleActionText: "Add Instant card" } }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "If this card is sacrificed or destroyed, you may add an Instant card from the discard pile to your hand.",
+            de: "Wenn diese Karte geopfert oder zerstört wird, darfst du eine Sofortkarte vom Ablagestapel auf deine Hand nehmen."
+        }
+    }, {
+        title: "First Mer-Mate Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "first_mer_mate_unicorn",
+        count: 1,
+        on: [{
+                trigger: "this_destroyed_or_sacrificed",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                // two instructions: player picks one
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "draw",
+                                            info: { count: 2 }
+                                        },
+                                        ui: { type: "click_on_drawPile" }
+                                    }, {
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "bringToStable",
+                                            info: { type: "basic_unicorn" }
+                                        },
+                                        ui: { type: "single_action_popup", info: { singleActionText: "Bring Basic Unicorn to Stable" } }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "If this card is sacrificed or destroyed, you may: DRAW 2 cards. OR Bring a Basic Unicorn card from your hand into your Stable.",
+            de: "Wenn diese Karte geopfert oder zerstört wird, darfst du: 2 Karten ZIEHEN. ODER Ein Basic Einhorn von deiner Hand in deinen Stall legen."
+        }
+    }, {
+        title: "Fisherman Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "fisherman_unicorn",
+        count: 1,
+        on: [{
+                trigger: "enter",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "blatantThievery1",
+                                        },
+                                        ui: { type: "card_to_player" }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "When this card enters your Stable, you may look at another player's hand. Choose a card and add it to your hand.",
+            de: "Wenn diese Karte deinen Stall betritt, darfst du die Hand eines Mitspielers ansehen. Wähle eine Karte und nimm sie auf deine Hand."
+        }
+    }, {
+        title: "Hornswoggler Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "hornswoggler_unicorn",
+        count: 1,
+        on: [{
+                trigger: "enter",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                // two instructions: player picks one
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "draw",
+                                            info: { count: 3 }
+                                        },
+                                        ui: { type: "click_on_drawPile" }
+                                    }, {
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "swapHands",
+                                        },
+                                        ui: { type: "card_to_player" }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "When this card enters your Stable, you may: DISCARD your hand, then DRAW 3 cards. OR Trade hands with any other player.",
+            de: "Wenn diese Karte deinen Stall betritt, darfst du: Deine Hand abwerfen und dann 3 Karten ZIEHEN. ODER Tausche deine Hand mit einem anderen Spieler."
+        }
+    }, {
+        title: "Pillaging Pirate Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "pillaging_pirate_unicorn",
+        count: 1,
+        on: [{
+                trigger: "enter",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                // two instructions: player picks one
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "steal",
+                                            info: { type: "upgrade" }
+                                        },
+                                        ui: { type: "card_to_card" }
+                                    }, {
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "move",
+                                            info: { type: "upgradeAndDowngrade" }
+                                        },
+                                        ui: { type: "card_to_card" }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "When this card enters your Stable, you may: STEAL an Upgrade card. OR Move a Downgrade card in your Stable to another player's Stable.",
+            de: "Wenn diese Karte deinen Stall betritt, darfst du: Eine Upgradekarte STEHLEN. ODER Eine Downgradekarte aus deinem Stall in den Stall eines anderen Spielers verschieben."
+        }
+    }, {
+        title: "Salty Seadogicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "salty_seadogicorn",
+        count: 1,
+        on: [{
+                trigger: "enter",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                // two instructions: player picks one
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "makeSomeoneDiscard",
+                                        },
+                                        ui: { type: "card_to_player" }
+                                    }, {
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "draw",
+                                            info: { count: 1 }
+                                        },
+                                        ui: { type: "click_on_drawPile" }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "When this card enters your Stable, you may: Force each other player to DISCARD a card. OR DRAW a card.",
+            de: "Wenn diese Karte deinen Stall betritt, darfst du: Jeden anderen Spieler zwingen eine Karte ABZUWERFEN. ODER Eine Karte ZIEHEN."
+        }
+    }, {
+        title: "Stowaway Unicorn",
+        expansions: ["adventures_2nd_edition"],
+        type: "unicorn",
+        image: "stowaway_unicorn",
+        count: 1,
+        on: [{
+                trigger: "enter",
+                do: {
+                    type: "add_scene",
+                    info: {
+                        actions: [{
+                                instructions: [{
+                                        protagonist: "owner",
+                                        do: {
+                                            key: "stowawaydraw",
+                                        },
+                                        ui: { type: "single_action_popup", info: { singleActionText: "Draw and reveal" } }
+                                    }]
+                            }],
+                        mandatory: false,
+                        endTurnImmediately: false
+                    }
+                }
+            }],
+        description: {
+            en: "When this card enters your Stable, you may DRAW a card and reveal it. If it is a Unicorn, Upgrade, or Downgrade card, bring it into your Stable.",
+            de: "Wenn diese Karte deinen Stall betritt, darfst du eine Karte ZIEHEN und aufdecken. Wenn es ein Einhorn, Upgrade oder Downgrade ist, lege es in deinen Stall."
+        }
+    }, {
         title: "Zombie Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "zombie",
         count: 1,
@@ -875,6 +1354,7 @@ exports.Cards = [{
         }
     }, {
         title: "Swift Flying Unicorn",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "swift_flying_unicorn",
         count: 1,
@@ -912,6 +1392,7 @@ exports.Cards = [{
         }
     }, {
         title: "The Great Narwhal",
+        expansions: ["base_game"],
         type: "narwhal",
         image: "the_great_narwhal",
         count: 1,
@@ -941,6 +1422,7 @@ exports.Cards = [{
         }
     }, {
         title: "Unicorn on the Cob",
+        expansions: ["base_game"],
         type: "unicorn",
         image: "unicorn_on_the_cob",
         count: 1,
@@ -979,6 +1461,7 @@ exports.Cards = [{
         }
     }, {
         title: "Neigh",
+        expansions: ["base_game"],
         type: "neigh",
         image: "neigh",
         count: 14,
@@ -988,6 +1471,7 @@ exports.Cards = [{
         }
     }, {
         title: "Super Neigh",
+        expansions: ["base_game"],
         type: "super_neigh",
         image: "super_neigh",
         count: 1,
@@ -997,6 +1481,7 @@ exports.Cards = [{
         }
     }, {
         title: "Yay",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "yay",
         count: 2,
@@ -1014,6 +1499,7 @@ exports.Cards = [{
         }
     }, {
         title: "Stable Artillery",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "stable_artillery",
         count: 3,
@@ -1052,6 +1538,7 @@ exports.Cards = [{
         }
     }, {
         title: "Rainbow Lasso",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "rainbow_lasso",
         count: 1,
@@ -1090,6 +1577,7 @@ exports.Cards = [{
         }
     }, {
         title: "Rainbow Aura",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "rainbow_aura",
         count: 1,
@@ -1107,6 +1595,7 @@ exports.Cards = [{
         }
     }, {
         title: "Glitter Bomb",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "glitter_bomb",
         count: 2,
@@ -1145,6 +1634,7 @@ exports.Cards = [{
         }
     }, {
         title: "Double Dutch",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "double_dutch",
         count: 1,
@@ -1162,6 +1652,7 @@ exports.Cards = [{
         }
     }, {
         title: "Claw Machine",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "claw_machine",
         count: 3,
@@ -1202,6 +1693,7 @@ exports.Cards = [{
         }
     }, {
         title: "Caffeine Overload",
+        expansions: ["base_game"],
         type: "upgrade",
         image: "caffeine_overload",
         count: 1,
@@ -1240,6 +1732,7 @@ exports.Cards = [{
         }
     }, {
         title: "Barbed Wire",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "barbed_wire",
         count: 1,
@@ -1278,6 +1771,7 @@ exports.Cards = [{
         }
     }, {
         title: "Blinding Light",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "blinding_light",
         count: 1,
@@ -1295,6 +1789,7 @@ exports.Cards = [{
         }
     }, {
         title: "Broken Stable",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "broken_stable",
         count: 1,
@@ -1312,6 +1807,7 @@ exports.Cards = [{
         }
     }, {
         title: "Pandamonium",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "pandamonium",
         count: 1,
@@ -1329,6 +1825,7 @@ exports.Cards = [{
         }
     }, {
         title: "Slowdown",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "slowdown",
         count: 1,
@@ -1346,6 +1843,7 @@ exports.Cards = [{
         }
     }, {
         title: "Tiny Stable",
+        expansions: ["base_game"],
         type: "downgrade",
         image: "tiny_stable",
         count: 1,
@@ -1363,6 +1861,7 @@ exports.Cards = [{
         }
     }, {
         title: "Unicorn Poison",
+        expansions: ["base_game"],
         type: "magic",
         image: "unicorn_poison",
         count: 3,
@@ -1391,6 +1890,7 @@ exports.Cards = [{
         }
     }, {
         title: "Alignment Change",
+        expansions: ["base_game"],
         type: "magic",
         image: "alignment_change",
         count: 2,
@@ -1427,6 +1927,7 @@ exports.Cards = [{
         }
     }, {
         title: "Unfair Bargain",
+        expansions: ["base_game"],
         type: "magic",
         image: "unfair_bargain",
         count: 2,
@@ -1455,6 +1956,7 @@ exports.Cards = [{
         }
     }, {
         title: "Two-For-One",
+        expansions: ["base_game"],
         type: "magic",
         image: "two-for-one",
         count: 2,
@@ -1493,6 +1995,7 @@ exports.Cards = [{
         }
     }, {
         title: "Targeted Destruction",
+        expansions: ["base_game"],
         type: "magic",
         image: "targeted_destruction",
         count: 1,
@@ -1522,6 +2025,7 @@ exports.Cards = [{
         }
     }, {
         title: "Shake Up",
+        expansions: ["base_game"],
         type: "magic",
         image: "shake_up",
         count: 1,
@@ -1550,6 +2054,7 @@ exports.Cards = [{
         }
     }, {
         title: "Reset Button",
+        expansions: ["base_game"],
         type: "magic",
         image: "reset_button",
         count: 1,
@@ -1578,6 +2083,7 @@ exports.Cards = [{
         }
     }, {
         title: "Mystical Vortex",
+        expansions: ["base_game"],
         type: "magic",
         image: "mystical_vortex",
         count: 1,
@@ -1615,6 +2121,7 @@ exports.Cards = [{
         }
     }, {
         title: "Kiss of Life",
+        expansions: ["base_game"],
         type: "magic",
         image: "kiss_of_life",
         count: 1,
@@ -1644,6 +2151,7 @@ exports.Cards = [{
         }
     }, {
         title: "Good Deal",
+        expansions: ["base_game"],
         type: "magic",
         image: "good_deal",
         count: 1,
@@ -1682,6 +2190,7 @@ exports.Cards = [{
         }
     }, {
         title: "Change of Luck",
+        expansions: ["base_game"],
         type: "magic",
         image: "change_of_luck",
         count: 2,
@@ -1720,6 +2229,7 @@ exports.Cards = [{
         }
     }, {
         title: "Back Kick",
+        expansions: ["base_game"],
         type: "magic",
         image: "back_kick",
         count: 3,
@@ -1748,6 +2258,7 @@ exports.Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic0",
         count: 3,
@@ -1758,6 +2269,7 @@ exports.Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic1",
         count: 3,
@@ -1768,6 +2280,7 @@ exports.Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic2",
         count: 3,
@@ -1778,6 +2291,7 @@ exports.Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic3",
         count: 3,
@@ -1788,6 +2302,7 @@ exports.Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic4",
         count: 3,
@@ -1798,6 +2313,7 @@ exports.Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic5",
         count: 3,
@@ -1808,6 +2324,7 @@ exports.Cards = [{
         }
     }, {
         title: "Basic Unicorn",
+        expansions: ["base_game"],
         type: "basic",
         image: "basic6",
         count: 3,
@@ -1818,6 +2335,7 @@ exports.Cards = [{
         }
     }, {
         title: "Narwhal",
+        expansions: ["base_game"],
         type: ["basic", "narwhal"],
         image: "basic7",
         count: 3,
@@ -1827,22 +2345,25 @@ exports.Cards = [{
             de: "Diese Karte hat keine Kräft, aber süß ist sie!"
         }
     }];
-function initializeDeck() {
-    let deck = [];
-    exports.Cards.forEach(c => {
-        for (let i = 0; i < c.count; i++) {
+function initializeDeck(expansions = ["base_game"]) {
+    const deck = [];
+    let currentId = 0;
+    const filteredCards = exports.Cards.filter(c => c.expansions.some(e => expansions.includes(e)));
+    for (const card of filteredCards) {
+        for (let i = 0; i < card.count; i++) {
             deck.push({
-                id: 0,
-                title: c.title,
-                on: c.on,
-                passive: c.passive,
-                type: c.type,
-                image: c.image,
-                description: c.description,
+                id: currentId++,
+                title: card.title,
+                on: card.on,
+                passive: card.passive,
+                expansions: card.expansions,
+                type: card.type,
+                image: card.image,
+                description: card.description,
             });
         }
-    });
-    return deck.map((c, idx) => ({ ...c, id: idx }));
+    }
+    return deck;
 }
 // Helper
 function isUnicorn(card) {

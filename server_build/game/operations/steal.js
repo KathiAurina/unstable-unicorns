@@ -50,6 +50,21 @@ function findStealTargets(G, ctx, protagonist, info) {
             });
             break;
         }
+        case "baby": {
+            G.players.forEach(pl => {
+                if (pl.id === protagonist) {
+                    return;
+                }
+                ;
+                G.stable[pl.id].forEach(c => {
+                    const card = G.deck[c];
+                    if (card.type === "baby" && (0, enter_1.canEnter)(G, ctx, { playerID: protagonist, cardID: c })) {
+                        targets.push({ playerID: pl.id, cardID: c });
+                    }
+                });
+            });
+            break;
+        }
     }
     return targets;
 }

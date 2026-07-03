@@ -9,7 +9,7 @@ export interface DoSteal {
     info: DoStealInfo;
 }
 
-export type DoStealInfo = { type: "unicorn" | "upgrade"; unicornSwap?: boolean }
+export type DoStealInfo = { type: "unicorn" | "upgrade" | "baby"; unicornSwap?: boolean }
 
 export interface DoPull {
     key: "pull";
@@ -174,6 +174,14 @@ export type DoBlatantThievery1 = {
     key: "blatantThievery1"
 }
 
+export type DoReturnSelf = {
+    key: "returnSelf";
+}
+
+export type DoStowawyDraw = {
+    key: "stowawaydraw";
+}
+
 // ─── Do union ─────────────────────────────────────────────────────────────────
 
-export type Do = DoSteal | DoPull | DoPullRandom | DoDiscard | DoDestroy | DoSacrifice | DoSearch | DoRevive | DoDraw | DoAddFromDiscardPileToHand | DoReviveFromNursery | DoReturnToHand | DoBringToStable | DoMakeSomeoneDiscard | DoSwapHands | DoShakeUp | DoReset | DoMove | DoMove2 | DoBackKick | DoShuffleDiscardPileIntoDrawPile | DoUnicornSwap1 | DoUnicornSwap2 | DoBlatantThievery1;
+export type Do = DoSteal | DoPull | DoPullRandom | DoDiscard | DoDestroy | DoSacrifice | DoSearch | DoRevive | DoDraw | DoAddFromDiscardPileToHand | DoReviveFromNursery | DoReturnToHand | DoBringToStable | DoMakeSomeoneDiscard | DoSwapHands | DoShakeUp | DoReset | DoMove | DoMove2 | DoBackKick | DoShuffleDiscardPileIntoDrawPile | DoUnicornSwap1 | DoUnicornSwap2 | DoBlatantThievery1 | DoReturnSelf | DoStowawyDraw;
