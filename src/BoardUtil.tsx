@@ -22,7 +22,8 @@ export type CardInteraction = {
         instructionID: string,
         currentMousePosition: { x: number, y: number },
         startingMousePosition: { x: number, y: number },
-        targets: { playerID: PlayerID }[]
+        targets: { playerID: PlayerID }[],
+        noArrow?: boolean,
     }
 } | {
     key: "click_on_other_stable_card",

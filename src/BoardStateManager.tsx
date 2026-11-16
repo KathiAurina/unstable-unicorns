@@ -43,7 +43,14 @@ export function getBoardState(G: UnstableUnicornsGame, ctx: Ctx, playerID: Playe
                     return [{ type: "wait_for_other_players" }];
                 }
 
-                return [{ type: "drawCard" }, ...getExecutionDoState(G, ctx, playerID, openScenes)].filter(s => s.type !== "drawCard" || canDraw(G, ctx)) as BoardState[];
+                const executionStates = getExecutionDoState(G, ctx, playerID, openScenes);
+                // Block the regular drawCard when an optional draw__clickOnDrawPile is pending
+                // (e.g. Extreme Adventurer bonus draw), so the player resolves it via ActionPanel first.
+                const hasOptionalDrawPending = executionStates.some(
+                    s => s.type === "draw__clickOnDrawPile" && s.info?.mandatory === false
+                );
+                return ([{ type: "drawCard" }, ...executionStates] as BoardState[])
+                    .filter(s => s.type !== "drawCard" || (canDraw(G, ctx) && !hasOptionalDrawPending));
             }
 
             // is there any scene in progress?
@@ -159,7 +166,12 @@ const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
     },
     steal: (G, ctx, playerID, ins) => {
         if (ins.ui.type !== "card_to_card") return [];
-        return [{ type: "steal__cardToCard", info: { targets: findStealTargets(G, ctx, playerID, (ins.do as DoSteal).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+        const stealInfo = (ins.do as DoSteal).info;
+        const stealTypeLabel = stealInfo?.type === "upgrade" ? "Upgrade Card"
+            : stealInfo?.type === "baby" ? "Baby Unicorn"
+            : stealInfo?.type === "unicorn" ? "Unicorn"
+            : "Card";
+        return [{ type: "steal__cardToCard", info: { targets: findStealTargets(G, ctx, playerID, stealInfo), instructionID: ins.id, sourceCardID: ins.ui.info?.source, actionLabel: `Steal ${stealTypeLabel}` } }];
     },
     destroy: (G, ctx, playerID, ins) => {
         const doInfo = (ins.do as DoDestroy).info;
@@ -205,7 +217,7 @@ const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
             return [{ type: scene.mandatory === false ? "discard__popup__ask" : "discard__popup__committed", info: base }];
         }
         if (ins.ui.type === "click_on_own_card_in_hand") {
-            return [{ type: "discard", info: { targets: findDiscardTargets(G, ctx, playerID, doInfo), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+            return [{ type: "discard", info: { targets: findDiscardTargets(G, ctx, playerID, doInfo), instructionID: ins.id, sourceCardID: ins.ui.info?.source, count: doInfo.count } }];
         }
         return [];
     },
@@ -233,7 +245,9 @@ const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
         return [{ type: "reset", info: { instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
     },
     move: (G, ctx, playerID, ins) => {
-        return [{ type: "move__cardToCard", info: { targets: findMoveTargets(G, ctx, playerID, (ins.do as DoMove).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+        const doInfo = (ins.do as DoMove).info;
+        const label = doInfo.type === "upgradeAndDowngrade" ? "Move Upgrade/Downgrade Card" : "Move a Card";
+        return [{ type: "move__cardToCard", info: { targets: findMoveTargets(G, ctx, playerID, doInfo), instructionID: ins.id, sourceCardID: ins.ui.info?.source, actionLabel: label } }];
     },
     move2: (G, ctx, playerID, ins) => {
         return [{ type: "move2__cardToPlayer", info: { targets: findMoveTargets2(G, ctx, playerID), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
@@ -272,7 +286,8 @@ const doKeyHandlers: Partial<Record<string, InstructionHandler>> = {
     },
     addFromDiscardPileToHand: (G, ctx, playerID, ins) => {
         if (ins.ui.type !== "single_action_popup") return [];
-        return [{ type: "addFromDiscardPileToHand__single_action_popup", info: { targets: findAddFromDiscardPileToHand(G, ctx, playerID, (ins.do as DoAddFromDiscardPileToHand).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source } }];
+        const singleActionText = ins.ui.type === "single_action_popup" ? ins.ui.info?.singleActionText : undefined;
+        return [{ type: "addFromDiscardPileToHand__single_action_popup", info: { targets: findAddFromDiscardPileToHand(G, ctx, playerID, (ins.do as DoAddFromDiscardPileToHand).info), instructionID: ins.id, sourceCardID: ins.ui.info?.source, singleActionText } }];
     },
     returnSelf: (G, ctx, playerID, ins) => {
         if (ins.ui.type !== "single_action_popup") return [];
@@ -290,7 +305,19 @@ function getExecutionDoState(G: UnstableUnicornsGame, ctx: Ctx, playerID: Player
     openScenes.forEach(([instruction, scene]) => {
         const handler = doKeyHandlers[instruction.do.key];
         if (handler) {
-            states.push(...handler(G, ctx, playerID, instruction, scene));
+            const newStates = handler(G, ctx, playerID, instruction, scene);
+            const actionIndex = scene.actions.findIndex(ac =>
+                ac.instructions.some(i => i.id === instruction.id)
+            );
+            newStates.forEach(s => {
+                if (s.info) {
+                    s.info.sceneID = scene.id;
+                    s.info.actionIndex = actionIndex;
+                    s.info.actionCount = scene.actions.length;
+                    s.info.mandatory = scene.mandatory;
+                }
+            });
+            states.push(...newStates);
         }
     });
     return states;

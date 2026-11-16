@@ -113,7 +113,7 @@ const OverlayManager = ({
                 }}
                     title="Click on card to add it to your hand." />
             }
-            {(cardInteraction?.key === "card_to_card" || cardInteraction?.key === "card_to_player" || cardInteraction?.key === "play_upgradeDowngradeCardFromHand__choose_target") &&
+            {cardInteraction?.key === "play_upgradeDowngradeCardFromHand__choose_target" &&
                 <RainbowArrow from={{ x: cardInteraction.info.startingMousePosition.x, y: cardInteraction.info.startingMousePosition.y }} to={{ x: cardInteraction.info.currentMousePosition.x, y: cardInteraction.info.currentMousePosition.y }} />
             }
             {C2CArrow !== undefined &&

@@ -36,9 +36,8 @@ function getInfoText(G: UnstableUnicornsGame, ctx: Ctx, playerID: string, boardS
     }
     if (boardStates.find(o => o.type === 'discard' || o.type === 'discard__popup__committed')) {
         const bs = boardStates.find(o => o.type === 'discard' || o.type === 'discard__popup__committed')!;
-        const result = bs.info?.instructionID != null ? _findInstruction(G, bs.info.instructionID) : undefined;
-        const count: number = (result?.instruction?.do as any)?.info?.count ?? 1;
-        if (count > 1) return `Drag ${count} cards from your hand to discard them.`;
+        const count: number = bs.info?.count ?? 1;
+        if (count > 1) return `Drag ${count} more cards from your hand to discard them.`;
         return 'Drag a card from your hand to discard it.';
     }
     if (boardStates.find(o => o.type === 'discard__popup__ask')) {
@@ -71,6 +70,9 @@ function getInfoText(G: UnstableUnicornsGame, ctx: Ctx, playerID: string, boardS
     }
     if (boardStates.find(o => o.type === 'draw__clickOnDrawPile')) {
         const bs = boardStates.find(o => o.type === 'draw__clickOnDrawPile');
+        if (bs?.info?.mandatory === false) {
+            return `Tap the deck to draw ${bs?.info?.count} bonus card(s) (optional).`;
+        }
         return `Tap the deck to draw ${bs?.info?.count} card(s).`;
     }
     if (boardStates.find(o => o.type === 'swapHands__cardToPlayer')) {
@@ -156,6 +158,7 @@ function getInfoText(G: UnstableUnicornsGame, ctx: Ctx, playerID: string, boardS
 const MobileInfoBar = ({ G, ctx, playerID, moves, boardStates, onShowNursery, onShowDiscard, onEscapeMenu, playDrawCardSound, playEndTurnSound }: Props) => {
     const canDraw = !!(boardStates.find(s => s.type === 'drawCard' || s.type === 'draw__clickOnDrawPile'));
     const canEndTurn = !!(boardStates.find(s => s.type === 'endTurn'));
+    const optionalDrawState = boardStates.find(s => s.type === 'draw__clickOnDrawPile' && s.info?.mandatory === false);
     const infoText = getInfoText(G, ctx, playerID, boardStates);
     const reshuffleText = G.deckWasReshuffled ? 'Discard pile was shuffled into the draw pile!' : undefined;
 
@@ -203,6 +206,14 @@ const MobileInfoBar = ({ G, ctx, playerID, moves, boardStates, onShowNursery, on
             </InfoText>
 
             <RightRow>
+                {optionalDrawState && (
+                    <SkipBtn
+                        onTouchEnd={e => { e.preventDefault(); moves.skipExecuteDo(playerID, optionalDrawState.info!.instructionID); }}
+                        onClick={() => moves.skipExecuteDo(playerID, optionalDrawState.info!.instructionID)}
+                    >
+                        Skip
+                    </SkipBtn>
+                )}
                 {canEndTurn && (
                     <EndTurnBtn
                         onTouchEnd={e => { e.preventDefault(); playEndTurnSound(); moves.end(playerID); }}
@@ -317,6 +328,21 @@ const EndTurnBtn = styled.div`
     white-space: nowrap;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+`;
+
+const SkipBtn = styled.div`
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
 `;
 
 const MenuBtn = styled.div`

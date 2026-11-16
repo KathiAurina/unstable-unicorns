@@ -27,7 +27,7 @@ import React from 'react';
 import { LanguageContext } from './LanguageContextProvider';
 import { useSoundEffects } from './hooks/useSoundEffects';
 import NeighPanel from './components/NeighPanel';
-import InfoPanel from './components/InfoPanel';
+import ActionPanel from './components/ActionPanel';
 import OverlayManager from './components/OverlayManager';
 import StableSection from './components/StableSection';
 import { useMobile } from './hooks/useMobile';
@@ -105,7 +105,13 @@ const DesktopBoard = (props: Props) => {
         }
     };
 
-    const stableHighlightMode = hoverTargets?.targets.filter(s => s.type === "stable_card").map(s => s.info.cardID).concat([hoverTargets.sourceCardID]);
+    // Highlight from hover OR from an active click_on_other_stable_card interaction
+    const hoverHighlights = hoverTargets?.targets.filter(s => s.type === "stable_card").map(s => s.info.cardID).concat([hoverTargets.sourceCardID]);
+    const interactionHighlights =
+        !hoverHighlights && cardInteraction?.key === 'click_on_other_stable_card'
+            ? cardInteraction.info.targets.map((t) => t.cardID)
+            : undefined;
+    const stableHighlightMode = hoverHighlights ?? interactionHighlights;
 
     const boardStates = getBoardState(G, ctx, playerID);
     if (boardStates.find(s => s.type === "destroy__click_on_card_in_stable" || s.type === "sacrifice__clickOnCardInStable")) {
@@ -297,7 +303,18 @@ const DesktopBoard = (props: Props) => {
                         <NeighPanel G={G} ctx={ctx} moves={moves} playerID={playerID} />
                     </AnimatePresence>
 
-                    <InfoPanel G={G} ctx={ctx} playerID={playerID} boardStates={boardStates} />
+                    <ActionPanel
+                        G={G}
+                        ctx={ctx}
+                        playerID={playerID}
+                        moves={moves}
+                        boardStates={boardStates}
+                        cardInteraction={cardInteraction}
+                        setCardInteraction={setCardInteraction}
+                        setShowDeckFinder={setShowDeckFinder}
+                        setShowDiscardFinder={setShowDiscardFinder}
+                        setShowNurseryFinder={setShowNurseryFinder}
+                    />
                     <MiddleLeftWrapper zIndexFocus={isHoveringOverHandCard}>
                         <div>
                             <MiddleLabel>Nursery</MiddleLabel>
@@ -328,9 +345,6 @@ const DesktopBoard = (props: Props) => {
                         openScenes={openScenes}
                         glowingCardIDs={glowingCardIDs}
                         stableHighlightMode={stableHighlightMode}
-                        setShowDeckFinder={setShowDeckFinder}
-                        setShowDiscardFinder={setShowDiscardFinder}
-                        setShowNurseryFinder={setShowNurseryFinder}
                         isHoveringOverHandCard={isHoveringOverHandCard}
                         setHoveringOverHandCard={setHoveringOverHandCard}
                         playHubMouseOverSound={playHubMouseOverSound}

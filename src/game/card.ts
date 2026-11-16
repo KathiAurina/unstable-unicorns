@@ -1324,7 +1324,7 @@ const Cards: CardDefinition[] = [{
             type: "add_scene",
             info: {
                 actions: [{
-                    // two instructions: player picks one
+                    // two instructions: player picks one (OR choice)
                     instructions: [{
                         protagonist: "owner",
                         do: {
@@ -1339,6 +1339,16 @@ const Cards: CardDefinition[] = [{
                             info: { type: "upgradeAndDowngrade" }
                         },
                         ui: { type: "card_to_card" }
+                    }]
+                }, {
+                    // step 2 for the move path: choose destination player
+                    // auto-fizzled when steal was chosen (clipboard.move will be undefined)
+                    instructions: [{
+                        protagonist: "owner",
+                        do: {
+                            key: "move2"
+                        },
+                        ui: { type: "card_to_player" }
                     }]
                 }],
                 mandatory: false,

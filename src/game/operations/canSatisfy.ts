@@ -45,6 +45,9 @@ export function canSatisfyDo(G: UnstableUnicornsGame, ctx: Ctx, protagonist: Pla
             return G.nursery.length > 0;
         case "unicornSwap1":
             return findUnicornSwap1Targets(G, ctx, protagonist).length > 0;
+        case "move2":
+            // Only satisfiable if the move clipboard is set (i.e. move was chosen in step 1)
+            return G.clipboard.move !== undefined;
         // draw, shakeUp, reset, swapHands, unicornSwap2, pullRandom, etc. are always satisfiable
         default:
             return true;
@@ -58,34 +61,61 @@ export function canSatisfyDo(G: UnstableUnicornsGame, ctx: Ctx, protagonist: Pla
 export { canDiscard as canPayDiscardCost };
 
 /**
- * Scans all mandatory scenes and marks any instruction that has no valid
- * targets as executed (effect fizzles). Handles the temporary-stable cleanup
- * for magic cards when the last action of a scene is fully fizzled.
- * Repeats until stable (fizzling one action may expose the next).
+ * Scans all scenes and marks any instruction that has no valid
+ * targets as executed (effect fizzles).
+ *
+ * For MANDATORY scenes: fizzles per-protagonist when their instruction is unsatisfiable.
+ * For NON-MANDATORY scenes: auto-fizzles per-protagonist only when ALL their OR-alternatives
+ * in the current action are unsatisfiable (e.g. Pillaging Pirate move2 after steal was chosen,
+ * or Fearless Unicorn with no neigh cards in discard).
+ *
+ * Handles the temporary-stable cleanup for magic cards when the last action of a scene
+ * is fully fizzled. Repeats until stable.
  */
 export function autoFizzleUnsatisfiable(G: UnstableUnicornsGame, ctx: Ctx): void {
     let changed = true;
     while (changed) {
         changed = false;
         G.script.scenes.forEach((scene: Scene) => {
-            if (!scene.mandatory) return;
-
             const currentAction = scene.actions.find((ac: Action) =>
                 ac.instructions.some(ins => ins.state !== "executed")
             );
             if (!currentAction) return;
 
-            currentAction.instructions
-                .filter(ins => ins.state !== "executed")
-                .forEach(ins => {
-                    if (!canSatisfyDo(G, ctx, ins.protagonist, ins.do, ins.ui.info?.source)) {
-                        currentAction.instructions
-                            .filter(i => i.protagonist === ins.protagonist)
-                            .forEach(i => { i.state = "executed"; });
+            if (scene.mandatory) {
+                // Mandatory: fizzle per-protagonist when their instruction is unsatisfiable
+                currentAction.instructions
+                    .filter(ins => ins.state !== "executed")
+                    .forEach(ins => {
+                        if (!canSatisfyDo(G, ctx, ins.protagonist, ins.do, ins.ui.info?.source)) {
+                            currentAction.instructions
+                                .filter(i => i.protagonist === ins.protagonist)
+                                .forEach(i => { i.state = "executed"; });
+                            changed = true;
+                        }
+                    });
+            } else {
+                // Non-mandatory: auto-fizzle per-protagonist only when ALL their OR-alternatives
+                // in this action are unsatisfiable
+                const protagonists = [...new Set(
+                    currentAction.instructions
+                        .filter(ins => ins.state !== "executed")
+                        .map(ins => ins.protagonist)
+                )];
+                protagonists.forEach(pid => {
+                    const openInstrs = currentAction.instructions.filter(
+                        ins => ins.protagonist === pid && ins.state !== "executed"
+                    );
+                    if (openInstrs.length > 0 &&
+                        openInstrs.every(ins => !canSatisfyDo(G, ctx, ins.protagonist, ins.do, ins.ui.info?.source))) {
+                        openInstrs.forEach(ins => { ins.state = "executed"; });
                         changed = true;
                     }
                 });
+            }
 
+            // Magic card cleanup: if this is the last action and all instructions are done,
+            // move the temp-stable card to the discard pile.
             const isLastAction = currentAction === scene.actions[scene.actions.length - 1];
             if (isLastAction && currentAction.instructions.every(i => i.state === "executed")) {
                 const protagonists = [...new Set(currentAction.instructions.map(i => i.protagonist))];

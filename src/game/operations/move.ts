@@ -105,6 +105,7 @@ type MoveTarget2 = {
 // to fix
 // a protagonist cannot move a card into his own stable
 export function findMoveTargets2(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID): MoveTarget2[] {
+    if (!G.clipboard.move) return [];
     let targets: MoveTarget2[] = [];
 
     G.players.forEach(pl => {

@@ -189,6 +189,13 @@ export function canEnter(G: UnstableUnicornsGame, ctx: Ctx, param: ParamEnter) {
     const card = G.deck[param.cardID];
 
     if (hasType(card, "basic")) {
+        // Check passive: any card in the target stable that blocks basic unicorns from entering
+        const blockedByPassive = [...G.stable[param.playerID], ...G.upgradeDowngradeStable[param.playerID]]
+            .map(cid => G.deck[cid])
+            .some(c => c.passive?.includes("basic_unicorns_cannot_enter"));
+        if (blockedByPassive) return false;
+
+        // Check effect: basic_unicorns_can_only_join_your_stable (from a different card)
         let basic_unicorns_cannot_enter_isActive = false;
         _.keys(G.playerEffects).forEach(key => {
             const effect = G.playerEffects[key].find(eff => eff.effect.key === "basic_unicorns_can_only_join_your_stable");

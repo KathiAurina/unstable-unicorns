@@ -49,6 +49,16 @@ export type BoardStateInfo = {
     targets?: any[];
     count?: number;
     singleActionText?: string;
+    /** Scene ID — used by ActionPanel to call moves.commit(sceneID). */
+    sceneID?: string;
+    /** 0-based index of this action within the scene (for step counters). */
+    actionIndex?: number;
+    /** Total number of actions in the scene (for step counters). */
+    actionCount?: number;
+    /** Whether the scene is mandatory (false = player may skip). */
+    mandatory?: boolean;
+    /** Human-readable label for the action button (e.g. "Steal Upgrade Card"). */
+    actionLabel?: string;
 };
 
 // ─── Moves ────────────────────────────────────────────────────────────────────

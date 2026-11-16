@@ -72,6 +72,8 @@ function move2(G, ctx, param) {
 // to fix
 // a protagonist cannot move a card into his own stable
 function findMoveTargets2(G, ctx, protagonist) {
+    if (!G.clipboard.move)
+        return [];
     let targets = [];
     G.players.forEach(pl => {
         if (pl.id !== G.clipboard.move.from && pl.id !== protagonist) {

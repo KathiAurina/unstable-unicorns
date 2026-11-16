@@ -422,7 +422,17 @@ function skipExecuteDo(G, ctx, protagonist, instructionID) {
         return core_1.INVALID_MOVE;
     const found = (0, state_1._findInstruction)(G, instructionID);
     if (found !== undefined) {
+        // Mark current action's instructions for this protagonist as executed
         found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
+        // For non-mandatory (opt-in) scenes, skip ALL remaining actions too —
+        // the player declined the whole optional sequence, not just one step.
+        if (!found.scene.mandatory) {
+            found.scene.actions.forEach(action => {
+                action.instructions
+                    .filter((ins) => ins.protagonist === protagonist)
+                    .forEach((ins) => ins.state = "executed");
+            });
+        }
     }
 }
 exports.default = UnstableUnicorns;

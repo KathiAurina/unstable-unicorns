@@ -465,7 +465,17 @@ function skipExecuteDo(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID,
     if (ctx.playerID !== protagonist && ctx.playerID !== G.owner) return INVALID_MOVE;
     const found = _findInstruction(G, instructionID);
     if (found !== undefined) {
+        // Mark current action's instructions for this protagonist as executed
         found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
+        // For non-mandatory (opt-in) scenes, skip ALL remaining actions too —
+        // the player declined the whole optional sequence, not just one step.
+        if (!found.scene.mandatory) {
+            found.scene.actions.forEach(action => {
+                action.instructions
+                    .filter((ins) => ins.protagonist === protagonist)
+                    .forEach((ins) => ins.state = "executed");
+            });
+        }
     }
 }
 
