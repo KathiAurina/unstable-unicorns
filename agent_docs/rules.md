@@ -1,122 +1,204 @@
 # Game Rules
 
-> This file is the authoritative, human-verified reference for the game rules.
-> Agents should trust it over their own inferences from code.
+> **Status (2026-11-17).** Sections 1–6 describe the game **as it is implemented today**. They were checked against the source on branch `select_extensions` (`d571b99`); the base-game rules are identical on `master` (`800c931`). They were read from the code, not play-tested.
+>
+> Section 7 lists rule changes that are **decided but not implemented yet**. Until a change is implemented, sections 1–6 are what the game does. Section 7 is also the list of behaviours a future *legacy mode* has to preserve.
+>
+> Reference for all rules and card texts: the **English** 2nd Edition wording (cards: `description.en` in `src/game/card.ts`; rules: the Unstable Games Wiki, see `expansion-plan.md` Appendix B).
 
-## Overview
+## 1. Overview
 
-Unstable Unicorns is a competitive card game for 2-8 players. Each player starts with a Baby Unicorn in their Stable and a hand of 5 cards. The goal is to be the first player to collect **7 Unicorns** in your Stable.
+Unstable Unicorns is a competitive card game for 2–8 players. Each player starts with a Baby Unicorn in their Stable and a hand of 5 cards. The first player with **7 Unicorns** in their Stable wins.
 
-The core tension: every turn you can play one card (a unicorn into your stable, a magic spell, an upgrade for yourself, or a downgrade on an opponent) — but any other player may **Neigh** your card to block it.
+On your turn you play one card (a unicorn into your stable, a magic spell, an upgrade or a downgrade into any player's stable) or draw a card — and any other player may **Neigh** a played card to stop it.
 
-## Turn Structure
+The lobby lets the game creator choose which card sets are shuffled into the deck (`setupData.expansions`; currently `base_game` and `adventures_2nd_edition`).
 
-### Pregame Phase
+## 2. Turn Structure
 
-All players simultaneously pick a Baby Unicorn from the nursery and ready up. Once everyone is ready, the game begins.
+### Pregame phase
 
-### Main Phase (turn-based)
+All players simultaneously pick a Baby Unicorn from the nursery and ready up. Once everyone is ready, the game begins. (Sandbox mode skips this and assigns random babies.)
 
-Each turn has two stages:
+### Main phase
 
-#### 1. Beginning Stage
+Each turn has two stages. All players are in the same stage so that everyone can react.
 
-1. **Begin-of-turn effects fire** — Upgrades and unicorns in your stable with `begin_of_turn` triggers create Scenes (see `effects.md`). Some are optional, some mandatory.
-2. **Draw a card** — You draw 1 card from the draw pile, then advance to the Action Phase. You cannot draw while mandatory scenes or in-progress scenes remain unresolved.
+#### Beginning stage
 
-#### 2. Action Phase
+1. **Begin-of-turn effects.** When the turn starts, every card in the current player's stable (unicorns, upgrades, downgrades) with a `begin_of_turn` trigger creates a Scene. Only cards that are in the stable at that moment get one. Scenes whose first step is impossible (nothing to discard, no legal target) are removed automatically.
+2. The player resolves these scenes **one at a time, in any order**, against the live game state. A card that arrived through one effect can be used by the next one.
+3. **Draw a card.** Drawing moves the turn to the Action stage and discards every scene that is still open — unused optional effects are forfeited. The player cannot draw while a mandatory scene is open or a scene is half-resolved.
 
-You may do **one** of:
-- **Play a card** from your hand (triggers Neigh voting — see below)
-- **Draw a card and end your turn** (this counts as your action — you cannot play a card afterward)
-- **End your turn** without doing anything
+#### Action stage
 
-If you have the **Double Dutch** effect, you may play **2 cards** instead of 1.
+The player does **one** of:
 
-Scenes from card effects may also need resolving during this stage.
+- **Play a card** from hand (opens Neigh voting, section 3). A card that gets Neigh'd still uses up the action.
+- **Draw a card.** This counts as the action; no card can be played afterwards.
 
-#### End of Turn
+With **Double Dutch** the player may play **2 cards** instead of 1 (not draw and play).
 
-- If your hand exceeds **7 cards**, you must discard down to 7 (mandatory).
-- If **Change of Luck** is active on you, it is removed and you get another turn.
-- Otherwise, play passes to the next player.
+After that the player resolves any scenes created by the played card and ends the turn. The UI only offers "End turn" once a card was played or drawn. The game owner can end any player's turn (for players who are away).
 
-## Neigh Voting
+#### End of turn
 
-When any player plays a card (unicorn, magic, upgrade, or downgrade), a **Neigh Discussion** opens:
+- If the hand has more than **7 cards**, the player must discard down to 7.
+- If **Change of Luck** was played this turn, the same player takes another turn.
+- Otherwise play passes to the next player.
 
-1. All other players may play a **Neigh** card to block it, or pass ("no neigh").
-2. If someone plays a Neigh, a new round opens where players may Neigh *that* Neigh (counter-neigh).
-3. This continues in rounds. At each round, all undecided players must eventually vote.
-4. **Odd-numbered total rounds** = the original card resolves (enters play). **Even-numbered total rounds** = the original card is blocked (goes to discard).
-5. A **Super Neigh** ends the discussion immediately — it cannot itself be Neighed.
+## 3. Neigh Voting
 
-**Key rules:**
-- **All playable card types can be Neighed** — unicorns, narwhals, basics, magic, upgrades, AND downgrades.
-- If the player has the `your_cards_cannot_be_neighed` effect (from "Yay"), their cards skip Neigh voting entirely.
-- If a player has the `you_cannot_play_neigh` effect (from "Slowdown" or "Ginormous Unicorn"), they cannot play Neigh cards.
-- Baby Unicorns are never played from hand, so they are never subject to Neigh voting.
+When a player plays a card from hand, a **Neigh discussion** opens:
 
-## Win Condition
+1. Round 1: every other player votes — play a **Neigh** or pass. The first Neigh closes the round.
+2. A Neigh opens a new round in which every player except the one who just played the Neigh may Neigh *that* Neigh (the original player may counter).
+3. A round ends when everybody has passed. Then the result is decided by the number of rounds: **odd** = the original card resolves, **even** = it goes to the discard pile.
+4. A **Super Neigh** ends the whole discussion immediately with the result its position implies.
 
-A player wins when they have **7 or more Unicorns** in their Stable.
+Details:
 
-Counting rules:
-- Baby Unicorns, Basic Unicorns, special Unicorns, and Narwhals all count as Unicorns for this purpose (the `isUnicorn` function includes all four types).
-- **Ginormous Unicorn** counts as **2** Unicorns (via the `count_as_two` effect).
-- If **Pandamonium** is active on your stable, your unicorns are considered Pandas — they do NOT count as Unicorns and you **cannot win**.
+- Every card played from hand can be Neigh'd: unicorns, magic, upgrades and downgrades.
+- **Yay** (`your_cards_cannot_be_neighed`): the owner's cards skip the voting entirely. Neigh cards the owner plays can still be Neigh'd.
+- **Slowdown / Ginormous Unicorn** (`you_cannot_play_neigh`): the player is skipped in every vote.
+- Cards that are *brought* into a stable by an effect are not played and cannot be Neigh'd. Baby Unicorns are never played from hand.
+- A client setting passes automatically for players without a Neigh card in hand.
 
-The game also ends if the draw pile runs out.
+## 4. Winning and running out of cards
 
-## Special Rules & Gotchas
+A player wins as soon as their stable holds **7 or more** unicorn cards. This is checked after every move.
+
+- Baby, Basic and Magical Unicorns (including Narwhals) each count 1.
+- **Ginormous Unicorn** counts 2. (Implemented as +1 for the player, not per card.)
+- A player with **Pandamonium** cannot win.
+
+**Empty deck.** If the draw pile is empty at the start of a turn, or too small for a draw effect, the discard pile is shuffled into it. The game only stops when both piles are empty at the start of a turn.
+
+## 5. Special Rules
 
 ### Baby Unicorns
-- Live in the **Nursery**, not in the draw pile. They are never in a player's hand.
-- Selected during pregame; start in your stable.
-- When a Baby Unicorn would be sacrificed, destroyed, or returned to hand, it goes back to the **Nursery** instead.
-- Can only enter a stable via specific card effects (e.g., Mother Goose Unicorn).
 
-### Tiny Stable
-- If you have the `tiny_stable` effect and more than 5 unicorns (or more than 4 if Ginormous Unicorn is among them), you must **sacrifice** a unicorn.
-- This check fires when a card enters your stable.
-- If Pandamonium is also active, Tiny Stable is effectively inert (unicorns are pandas, not unicorns, so the count doesn't trigger).
+- Live in the **Nursery**; never in a hand, the deck or the discard pile.
+- When a Baby Unicorn would be sacrificed, destroyed or returned to hand, it goes to the Nursery instead.
+- Enter a stable only through card effects (Mother Goose Unicorn, Cutthroat Captain Unicorn steals one).
 
-### Cost-Then-Effect vs. Choice
+### Cost-then-effect vs. choice
 
-This is a common source of confusion. When a card has **two sequential actions** in a scene:
+- **Cost then effect** — two consecutive Actions in a Scene. The first must be completed before the second happens. Stable Artillery: discard 2 cards, *then* destroy a Unicorn.
+- **Choice** — several Instructions for the same player inside one Action. The player performs exactly one. First Mer-Mate Unicorn: draw 2 cards *or* bring a Basic Unicorn into the stable.
 
-- **Cost-then-effect**: The first action is a *cost* you pay, and the second is the *reward*. Example: **Stable Artillery** — "DISCARD 2 cards, then DESTROY a Unicorn." You must discard 2 cards *first*, and only then do you get to destroy. You cannot destroy without paying the cost.
-- **Choice (same action, multiple instructions)**: When multiple instructions are in the *same* action for the same protagonist, the player picks exactly one. Example: **Chainsaw Unicorn** — "DESTROY an Upgrade card or SACRIFICE a Downgrade card." These are alternatives.
+### Mandatory vs. optional
 
-### Mandatory vs. Optional Scenes
+- `mandatory: true` — must be resolved before the turn can continue (Unicorn Poison).
+- `mandatory: false` — "you may". The player can skip; skipping an optional scene skips all of its remaining steps.
 
-- `mandatory: true` — The scene **must** be resolved before the turn can advance. Example: Unicorn Poison's destroy effect.
-- `mandatory: false` — The player may skip the scene. Example: Americorn's pull effect ("you may...").
+### Impossible actions
 
-When a scene is optional, the player can decline by skipping it. When mandatory, they must execute all actions in sequence.
+After every step the engine removes instructions that cannot be carried out (no legal target, nothing to discard). For an optional scene this happens only when *all* alternatives of the current step are impossible. Cards are **not** prevented from being played when their effect is impossible — the card is spent and the effect does nothing.
 
-### Blinding Light + Pandamonium Interaction
+### Flying unicorns
 
-- **Blinding Light** (`my_unicorns_are_basic`): Makes all your unicorns count as Basic — they lose special abilities.
-- **Pandamonium** (`pandamonium`): Makes all your unicorns count as Pandas.
-- If **both** are active: Pandamonium takes priority. Your unicorns are Pandas (not basic), so they **retain** their special abilities but are immune to unicorn-targeting effects. (See `isCardBasicDueToEffect` in `effect.ts`.)
+Cards with a `this_destroyed_or_sacrificed` → `return_to_hand` trigger return to their owner's hand instead of the discard pile.
 
-### Cards That Return to Hand
+### Immediately end your turn
 
-Several "Flying Unicorn" cards have a `this_destroyed_or_sacrificed` trigger with `return_to_hand`. When destroyed or sacrificed, instead of going to the discard pile, they return to the owner's hand. This makes them resilient.
-
-### endTurnImmediately
-
-Some begin-of-turn scenes (e.g., Rhinocorn, Zombie Unicorn) have `endTurnImmediately: true`. If the player commits to such a scene, their turn ends immediately after resolving it — they skip the draw and action phase entirely.
+Rhinocorn and Zombie Unicorn have `endTurnImmediately`. Once the player starts such a scene, they can no longer draw or play this turn. Other begin-of-turn effects can still be used.
 
 ### Queen Bee Unicorn
 
-Adds the `basic_unicorns_can_only_join_your_stable` effect. While active, **no other player** can have Basic Unicorns enter their stable. This is checked globally — any player's Queen Bee blocks basics for everyone else.
+While it is in a stable, Basic Unicorns cannot enter any *other* player's stable (played, brought, revived or stolen).
 
-### Pandamonium and Destruction Immunity
+### Extreme Adventurer Unicorn
 
-When Pandamonium is active, your unicorns are Pandas. Since destroy targets "unicorn" type cards, and Pandas are not unicorns, **your stable cards cannot be targeted by destroy effects** that specify unicorn type.
+Basic Unicorns cannot enter the stable this card is in.
 
-### Magical Kittencorn
+### Blinding Light
 
-Has the `cannot_be_destroyed_by_magic` passive. It is immune to destroy effects originating from Magic cards (e.g., Unicorn Poison), but CAN be destroyed by non-magic sources.
+All unicorns of the affected player (types `unicorn` and `narwhal`; not babies, not basics) are treated as having no effects: no enter, begin-of-turn or destroyed/sacrificed triggers.
+
+### Pandamonium
+
+- The player cannot win.
+- Their unicorns cannot be chosen by **destroy a Unicorn** effects, cannot be sacrificed (neither by "sacrifice a Unicorn" nor by "sacrifice a card"), and cannot be given away with a unicorn swap.
+- Their unicorns **can** be chosen by "destroy a card", by steal effects and by return-to-hand effects.
+- Tiny Stable does nothing while Pandamonium is active.
+
+### Blinding Light + Pandamonium together
+
+Pandamonium takes priority: the unicorns are Pandas, not Basic Unicorns, and **keep** their abilities (`isCardBasicDueToEffect` in `effect.ts`).
+
+### Tiny Stable
+
+When a card enters the stable of a player with Tiny Stable and that player then has more than 5 unicorns (more than 4 if they have Ginormous Unicorn), they must sacrifice a unicorn. The check runs only when a card enters.
+
+### Other protections
+
+- **Rainbow Aura**: the owner's unicorns cannot be destroyed.
+- **Magical Kittencorn**: cannot be destroyed by Magic cards.
+- **Broken Stable**: the player cannot play Upgrade cards (they can still receive them).
+
+## 6. Known issues in the current implementation
+
+Found while reading the code on 2026-11-17. Not rule decisions — things that look unintended.
+
+| # | Issue | Where |
+|---|---|---|
+| I1 | A stable that holds 7 cards accepts no further card (`canEnter` returns false). Normally unreachable because 7 unicorns win, but it blocks a player with Pandamonium. | `operations/enter.ts:187` |
+| I2 | A unicorn entering under Blinding Light returns early from `enter()`, which also skips Barbed Wire and the Tiny Stable check for that entry. | `operations/enter.ts:126` |
+| I3 | Continuous effects (`add_effect`) are only added when a card enters. A unicorn that entered while Blinding Light was active never gets its effect, even after Blinding Light is gone. | `operations/enter.ts` |
+| I4 | Drawing for the turn (`drawAndAdvance`, `drawAndEnd`) does not reshuffle and does not check for an empty draw pile. | `game.ts:283`, `game.ts:492` |
+| I5 | When both piles are empty at turn start the code switches to a phase named `end`, which is not defined. | `game.ts:180` |
+| I6 | Drawing for the turn clears the scenes of **all** players, including mandatory steps other players still owe. | `game.ts:289` |
+| I7 | The Great Narwhal's search matches cards whose type is exactly `narwhal`; the basic Narwhal (type `["basic","narwhal"]`) and Baby Narwhal are not found. | `operations/search.ts` |
+| I8 | Destroy effects do not exclude the acting player's own stable. | `operations/destroy.ts:62` |
+| I9 | Hornswoggler Unicorn, Salty Seadogicorn, Fearless Unicorn and Zombie Unicorn do not do what their English text says (see `cards.md`). | `card.ts` |
+| I10 | The full game state, including all hands and the deck order, is sent to every client (no `playerView`). | `game.ts` |
+
+## 7. Decided rule changes (not implemented yet)
+
+Decided on 2026-11-17. "Current" is what sections 1–6 describe and what a later **legacy mode** must be able to reproduce. Links go to the wiki page and section the new rule comes from.
+
+### Rules that change
+
+| ID | Topic | Current (legacy) | Decided |
+|---|---|---|---|
+| R1 | Blinding Light + Pandamonium | Pandamonium wins; unicorns keep all abilities. | Blinding has priority: enter abilities are suppressed. Pandamonium then only protects the cards, so abilities that trigger when a card leaves still work. ([Blinding Effect → Interactions](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Blinding_Effect#Interactions)) |
+| R2 | Unicorns needed to win | 7, always. | 7 with 2–5 players, 6 with 6–8 players. ([Winning → The End of the Game](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Winning#The_End_of_the_Game)) |
+| R3 | Super Neigh | Ends the whole discussion immediately. | Cannot be Neigh'd and cancels the card it answers; voting then re-opens on the card below it, which can be Neigh'd again. ([Neigh page → Super Neigh](https://www.unstablegameswiki.com/index.php?title=UU_-_Neigh,_Neigh%27d,_Neighable,_Neighing#Super_Neigh)) |
+| R4 | Pandamonium scope (**house rule**, differs from the wiki) | Mixed, see section 5. | One principle: an effect that says "**Unicorn** card" cannot affect that player's unicorns; an effect that says "a **card**" can. Changes: "steal a Unicorn" no longer works on them; "sacrifice a card" now may pick them. Same for return, move and every future effect. |
+| R5 | Tiny Stable | Checked only when a card enters; Ginormous +1 per player. | Checked at any time (for example when Pandamonium leaves); every double-count unicorn counts 2. ([Tiny Stable → Specific Card Rules](https://www.unstablegameswiki.com/index.php?title=UU_-_Tiny_Stable#Specific_Card_Rules_and_Information)) |
+| R6 | Mermaid Unicorn | Optional. | Mandatory, as printed. ([Mermaid Unicorn → Card Texts](https://www.unstablegameswiki.com/index.php?title=UU_-_Mermaid_Unicorn#Card_Texts)) |
+| R7 | Moment of winning | Checked after every move. | Only when all pending effects have resolved. ([Winning → Winning Condition](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Winning#Winning_Condition)) |
+| R8 | Stable size | A stable with 7 cards accepts no more. | No limit. ([FAQ → stable limit](https://www.unstablegameswiki.com/index.php?title=Unstable_Unicorns_-_FAQ#Is_there_a_limit_to_how_many_cards_you_can_have_in_your_Stable%3F)) |
+| R9 | Playing unicorns | Only into your own stable. | Into any player's stable; your own is the default. ([Cards → Cards](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Cards#Cards)) |
+| R10 | Unplayable cards | Any card can be played; an impossible effect fizzles. | A card can only be played if its **first required action** can be performed (Unicorn Poison needs a legal target; Two-For-One needs something to sacrifice). Later steps and optional abilities are not checked. ([Requirement](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Requirement)) |
+| R11 | Destroy | May target the acting player's own stable. | Other players' stables only. ([Destroy](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Destroy)) |
+| R12 | Yay | Protects the owner's cards except their Neighs. | Nothing the owner plays can be Neigh'd, including Neighs. ([Neigh page → Yay](https://www.unstablegameswiki.com/index.php?title=UU_-_Neigh,_Neigh%27d,_Neighable,_Neighing#Yay)) |
+| R13 | Blinding Light leaves | Suppressed continuous effects never come back. | Continuous effects are active again; enter abilities are not re-triggered. ([Blinding Effect → Interactions](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Blinding_Effect#Interactions)) |
+| R14 | Barbed Wire + Pandamonium | Discard on enter and on leave. | Discard when a unicorn enters; none when one leaves. ([Simultaneously](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Simultaneously), "Continuous (Mandatory) Effect") |
+| R15 | Effects with several targets | Chosen and applied one after another (destroying an Upgrade can unlock the next target). | All targets of one effect are chosen first, then applied together. ([Effects](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Effects)) |
+| R16 | Searching the deck | The found card is not shown to the other players. | The found card is revealed to everyone and logged. ([Search](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Search)) |
+| R17 | Zombie Unicorn | Discard any card, then revive; ends the turn. | Discard a **Unicorn** card, then revive; ends the turn. Text updated to the 2nd Edition wording. ([Zombie Unicorn → Card Texts](https://www.unstablegameswiki.com/index.php?title=UU_-_Zombie_Unicorn#Card_Texts)) |
+| R18 | When targets are named | Destination of an Upgrade/Downgrade before the voting; all other targets after it. | Default: the destination and the targets of the first required action are named **before** the voting. Game option: name them after. ([Effects](https://www.unstablegameswiki.com/index.php?title=UU_Game_Terminology_-_Effects), "Choosing Targets for Effects") |
+| R19 | Two-player games | Same rules as any game. | The removal list of each set is applied and each player starts with one Neigh. ([Two Player Rules](https://www.unstablegameswiki.com/index.php?title=Unstable_Unicorns_-_Two_Player_Rules)) |
+| R20 | Deck and discard pile both empty | The code switches to an undefined phase (issue I5). | The game ends; the player with the most unicorns wins, ties share the win. |
+
+### Card fixes (no legacy variant — the current behaviour is a bug)
+
+| Card | Current | Decided |
+|---|---|---|
+| Hornswoggler Unicorn | Mode 1 draws 3 cards without discarding the hand. | Discard your hand, then draw 3. |
+| Salty Seadogicorn | Mode 1 makes one chosen player discard. | Each other player discards. |
+| Fearless Unicorn | May take a Neigh from the discard pile. | May take any Instant card. |
+
+### Wiki rules that are deliberately **not** adopted
+
+| ID | Topic | We keep | Wiki says |
+|---|---|---|---|
+| K1 | Empty deck | Shuffle the discard pile into the deck. | The game ends; most unicorns wins. |
+| K2 | Responding to a played card | Voting rounds (section 3), extended by R3 and R12. | An "instant pile" where the fastest response wins and the pile re-opens after every resolution. |
+| K3 | Begin-of-turn effects | Resolved one at a time; a card that just arrived can be used by the next effect. | All simultaneous; a card that arrived cannot be used by another effect of the same phase. |
+
+### Deferred
+
+Card counts and missing base-deck cards (`cards.md`, "Deviations") are corrected when the card sets are rebuilt for the expansions.
