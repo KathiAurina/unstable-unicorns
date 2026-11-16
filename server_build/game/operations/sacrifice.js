@@ -10,6 +10,7 @@ const state_1 = require("../state");
 const effect_1 = require("../effect");
 const underscore_1 = __importDefault(require("underscore"));
 const enter_1 = require("./enter");
+const log_1 = require("../log");
 function sacrifice(G, ctx, param) {
     const card = G.deck[param.cardID];
     (0, enter_1.leave)(G, ctx, { playerID: param.protagonist, cardID: param.cardID });
@@ -27,6 +28,7 @@ function sacrifice(G, ctx, param) {
         if (on.do.type === "return_to_hand") {
             G.discardPile = underscore_1.default.without(G.discardPile, param.cardID);
             G.hand[param.protagonist] = [...G.hand[param.protagonist], param.cardID];
+            (0, log_1.pushLog)(G, ctx, { actor: param.protagonist, kind: 'return_to_hand', targetCardID: param.cardID, targetPlayer: param.protagonist });
         }
         else if (on.do.type === "add_scene") {
             (0, state_1._addSceneFromDo)(G, ctx, card.id, param.protagonist, "any");

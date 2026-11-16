@@ -194,6 +194,19 @@ describe('findDestroyTargets', () => {
         const targets = (0, do_1.findDestroyTargets)(G, ctx, '0', { type: 'unicorn' }, undefined);
         expect(targets.length).toBe(0);
     });
+    it('does not include cards with cannot_be_destroyed_by_magic passive when source is a magic card', () => {
+        const G = (0, testHelpers_1.setupTestGame)();
+        const ctx = (0, testHelpers_1.createCtx)();
+        // Find a unicorn card that has the passive cannot_be_destroyed_by_magic
+        const protectedCard = G.deck.find(c => (c.type === 'unicorn' || c.type === 'basic') &&
+            c.passive?.includes('cannot_be_destroyed_by_magic'));
+        if (!protectedCard)
+            return; // skip if no such card in deck
+        G.stable['1'] = [...G.stable['1'], protectedCard.id];
+        const magicCard = G.deck.find(c => c.type === 'magic');
+        const targets = (0, do_1.findDestroyTargets)(G, ctx, '0', { type: 'unicorn' }, magicCard.id);
+        expect(targets.every(t => t.cardID !== protectedCard.id)).toBe(true);
+    });
     it('does not include cards when pandamonium is active on target', () => {
         const G = (0, testHelpers_1.setupTestGame)();
         const ctx = (0, testHelpers_1.createCtx)();
@@ -228,6 +241,24 @@ describe('findDiscardTargets', () => {
         const handSize = G.hand['0'].length;
         const targets = (0, do_1.findDiscardTargets)(G, ctx, '0', { count: 1, type: 'any' });
         expect(targets.length).toBe(handSize);
+    });
+    it('returns empty for type=any when hand is empty', () => {
+        const G = (0, testHelpers_1.setupTestGame)();
+        const ctx = (0, testHelpers_1.createCtx)();
+        G.hand['0'] = [];
+        const targets = (0, do_1.findDiscardTargets)(G, ctx, '0', { count: 1, type: 'any' });
+        expect(targets).toHaveLength(0);
+    });
+    it('returns empty for type=unicorn when hand has no unicorns', () => {
+        const G = (0, testHelpers_1.setupTestGame)();
+        const ctx = (0, testHelpers_1.createCtx)();
+        // Keep only magic/neigh/upgrade cards in hand (no unicorns)
+        G.hand['0'] = G.hand['0'].filter(id => {
+            const t = G.deck[id].type;
+            return !['basic', 'unicorn', 'narwhal', 'baby'].includes(Array.isArray(t) ? t[0] : t);
+        });
+        const targets = (0, do_1.findDiscardTargets)(G, ctx, '0', { count: 1, type: 'unicorn' });
+        expect(targets).toHaveLength(0);
     });
     it('returns only unicorn hand cards for type=unicorn', () => {
         const G = (0, testHelpers_1.setupTestGame)();

@@ -9,6 +9,7 @@ import type { BringToStableTarget, DiscardTarget } from '../game/operations';
 import { CardID, hasType } from '../game/card';
 import type { Moves } from '../game/types';
 import { BoardState } from '../BoardStateManager';
+import { useSandboxControl } from '../sandbox/sandboxContext';
 
 type Props = {
     G: UnstableUnicornsGame;
@@ -52,6 +53,8 @@ const StableSection = ({
     // suppress unused warning
     void hoverTargets;
 
+    const { sandboxAction, setSandboxAction } = useSandboxControl();
+
     let glowingCards: CardID[] = [];
 
     if (boardStates.find(s => s.type === "playCard")) {
@@ -73,6 +76,15 @@ const StableSection = ({
     }
 
     const onHandCardClick = (evt: React.MouseEvent, cardID: CardID) => {
+        if (sandboxAction) {
+            if (sandboxAction.type === 'move_to_stable' && sandboxAction.step === 'pick_card') {
+                setSandboxAction({ type: 'move_to_stable', step: 'pick_stable', cardID });
+            } else if (sandboxAction.type === 'force_discard') {
+                moves.sandboxForceDiscardCard(sandboxAction.playerID, cardID);
+                setSandboxAction(null);
+            }
+            return;
+        }
         if (boardStates.find(s => s.type === "playCard")) {
             const cardsOnHandThatCanBePlayed = G.hand[playerID].map(c => [canPlayCard(G, ctx, playerID, c), c]).filter(s => s[0]).map(s => s[1]) as CardID[];
             if (cardsOnHandThatCanBePlayed.includes(cardID)) {
@@ -124,6 +136,19 @@ const StableSection = ({
                 glowing={glowingCardIDs}
                 highlightMode={stableHighlightMode}
                 onStableItemClick={(evt, cardID) => {
+                    if (sandboxAction) {
+                        if (sandboxAction.type === 'bounce') {
+                            moves.sandboxBounceCard(cardID);
+                            setSandboxAction(null);
+                        } else if (sandboxAction.type === 'destroy') {
+                            moves.sandboxDestroyCard(cardID);
+                            setSandboxAction(null);
+                        } else if (sandboxAction.type === 'steal' && sandboxAction.step === 'pick_card') {
+                            setSandboxAction({ type: 'steal', step: 'pick_target', cardID });
+                        }
+                        return;
+                    }
+                    // initiate card to card interaction for destroy and steal actions
                     if (cardInteraction === undefined) {
                         let boardState = _.first(boardStates.filter(s => s.info?.sourceCardID === cardID && (s.type === "destroy__cardToCard" || s.type === "steal__cardToCard" || s.type === "sacrifice__cardToCard" || s.type === "move__cardToCard" || s.type === "returnToHand__cardToCard" || s.type === "backKick__card_to_card" || s.type === "unicornswap1")));
                         if (boardState) {

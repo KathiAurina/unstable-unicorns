@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EXPANSION_LABELS = exports.AVAILABLE_EXPANSIONS = void 0;
+exports.Cards = exports.EXPANSION_LABELS = exports.AVAILABLE_EXPANSIONS = void 0;
 exports.hasType = hasType;
 exports.getPrimaryType = getPrimaryType;
 exports.initializeDeck = initializeDeck;
@@ -17,7 +17,7 @@ exports.EXPANSION_LABELS = {
     base_game: "Base Game",
     adventures_2nd_edition: "Adventures (2nd Edition)"
 };
-const Cards = [{
+exports.Cards = [{
         title: "Baby Unicorn",
         expansions: ["base_game"],
         type: "baby",
@@ -2357,7 +2357,7 @@ const Cards = [{
 function initializeDeck(expansions = ["base_game"]) {
     const deck = [];
     let currentId = 0;
-    const filteredCards = Cards.filter(c => c.expansions.some(e => expansions.includes(e)));
+    const filteredCards = exports.Cards.filter(c => c.expansions.some(e => expansions.includes(e)));
     for (const card of filteredCards) {
         for (let i = 0; i < card.count; i++) {
             deck.push({
