@@ -614,6 +614,9 @@ function chooseAndApply(run: Run, path: string, env: Env, spec: ChooseSpec): Res
             if (!onTop(run)) return 'suspend';
         }
         if (spec.count === 'all' || (m.done as number) >= wanted) return end();
+        // R15: targets that are chosen together are all there is — a card that only became a legal
+        // target through this step (its protection was just destroyed) is not asked for afterwards.
+        if (!spec.sequential) return end();
         m.stage = 'ask';
     }
 }
