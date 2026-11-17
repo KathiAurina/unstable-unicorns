@@ -1,6 +1,6 @@
 # Expansion Implementation Plan
 
-> **Status:** plan, written 2026-11-16 on branch `select_extensions`; decisions of 2026-11-17 are worked in (section 11). Nothing in it is implemented yet.
+> **Status:** plan, written 2026-11-16 on branch `select_extensions`; decisions of 2026-11-17 are worked in (section 11). **Stages 2 and 3 are implemented** (card registry, rules engine with the legacy preset, `src/view` UI layer, old engine removed — commit `506225a`); stage 1 and stages 4+ are open.
 > `rules.md`, `cards.md` and `effects.md` describe the game as it is today. This file describes where it is going. Rule statements in section 3 come from the Unstable Games Wiki (Appendix B); which of them are adopted is decided in `rules.md` section 7 (IDs R1–R19, K1–K3), and this plan refers to those IDs.
 > Reference language is English: English card text and English rules.
 
