@@ -1,25 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import type { LogEntry } from '../game/log';
-import type { Player } from '../game/player';
-import type { Card } from '../game/card';
-import { formatLogEntry } from '../components/GameLogPanel';
+import type { GameState, PlayerID } from '../game/engine';
+import { describeLog } from '../view/log';
+import { logLineStyle, renderLogLine } from '../components/GameLogPanel';
 
 type Props = {
-    gameLog: LogEntry[];
-    players: Player[];
-    deck: Card[];
+    G: GameState;
+    /** Whose view this is: private cards are only named for this player. */
+    playerID: PlayerID;
     onClose: () => void;
 };
 
-const MobileGameLogDrawer = ({ gameLog, players, deck, onClose }: Props) => {
+const MobileGameLogDrawer = ({ G, playerID, onClose }: Props) => {
     const listRef = useRef<HTMLDivElement>(null);
+    const lines = useMemo(() => describeLog(G, playerID), [G, playerID]);
 
     useEffect(() => {
         const el = listRef.current;
         if (!el) return;
         el.scrollTop = el.scrollHeight;
-    }, [gameLog.length]);
+    }, [lines.length]);
 
     return (
         <Overlay onClick={onClose}>
@@ -29,17 +29,12 @@ const MobileGameLogDrawer = ({ gameLog, players, deck, onClose }: Props) => {
                     <CloseBtn onClick={onClose}>✕</CloseBtn>
                 </DrawerHeader>
                 <EntryList ref={listRef}>
-                    {gameLog.length === 0 && <EmptyText>No actions yet.</EmptyText>}
-                    {gameLog.map((entry, idx) => {
-                        const content = formatLogEntry(entry, players, deck);
-                        if (!content) return null;
-                        const isLast = idx === gameLog.length - 1;
-                        return (
-                            <LogLine key={entry.id} isLast={isLast}>
-                                {content}
-                            </LogLine>
-                        );
-                    })}
+                    {lines.length === 0 && <EmptyText>No actions yet.</EmptyText>}
+                    {lines.map((line, idx) => (
+                        <LogLine key={line.id} isLast={idx === lines.length - 1} style={logLineStyle(line)}>
+                            {renderLogLine(G, line)}
+                        </LogLine>
+                    ))}
                 </EntryList>
             </Drawer>
         </Overlay>

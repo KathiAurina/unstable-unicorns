@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { CardID } from '../game/card';
+import type { CardID } from '../game/engine';
 
 export type SandboxAction =
     | { type: 'bounce' }

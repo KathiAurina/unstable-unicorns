@@ -1,8 +1,12 @@
 import React from 'react';
 import styled from 'styled-components';
 import RainbowButton from '../shared/RainbowButton';
-import { Expansion, AVAILABLE_EXPANSIONS, EXPANSION_LABELS } from '../../game/card';
+import { BASE_SETS, EXPANSION_SETS } from '../../game/cards/registry';
 import StyledInput from '../shared/StyledInput';
+
+/** Set ids as the lobby stores them in the setup data of a match. */
+type Expansion = string;
+const AVAILABLE_SETS = [...BASE_SETS, ...EXPANSION_SETS];
 
 interface Props {
     matchName: string;
@@ -58,14 +62,14 @@ const CreateGameCard = ({ matchName, setMatchName, numPlayers, setNumPlayers, se
             <ExpansionSection>
                 <Label>Expansions</Label>
                 <CheckboxGrid>
-                    {AVAILABLE_EXPANSIONS.map((id) => (
+                    {AVAILABLE_SETS.map(({ id, label }) => (
                         <CheckboxLabel key={id}>
                             <input
                                 type="checkbox"
                                 checked={currentExpansions.includes(id)}
                                 onChange={() => toggleExpansion(id)}
                             />
-                            <span>{EXPANSION_LABELS[id]}</span>
+                            <span>{label}</span>
                         </CheckboxLabel>
                     ))}
                 </CheckboxGrid>

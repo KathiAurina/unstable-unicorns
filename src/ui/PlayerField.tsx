@@ -1,22 +1,23 @@
 import styled from 'styled-components';
-import type { Player, PlayerID } from "../game/player";
+import type { Player, PlayerID, CardView, CardID } from '../view/cards';
+import { cardDescription } from '../view/cards';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from './util';
-import type { Card, CardID } from '../game/card';
 import useDynamicRefs from 'use-dynamic-refs';
 import React, { RefObject, useContext, useImperativeHandle, useState } from 'react';
 import CardHover from './CardHover';
 import { motion } from 'framer-motion';
 import useSound from 'use-sound';
-import { cardDescription } from '../BoardUtil';
 import { LanguageContext } from '../LanguageContextProvider';
 const HubMouseOverSound = require('../assets/sound/Hub_Mouseover.ogg');
 
 type Props = {
     players: Player[];
-    stable: { [key: string]: Card[] };
+    stable: { [key: string]: CardView[] };
     highlightMode?: CardID[];
-    upgradeDowngradeStable: { [key: string]: Card[] };
+    /** Players whose stable can be clicked for the open decision; they are outlined. */
+    targets?: PlayerID[];
+    upgradeDowngradeStable: { [key: string]: CardView[] };
     currentPlayer: PlayerID;
     handCount: number[];
     onStableCardClick: (cardID: CardID) => void;
@@ -48,7 +49,7 @@ const PlayerField = React.forwardRef<PlayerFieldHandle, Props>((props, ref) => {
         <Wrapper>
             {props.players.map((pl, idx) => {
                 return (
-                    <PlayerBox key={pl.id} current={pl.id === props.currentPlayer}>
+                    <PlayerBox key={pl.id} current={pl.id === props.currentPlayer} target={props.targets?.includes(pl.id) === true}>
                         <InnerBox onClick={() => props.onPlayerClick(pl.id)}>
                             <Title>
                                 <div>
@@ -127,7 +128,9 @@ const Wrapper = styled.div`
     justify-content: center;
 `;
 
-const PlayerBox = styled.div<{ current: boolean }>`
+const PlayerBox = styled.div<{ current: boolean; target?: boolean }>`
+    outline: ${props => props.target ? "3px solid #F8B500" : "none"};
+    box-shadow: ${props => props.target ? "0 0 18px rgba(248,181,0,0.8)" : "none"};
     width: 180px;
     height: 220px;
     background-color: ${props => props.current ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0)"};

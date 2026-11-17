@@ -1,9 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import type { UnstableUnicornsGame, Ctx } from '../game/state';
-import type { Moves } from '../game/types';
-import type { PlayerID } from '../game/player';
-import { _findOpenScenesWithProtagonist } from '../game/state';
+import type { GameState, PlayerID } from '../game/engine';
+import type { Moves } from '../game/game';
 import { LanguageContext } from '../LanguageContextProvider';
 
 const API_URL = process.env.REACT_APP_LOBBY_URL || window.location.origin;
@@ -12,10 +10,8 @@ type Props = {
     isOpen: boolean;
     onClose: () => void;
     isOwner: boolean;
-    isCurrentPlayer: boolean;
     playerID: PlayerID;
-    G: UnstableUnicornsGame;
-    ctx: Ctx;
+    G: GameState;
     moves: Moves;
     autoEndTurn: boolean;
     setAutoEndTurn: (v: boolean) => void;
@@ -23,7 +19,7 @@ type Props = {
     setAutoDontNeigh: (v: boolean) => void;
 };
 
-const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ctx, moves, autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh }: Props) => {
+const EscapeMenu = ({ isOpen, onClose, isOwner, playerID, G, moves, autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh }: Props) => {
     const languageContext = useContext(LanguageContext);
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
     const supportsFullscreen = !!document.documentElement.requestFullscreen;
@@ -67,25 +63,23 @@ const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ct
     };
 
     const handleEndGame = () => {
-        moves.abolishGame(playerID);
+        moves.abolishGame();
         onClose();
     };
 
+    // Owner overrides for players who are away (expansion-plan.md, decision Q14).
     const handleForceEndTurn = () => {
-        moves.end(ctx.currentPlayer);
+        moves.forceEndTurn();
         onClose();
     };
 
     const handleSkipAction = () => {
-        const openScenes = _findOpenScenesWithProtagonist(G, ctx.currentPlayer);
-        if (openScenes.length > 0) {
-            const [instruction] = openScenes[0];
-            moves.skipExecuteDo(ctx.currentPlayer, instruction.id);
-        }
+        moves.forceAnswer();
         onClose();
     };
 
-    const showEmergencyButtons = isOwner || isCurrentPlayer;
+    const showEmergencyButtons = isOwner && G.turn.number > 0;
+    const waiting = G.prompts.length > 0;
 
     return (
         <Backdrop onClick={onClose}>
@@ -109,9 +103,11 @@ const EscapeMenu = ({ isOpen, onClose, isOwner, isCurrentPlayer, playerID, G, ct
                         <MenuButton onClick={handleForceEndTurn}>
                             Force End Turn
                         </MenuButton>
-                        <MenuButton onClick={handleSkipAction}>
-                            Skip Current Action
-                        </MenuButton>
+                        {waiting && (
+                            <MenuButton onClick={handleSkipAction}>
+                                Answer the Open Decision for the Player
+                            </MenuButton>
+                        )}
                     </>
                 )}
 

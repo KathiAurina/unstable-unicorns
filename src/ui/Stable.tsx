@@ -1,5 +1,6 @@
 import styled, { css, keyframes } from 'styled-components';
-import type { Card, CardID } from "../game/card";
+import type { CardView, CardID } from '../view/cards';
+import { cardDescription } from '../view/cards';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from './util';
 import { useState, RefObject, useContext } from 'react';
@@ -10,13 +11,12 @@ import CardHover from './CardHover';
 import { motion } from 'framer-motion';
 import useSound from 'use-sound';
 import { LanguageContext } from '../LanguageContextProvider';
-import { cardDescription } from '../BoardUtil';
 const MouseClickSound = require('../assets/sound/board_common_dirt_poke_1.ogg');
 
 
 type Props = {
-    cards: Card[];
-    upgradeDowngradeCards: Card[];
+    cards: CardView[];
+    upgradeDowngradeCards: CardView[];
     glowing: CardID[];
     highlightMode?: CardID[];
     renderAccessoryHoverItem: (cardID: CardID) => React.ReactElement | undefined;

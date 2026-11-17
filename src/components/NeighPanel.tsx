@@ -1,14 +1,15 @@
-import _ from 'underscore';
 import styled from 'styled-components';
-import type { UnstableUnicornsGame, Ctx } from '../game/state';
-import type { Moves } from '../game/types';
+import type { GameState } from '../game/engine';
+import { candidateCards } from '../game/engine';
+import { cardView, playerName } from '../view/cards';
+import type { BoardModel } from '../view/model';
 import NeighLabel, { NeighLabelRole } from '../ui/NeighLabel';
 
 type Props = {
-    G: UnstableUnicornsGame;
-    ctx: Ctx;
-    playerID: string;
-    moves: Moves;
+    G: GameState;
+    model: BoardModel;
+    onPlayNeigh: () => void;
+    onPass: () => void;
 }
 
 const NeighLabelWrapper = styled.div`
@@ -19,68 +20,43 @@ const NeighLabelWrapper = styled.div`
     top: -16px;
 `;
 
-const NeighPanel = ({ G, ctx, playerID, moves }: Props) => {
-    if (!G.neighDiscussion) {
-        return null;
+/** Which text the label shows for this player, from what they did in the response round. */
+export function neighRole(model: BoardModel): NeighLabelRole {
+    const round = model.round!;
+    const me = model.me;
+    const asked = model.respond !== undefined;
+    const lastResponse = round.responses[round.responses.length - 1];
+    if (round.by === me) {
+        return asked ? 'original_initiator_can_counterneigh' : 'original_initiator';
     }
+    if (asked) return 'open';
+    if (lastResponse?.by === me) return 'new_initiator';
+    if (round.responses.some(r => r.by === me)) return 'did_neigh';
+    return 'did_not_neigh';
+}
 
-    const currentRound = _.last(G.neighDiscussion.rounds)!;
-    let role: NeighLabelRole = "original_initiator";
-    let newInitiatorName: string | undefined = undefined;
-    const originalInitiatorName = G.players[parseInt(G.neighDiscussion.protagonist)].name;
+// The response round on the desktop board: the card being played, how the voting stands, and the
+// buttons to play a Neigh or pass.
+const NeighPanel = ({ G, model, onPlayNeigh, onPass }: Props) => {
+    const round = model.round;
+    if (!round) return null;
 
-    if (G.neighDiscussion.rounds.length > 1) {
-        const beforeRound = _.last(G.neighDiscussion.rounds, 2)[0];
-        newInitiatorName = G.players[parseInt(_.findKey(beforeRound.playerState, val => val.vote === "neigh")!)].name;
-    }
-
-    if (G.neighDiscussion.protagonist === playerID) {
-        if (G.neighDiscussion.rounds.length > 1) {
-            const beforeRound = _.last(G.neighDiscussion.rounds, 2)[0];
-            if (beforeRound.playerState[playerID].vote === "neigh") {
-                role = "original_initiator";
-            } else {
-                role = "original_initiator_can_counterneigh";
-            }
-        } else {
-            role = "original_initiator";
-        }
-    } else if (currentRound.playerState[playerID].vote === "undecided") {
-        role = "open";
-    } else if (currentRound.playerState[playerID].vote === "neigh") {
-        role = "did_neigh";
-    } else if (currentRound.playerState[playerID].vote === "no_neigh") {
-        if (G.neighDiscussion.rounds.length > 1) {
-            const beforeRound = _.last(G.neighDiscussion.rounds, 2)[0];
-            if (beforeRound.playerState[playerID].vote === "neigh") {
-                role = "new_initiator";
-            } else {
-                role = "did_not_neigh";
-            }
-        } else {
-            role = "did_not_neigh";
-        }
-    }
-
-    const onPlayNeighClick = () => {
-        const neighCardOnHand = G.hand[playerID].map(c => G.deck[c]).find(c => c.type === "neigh");
-        if (neighCardOnHand) {
-            moves.playNeigh(neighCardOnHand.id, playerID, G.neighDiscussion!.rounds.length - 1)
-        } else {
-            const superNeigh = G.hand[playerID].map(c => G.deck[c]).find(c => c.type === "super_neigh");
-            moves.playSuperNeigh(superNeigh!.id, playerID, G.neighDiscussion!.rounds.length - 1)
-        }
-    }
-
-    const onDontPlayNeighClick = () => {
-        moves.dontPlayNeigh(playerID, G.neighDiscussion!.rounds.length - 1);
-    }
-
-    const didVote = currentRound.playerState[playerID].vote !== "undecided";
+    const lastResponse = round.responses[round.responses.length - 1];
+    const canRespond = model.respond !== undefined && candidateCards(model.respond).length > 0;
 
     return (
         <NeighLabelWrapper>
-            <NeighLabel card={G.deck[G.neighDiscussion.cardID]} originalInitiatorName={originalInitiatorName} newInitiatorName={newInitiatorName} role={role} didVote={didVote} numberOfNeighedCards={G.neighDiscussion.rounds.filter(s => s.state === "neigh").length} showPlayNeighButton={G.hand[playerID].map(c => G.deck[c]).filter(c => c.type === "neigh" || c.type === "super_neigh").length > 0 && G.playerEffects[playerID].find(s => s.effect.key === "you_cannot_play_neigh") === undefined} onPlayNeighClick={onPlayNeighClick} onDontPlayNeighClick={onDontPlayNeighClick} />
+            <NeighLabel
+                card={cardView(G, round.card)}
+                originalInitiatorName={playerName(G, round.by)}
+                newInitiatorName={lastResponse ? playerName(G, lastResponse.by) : undefined}
+                role={neighRole(model)}
+                didVote={model.respond === undefined}
+                numberOfNeighedCards={round.stopped ? 1 : 0}
+                showPlayNeighButton={canRespond}
+                onPlayNeighClick={onPlayNeigh}
+                onDontPlayNeighClick={onPass}
+            />
         </NeighLabelWrapper>
     );
 }

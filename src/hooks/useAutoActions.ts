@@ -1,77 +1,37 @@
-import { useEffect, useRef } from 'react';
-import { hasType } from '../game/card';
-import type { UnstableUnicornsGame, Ctx } from '../game/state';
-import type { PlayerID } from '../game/player';
-import type { Moves } from '../game/types';
-import type { BoardState } from '../BoardStateManager';
+import { useEffect } from 'react';
+import { candidateCards } from '../game/engine';
+import { onlyEndTurnLeft } from '../view/model';
+import type { BoardController } from '../view/useBoard';
 import type { GameSettings } from './useGameSettings';
 
+const DELAY_MS = 400;
+
+/**
+ * The two client-side conveniences of the settings menu:
+ *  - end the turn automatically when that is the only thing left to do
+ *  - pass automatically in a response round when holding no card that could answer
+ */
 export function useAutoActions(
-    G: UnstableUnicornsGame,
-    ctx: Ctx,
-    playerID: PlayerID,
-    moves: Moves,
+    board: BoardController,
     settings: Pick<GameSettings, 'autoEndTurn' | 'autoDontNeigh'>,
-    boardStates: BoardState[],
 ) {
-    const endTurnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const dontNeighTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const { model } = board;
 
-    // Auto-end-turn: fires when the only available action is ending the turn
+    const shouldEndTurn = settings.autoEndTurn && board.ui.pendingPlay === undefined && onlyEndTurnLeft(model);
+    const turnKey = `${model.turnPlayer}:${model.phase}`;
     useEffect(() => {
-        if (endTurnTimerRef.current) {
-            clearTimeout(endTurnTimerRef.current);
-            endTurnTimerRef.current = null;
-        }
-
-        if (!settings.autoEndTurn) return;
-        if (boardStates.length === 1 && boardStates[0].type === 'endTurn') {
-            endTurnTimerRef.current = setTimeout(() => {
-                moves.end(playerID);
-            }, 400);
-        }
-
-        return () => {
-            if (endTurnTimerRef.current) {
-                clearTimeout(endTurnTimerRef.current);
-                endTurnTimerRef.current = null;
-            }
-        };
+        if (!shouldEndTurn) return undefined;
+        const timer = setTimeout(() => board.endTurn(), DELAY_MS);
+        return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [boardStates, settings.autoEndTurn, playerID]);
+    }, [shouldEndTurn, turnKey]);
 
-    // Auto-don't-neigh: fires when player must vote but has no neigh cards
+    const respondId = model.respond?.id;
+    const shouldPass = settings.autoDontNeigh && model.respond !== undefined && candidateCards(model.respond).length === 0;
     useEffect(() => {
-        if (dontNeighTimerRef.current) {
-            clearTimeout(dontNeighTimerRef.current);
-            dontNeighTimerRef.current = null;
-        }
-
-        if (!boardStates.find(s => s.type === 'neigh__playNeigh')) return;
-        if (!G.neighDiscussion) return;
-
-        const cannotPlayNeigh = G.playerEffects[playerID]?.some(e => e.effect.key === 'you_cannot_play_neigh');
-
-        if (!cannotPlayNeigh) {
-            if (!settings.autoDontNeigh) return;
-            const hasNeighCard = G.hand[playerID].some(cid => {
-                const card = G.deck[cid];
-                return card && (hasType(card, 'neigh') || hasType(card, 'super_neigh'));
-            });
-            if (hasNeighCard) return;
-        }
-
-        const roundIndex = G.neighDiscussion.rounds.length - 1;
-        dontNeighTimerRef.current = setTimeout(() => {
-            moves.dontPlayNeigh(playerID, roundIndex);
-        }, 400);
-
-        return () => {
-            if (dontNeighTimerRef.current) {
-                clearTimeout(dontNeighTimerRef.current);
-                dontNeighTimerRef.current = null;
-            }
-        };
+        if (!shouldPass) return undefined;
+        const timer = setTimeout(() => board.pass(), DELAY_MS);
+        return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [G.neighDiscussion, boardStates, settings.autoDontNeigh, playerID]);
+    }, [shouldPass, respondId]);
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import useSound from 'use-sound';
-import type { UnstableUnicornsGame, Ctx } from '../game/state';
+import type { GameState } from '../game/engine';
+import type { Verb } from '../game/cards/types';
 
 const YourTurnSound = require('../assets/sound/ALERT_YourTurn_0v2.ogg');
 const DrawCardSound = require('../assets/sound/draw_card_and_add_to_hand_1.ogg');
@@ -14,11 +15,12 @@ const DiscardSound = require('../assets/sound/play_card_from_hand_1.ogg');
 const SacrificeSound = require('../assets/sound/FeignDeath_trigger_1.ogg');
 const StealSound = require('../assets/sound/stealth_on.ogg');
 
-export function useSoundEffects(G: UnstableUnicornsGame, ctx: Ctx, playerID: string): {
+export function useSoundEffects(G: GameState, playerID: string): {
     playDrawCardSound: () => void;
     playEndTurnButtonSound: () => void;
     playHubMouseOverSound: () => void;
-    playExecuteDoSound: (boardStateType: string | undefined) => void;
+    /** The sound for answering a prompt with this verb (steal, destroy, sacrifice, discard). */
+    playVerbSound: (verb: Verb | undefined) => void;
 } {
     const [playYourTurnAlert] = useSound(YourTurnSound, {
         volume: 0.3,
@@ -64,40 +66,41 @@ export function useSoundEffects(G: UnstableUnicornsGame, ctx: Ctx, playerID: str
         volume: 0.2,
     });
 
+    // A new turn of this player (an extra turn counts).
+    const turnNumber = G.turn.number;
+    const myTurn = turnNumber > 0 && G.turn.player === playerID;
     useEffect(() => {
-        if (ctx.currentPlayer === playerID) {
-            playYourTurnAlert();
-        }
-    }, [ctx.currentPlayer]);
+        if (myTurn) playYourTurnAlert();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [myTurn, turnNumber]);
 
+    // A played card resolved or was stopped.
+    const lastPlay = G.lastPlay;
     useEffect(() => {
-        if (G.lastNeighResult) {
-            if (G.lastNeighResult.result === "cardWasPlayed") {
-                playNeighSuccessSound();
-            } else {
-                playNeighFailureSound();
-            }
-        }
-    }, [G.lastNeighResult?.id]);
+        if (!lastPlay) return;
+        if (lastPlay.result === 'played') playNeighSuccessSound();
+        else playNeighFailureSound();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lastPlay?.id]);
 
+    // A response round opened (a card was played, or answered with an Instant).
+    const roundId = G.round?.id;
     useEffect(() => {
-        if (G.neighDiscussion?.rounds.length !== undefined && G.neighDiscussion?.rounds.length > 0) {
-            playFriendlyChallengeSound();
-        }
-    }, [G.neighDiscussion?.rounds.length])
+        if (roundId !== undefined) playFriendlyChallengeSound();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [roundId]);
 
-    const playExecuteDoSound = (boardStateType: string | undefined) => {
-        if (!boardStateType) return;
-        if (boardStateType.startsWith("steal")) playStealSound();
-        else if (boardStateType.startsWith("destroy")) playDestroyedSound();
-        else if (boardStateType.startsWith("sacrifice")) playSacrificeSound();
-        else if (boardStateType.startsWith("discard")) playDiscardSound();
+    const playVerbSound = (verb: Verb | undefined) => {
+        if (verb === 'steal') playStealSound();
+        else if (verb === 'destroy') playDestroyedSound();
+        else if (verb === 'sacrifice') playSacrificeSound();
+        else if (verb === 'discard') playDiscardSound();
     };
 
     return {
         playDrawCardSound,
         playEndTurnButtonSound,
         playHubMouseOverSound,
-        playExecuteDoSound,
+        playVerbSound,
     };
 }

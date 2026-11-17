@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import type { CardView } from '../view/cards';
+import { typeLabel } from '../view/cards';
 import ReactDOM from 'react-dom';
 import styled from 'styled-components';
-import type { Card } from '../game/card';
 
 type Props = {
-    card: Card;
+    card: CardView;
 };
 
 const TOOLTIP_W = 240;
@@ -69,9 +70,8 @@ function clampPosition(x: number, y: number, estimatedH: number): { top: number;
     return { top, left };
 }
 
-function cardTypeLabel(card: Card): string {
-    const t = Array.isArray(card.type) ? card.type : [card.type];
-    return t.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' / ');
+function cardTypeLabel(card: CardView): string {
+    return typeLabel(card.type);
 }
 
 const CardNameToken = ({ card }: Props) => {

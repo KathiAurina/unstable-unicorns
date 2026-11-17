@@ -1,17 +1,17 @@
 import type { Client as ClientFactory } from 'boardgame.io/client';
-import type { SetupData } from '../match';
+import type { SetupData } from '../game';
 import type { CardID, GameState, PlayerID } from '../engine';
 import * as engine from '../engine';
 import { invariantViolations } from '../testing/scenario';
 
-// The boardgame.io wiring (match.ts): phases, moves, turn sync, game end, sandbox.
+// The boardgame.io wiring (game.ts): phases, moves, turn sync, game end, sandbox.
 // A client without a transport runs the whole game locally, including server-only moves.
 
 // Rejected moves are part of these tests. boardgame.io reports each one through console.error, which it
 // captures when it is loaded — so it is silenced first and the modules that pull it in are loaded after.
 jest.spyOn(console, 'error').mockImplementation(() => undefined);
 const { Client } = require('boardgame.io/client') as { Client: typeof ClientFactory };
-const UnstableUnicorns = require('../match').default as typeof import('../match').default;
+const UnstableUnicorns = require('../game').default as typeof import('../game').default;
 
 type TestClient = ReturnType<typeof Client>;
 

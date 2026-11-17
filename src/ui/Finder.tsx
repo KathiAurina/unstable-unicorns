@@ -1,18 +1,26 @@
 import React, { useContext, useState } from 'react';
+import type { CardView, CardID } from '../view/cards';
+import { cardDescription } from '../view/cards';
 import styled from 'styled-components';
 import ImageLoader from '../assets/card/imageLoader';
 import BG from '../assets/ui/board-background.jpg';
-import { cardDescription } from '../BoardUtil';
-import { Card, CardID } from '../game/card';
 import { LanguageContext } from '../LanguageContextProvider';
 import CardHover from './CardHover';
 import { _typeToColor } from './util';
 
 type Props = {
-    cards: Card[];
+    cards: CardView[];
     showBackButton?: boolean;
     onBackClick: () => void;
     onFailToFindClick?: () => void;
+    /** Label of the decline button. */
+    failLabel?: string;
+    /** Cards picked so far, for prompts that ask for several; they are outlined. */
+    selected?: CardID[];
+    /** Shown when the prompt asks for several cards: sends the selection. */
+    onConfirmClick?: () => void;
+    confirmLabel?: string;
+    confirmDisabled?: boolean;
     onCardClick: (cardID: CardID) => void;
     title?: string;
     hide?: boolean;
@@ -31,8 +39,14 @@ const Finder = (props: Props) => {
             }
             {props.onFailToFindClick &&
                 <FailButton onClick={props.onFailToFindClick}>
-                    Fail to Find
+                    {props.failLabel ?? "Fail to Find"}
                 </FailButton>
+            }
+
+            {props.onConfirmClick &&
+                <ConfirmButton onClick={() => { if (!props.confirmDisabled) props.onConfirmClick!(); }} style={{ opacity: props.confirmDisabled ? 0.4 : 1 }}>
+                    {props.confirmLabel ?? "Confirm"}
+                </ConfirmButton>
             }
 
             {props.title && <p style={{padding: "1em", backgroundColor: "#F8B500", borderRadius: "12px", color: "white"}}>{props.title}</p>}
@@ -41,7 +55,7 @@ const Finder = (props: Props) => {
                 {props.cards.map((card, idx) => {
                     return (
                         <Item key={card.id} onMouseEnter={() => setShowHover(card.id)} onMouseLeave={() => setShowHover(undefined)}>
-                            <div onClick={() => props.onCardClick(card.id)}>
+                            <div onClick={() => props.onCardClick(card.id)} style={props.selected?.includes(card.id) ? { outline: "4px solid #2ecc71", borderRadius: "16px" } : undefined}>
                                 <CardImage image={props.hide ? ImageLoader.load("back") : ImageLoader.load(card.image)} color={props.hide ? "black"  : _typeToColor(card.type)} />
                             </div>
                             {(!props.hide) && showHover === card.id && idx % 5 <= 2 && 
@@ -79,6 +93,16 @@ const Button = styled.div`
     padding: 1em;
     cursor: pointer;
     width: 200px;
+`;
+
+const ConfirmButton = styled.div`
+    background-color: #27ae60;
+    color: white;
+    border-radius: 12px;
+    padding: 1em;
+    cursor: pointer;
+    width: 200px;
+    margin-top: 8px;
 `;
 
 const FailButton = styled.div`

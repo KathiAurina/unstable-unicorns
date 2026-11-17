@@ -1,115 +1,50 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
-import type { LogEntry } from '../game/log';
-import type { Player } from '../game/player';
-import type { Card } from '../game/card';
+import type { GameState, PlayerID } from '../game/engine';
+import { cardView } from '../view/cards';
+import { describeLog } from '../view/log';
+import type { LogLine as LogLineModel } from '../view/log';
 import CardNameToken from './CardNameToken';
 
 type Props = {
-    gameLog: LogEntry[];
-    players: Player[];
-    deck: Card[];
+    G: GameState;
+    /** Whose view this is: cards only this player may know are named for them only. */
+    playerID: PlayerID;
 };
 
-function playerName(players: Player[], id: string): string {
-    return players.find(p => p.id === id)?.name ?? `Player ${id}`;
+/** The content of one log line: text with card names as tokens that show the card on hover. */
+export function renderLogLine(G: GameState, line: LogLineModel): React.ReactNode {
+    return line.parts.map((part, i) =>
+        typeof part === 'string'
+            ? <React.Fragment key={i}>{part}</React.Fragment>
+            : <CardNameToken key={i} card={cardView(G, part.card)} />);
 }
 
-function formatTime(ts: number): string {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+/** Inline style of a log line: nested entries are indented, turn headers and non-events set apart. */
+export function logLineStyle(line: LogLineModel): React.CSSProperties {
+    return {
+        paddingLeft: 12 + line.depth * 12,
+        opacity: line.muted ? 0.6 : undefined,
+        fontStyle: line.muted ? 'italic' : undefined,
+        fontWeight: line.header ? 700 : undefined,
+        borderTop: line.header ? '1px solid rgba(255, 255, 255, 0.15)' : undefined,
+        marginTop: line.header ? 4 : undefined,
+    };
 }
 
-export function formatLogEntry(entry: LogEntry, players: Player[], deck: Card[]): React.ReactNode {
-    const actor = playerName(players, entry.actor);
-    const sourceCard = entry.sourceCardID !== undefined ? deck[entry.sourceCardID] : undefined;
-    const targetCard = entry.targetCardID !== undefined ? deck[entry.targetCardID] : undefined;
-    const targetPlayerName = entry.targetPlayer !== undefined ? playerName(players, entry.targetPlayer) : undefined;
-
-    const src = sourceCard ? <CardNameToken card={sourceCard} /> : null;
-    const tgt = targetCard ? <CardNameToken card={targetCard} /> : null;
-    const ts = entry.timestamp ? <TimeTag>{formatTime(entry.timestamp)}</TimeTag> : null;
-
-    let content: React.ReactNode;
-    switch (entry.kind) {
-        case 'play':
-            content = <>{actor} played {src}{targetPlayerName ? <> on {targetPlayerName}'s stable</> : null}</>;
-            break;
-        case 'play_neigh':
-            content = <>{actor} neighed {targetPlayerName ? `${targetPlayerName}'s ` : ''}{tgt}{src ? <> with {src}</> : null}</>;
-            break;
-        case 'play_super_neigh':
-            content = <>{actor} super-neighed {targetPlayerName ? `${targetPlayerName}'s ` : ''}{tgt}{src ? <> with {src}</> : null}</>;
-            break;
-        case 'card_neighed':
-            content = <>{actor}'s {src} was neighed</>;
-            break;
-        case 'destroy':
-            content = <>{actor} destroyed {tgt}{targetPlayerName ? ` (${targetPlayerName})` : ''}{src ? <> with {src}</> : null}</>;
-            break;
-        case 'sacrifice':
-            content = <>{actor} sacrificed {tgt}{src ? <> for {src}</> : null}</>;
-            break;
-        case 'steal':
-            content = <>{actor} stole {tgt}{targetPlayerName ? ` from ${targetPlayerName}` : ''}{src ? <> with {src}</> : null}</>;
-            break;
-        case 'pull':
-            content = <>{actor} pulled a card{targetPlayerName ? ` from ${targetPlayerName}` : ''}{src ? <> with {src}</> : null}</>;
-            break;
-        case 'discard':
-            content = <>{actor} discarded {tgt ?? 'a card'}{src ? <> ({src})</> : null}</>;
-            break;
-        case 'draw': {
-            const n = entry.count ?? 1;
-            const drawSuffix = src ? <> ({src})</> : ' (turn draw)';
-            content = <>{actor} drew {n === 1 ? 'a card' : `${n} cards`}{drawSuffix}</>;
-            break;
-        }
-        case 'search':
-            content = <>{actor} searched the deck{src ? <> ({src})</> : null}</>;
-            break;
-        case 'revive':
-            content = <>{actor} revived {tgt ?? 'a card'}{src ? <> ({src})</> : null}</>;
-            break;
-        case 'return_to_hand':
-            content = <>{actor} returned {tgt ?? 'a card'}{targetPlayerName && targetPlayerName !== actor ? ` (${targetPlayerName})` : ''} to hand{src ? <> ({src})</> : null}</>;
-            break;
-        case 'return_to_hand_from_discard':
-            content = <>{actor} returned {tgt ?? 'a card'} to hand from discard pile{src ? <> ({src})</> : null}</>;
-            break;
-        case 'bring_to_stable':
-            content = <>{actor} brought {tgt} to stable{src ? <> ({src})</> : null}</>;
-            break;
-        case 'move':
-            content = <>{actor} moved {tgt ?? 'a card'}{targetPlayerName ? ` to ${targetPlayerName}` : ''}{src ? <> ({src})</> : null}</>;
-            break;
-        case 'swap':
-            content = <>{actor} swapped hands{targetPlayerName ? ` with ${targetPlayerName}` : ''}{src ? <> ({src})</> : null}</>;
-            break;
-        case 'shuffle':
-            content = <>{actor} shuffled the discard pile into the deck{src ? <> ({src})</> : null}</>;
-            break;
-        case 'extra_turn':
-            content = <>{actor} takes an extra turn{src ? <> ({src})</> : null}</>;
-            break;
-        default:
-            return null;
-    }
-
-    return <>{ts}{content}</>;
-}
-
-const GameLogPanel = ({ gameLog, players, deck }: Props) => {
+const GameLogPanel = ({ G, playerID }: Props) => {
     const [collapsed, setCollapsed] = useState(false);
     const listRef = useRef<HTMLDivElement>(null);
+    const lines = useMemo(() => describeLog(G, playerID), [G, playerID]);
 
     // auto-scroll to bottom whenever a new entry arrives (and on mount)
     useEffect(() => {
         const el = listRef.current;
         if (!el) return;
         el.scrollTop = el.scrollHeight;
-    }, [gameLog.length]);
+    }, [lines.length]);
 
-    if (gameLog.length === 0) return null;
+    if (lines.length === 0) return null;
 
     return (
         <Panel>
@@ -119,16 +54,11 @@ const GameLogPanel = ({ gameLog, players, deck }: Props) => {
             </Header>
             {!collapsed && (
                 <List ref={listRef}>
-                    {gameLog.map((entry, idx) => {
-                        const content = formatLogEntry(entry, players, deck);
-                        if (!content) return null;
-                        const isLast = idx === gameLog.length - 1;
-                        return (
-                            <LogLine key={entry.id} isLast={isLast}>
-                                {content}
-                            </LogLine>
-                        );
-                    })}
+                    {lines.map((line, idx) => (
+                        <LogLine key={line.id} isLast={idx === lines.length - 1} style={logLineStyle(line)}>
+                            {renderLogLine(G, line)}
+                        </LogLine>
+                    ))}
                 </List>
             )}
         </Panel>
@@ -198,16 +128,6 @@ const LogLine = styled.div<{ isLast: boolean }>`
     color: ${p => p.isLast ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'};
     font-weight: ${p => p.isLast ? 600 : 400};
     line-height: 1.4;
-`;
-
-const TimeTag = styled.span`
-    font-family: 'Nunito', sans-serif;
-    font-size: 9px;
-    color: rgba(255, 255, 255, 0.35);
-    font-weight: 400;
-    margin-right: 5px;
-    letter-spacing: 0.02em;
-    flex-shrink: 0;
 `;
 
 export default GameLogPanel;

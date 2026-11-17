@@ -1,28 +1,18 @@
 import React, { useContext } from 'react';
+import type { CardView } from '../view/cards';
+import { cardDescription, typeLabel } from '../view/cards';
+
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardType } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from '../ui/util';
-import { cardDescription } from '../BoardUtil';
 import { LanguageContext } from '../LanguageContextProvider';
 
 type Props = {
-    card: Card | undefined;
+    card: CardView | undefined;
     onClose: () => void;
 };
 
-export function typeLabel(type: Card['type']): string {
-    const map: Record<string, string> = {
-        baby: 'Baby Unicorn', basic: 'Basic Unicorn', unicorn: 'Magical Unicorn',
-        narwhal: 'Narwhal Unicorn', magic: 'Magic', upgrade: 'Upgrade',
-        downgrade: 'Downgrade', neigh: 'Neigh', super_neigh: 'Super Neigh',
-    };
-    if (Array.isArray(type)) {
-        return type.map((t: CardType) => map[t] ?? t).join(' / ');
-    }
-    return map[type] ?? type;
-}
 
 const MobileCardDetail = ({ card, onClose }: Props) => {
     const context = useContext(LanguageContext);
@@ -38,7 +28,7 @@ const MobileCardDetail = ({ card, onClose }: Props) => {
                     onTouchEnd={e => { e.stopPropagation(); onClose(); }}
                     onClick={onClose}
                 >
-                    <Card_
+                    <DetailCard
                         initial={{ scale: 0.7, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.7, opacity: 0 }}
@@ -50,10 +40,10 @@ const MobileCardDetail = ({ card, onClose }: Props) => {
                         <CardImg src={ImageLoader.load(card.image)} alt={card.title} />
                         <Info>
                             <TypeBadge color={_typeToColor(card.type)}>{typeLabel(card.type)}</TypeBadge>
-                            <Title_>{card.title}</Title_>
+                            <DetailTitle>{card.title}</DetailTitle>
                             <Desc>{cardDescription(card, context?.language ?? 'en')}</Desc>
                         </Info>
-                    </Card_>
+                    </DetailCard>
                     <CloseHint>Tap anywhere to close</CloseHint>
                 </Backdrop>
             )}
@@ -74,7 +64,7 @@ const Backdrop = styled(motion.div)`
     padding: 16px;
 `;
 
-const Card_ = styled(motion.div)<{ borderColor: string }>`
+const DetailCard = styled(motion.div)<{ borderColor: string }>`
     display: flex;
     flex-direction: row;
     background: #1e1e2e;
@@ -110,7 +100,7 @@ const TypeBadge = styled.div<{ color: string }>`
     font-family: 'Nunito', sans-serif;
 `;
 
-const Title_ = styled.div`
+const DetailTitle = styled.div`
     font-size: 14px;
     font-weight: 800;
     color: white;

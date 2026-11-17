@@ -1,7 +1,6 @@
 import React from 'react';
+import type { Player, PlayerID, CardID } from '../../view/cards';
 import styled from 'styled-components';
-import { Player, PlayerID } from '../../game/player';
-import { CardID } from '../../game/card';
 
 interface Props {
     players: Player[];

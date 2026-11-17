@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import type { UnstableUnicornsGame } from '../../game/state';
-import type { Card } from '../../game/card';
-import { PlayerID } from '../../game/player';
+import type { GameState, PlayerID } from '../../game/engine';
+import type { Moves } from '../../game/game';
+import type { CardView } from '../../view/cards';
 import RainbowButton from '../shared/RainbowButton';
 import StyledInput from '../shared/StyledInput';
 import UnicornAvatar from './UnicornAvatar';
 import PlayerReadyList from './PlayerReadyList';
 
 type Props = {
-    G: UnstableUnicornsGame;
-    babyCards: Card[];
+    G: GameState;
+    babyCards: CardView[];
     playerID: PlayerID;
-    moves: any;
+    moves: Moves;
 };
 
 const CharacterSelectionPage = ({ G, babyCards, playerID, moves }: Props) => {
@@ -25,8 +25,8 @@ const CharacterSelectionPage = ({ G, babyCards, playerID, moves }: Props) => {
 
     // Send heartbeat every 15s
     useEffect(() => {
-        moves.heartbeat(playerID);
-        const interval = setInterval(() => moves.heartbeat(playerID), 15000);
+        moves.heartbeat();
+        const interval = setInterval(() => moves.heartbeat(), 15000);
         return () => clearInterval(interval);
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -54,7 +54,7 @@ const CharacterSelectionPage = ({ G, babyCards, playerID, moves }: Props) => {
     }, [G.lastHeartbeat[G.owner]]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleChangeName = async () => {
-        moves.changeName(playerID, playerName);
+        moves.changeName(playerName);
         const pathParts = window.location.pathname.split('/');
         const matchID = pathParts[1];
         const credentials = new URLSearchParams(window.location.search).get('credentials');
@@ -72,15 +72,15 @@ const CharacterSelectionPage = ({ G, babyCards, playerID, moves }: Props) => {
 
     const handleSelectBaby = (cardID: number) => {
         if (mySelection && mySelection.cardID === cardID) {
-            moves.deselectBaby(playerID);
+            moves.deselectBaby();
         } else {
-            moves.selectBaby(playerID, cardID);
+            moves.selectBaby(cardID);
         }
     };
 
     const handleReady = () => {
         if (!isReady) {
-            moves.ready(playerID);
+            moves.ready();
         }
     };
 

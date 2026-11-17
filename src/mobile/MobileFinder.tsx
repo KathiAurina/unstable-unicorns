@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
+import type { CardView, CardID } from '../view/cards';
 import styled from 'styled-components';
-import { Card, CardID } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from '../ui/util';
 import MobileCardDetail from './MobileCardDetail';
@@ -8,19 +8,26 @@ import { useLongPress } from '../hooks/useLongPress';
 import BG from '../assets/ui/board-background.jpg';
 
 type Props = {
-    cards: Card[];
+    cards: CardView[];
     hide?: boolean;
     title?: string;
     showBackButton?: boolean;
     browseOnly?: boolean;
     onBackClick: () => void;
     onFailToFindClick?: () => void;
+    /** Label of the fail/skip button (default "Fail to Find"). */
+    failLabel?: string;
     onCardClick: (cardID: CardID) => void;
+    /** Cards picked so far for a prompt that asks for several. */
+    selected?: CardID[];
+    /** More controls in the top bar, e.g. the Confirm button of a multi-card prompt. */
+    extra?: React.ReactNode;
 };
 
-const CardEntry = ({ card, hide, browseOnly, onTap, onLongPress }: {
-    card: Card;
+const CardEntry = ({ card, hide, isSelected, browseOnly, onTap, onLongPress }: {
+    card: CardView;
     hide: boolean;
+    isSelected: boolean;
     browseOnly: boolean;
     onTap: () => void;
     onLongPress: () => void;
@@ -54,14 +61,18 @@ const CardEntry = ({ card, hide, browseOnly, onTap, onLongPress }: {
             <CardImg
                 src={hide ? ImageLoader.load('back') : ImageLoader.load(card.image)}
                 color={hide ? '#555' : _typeToColor(card.type)}
+                isSelected={isSelected}
                 alt={card.title}
             />
         </CardItem>
     );
 };
 
-const MobileFinder = ({ cards, hide = false, title, showBackButton = true, browseOnly = false, onBackClick, onFailToFindClick, onCardClick }: Props) => {
-    const [detailCard, setDetailCard] = useState<Card | undefined>(undefined);
+const MobileFinder = ({
+    cards, hide = false, title, showBackButton = true, browseOnly = false,
+    onBackClick, onFailToFindClick, failLabel = 'Fail to Find', onCardClick, selected = [], extra,
+}: Props) => {
+    const [detailCard, setDetailCard] = useState<CardView | undefined>(undefined);
 
     return (
         <Wrapper>
@@ -79,10 +90,11 @@ const MobileFinder = ({ cards, hide = false, title, showBackButton = true, brows
                         onTouchEnd={e => { e.preventDefault(); onFailToFindClick(); }}
                         onClick={onFailToFindClick}
                     >
-                        Fail to Find
+                        {failLabel}
                     </FailBtn>
                 )}
                 {title && <Title>{title}</Title>}
+                {extra}
             </TopBar>
 
             <Grid>
@@ -91,6 +103,7 @@ const MobileFinder = ({ cards, hide = false, title, showBackButton = true, brows
                         key={card.id}
                         card={card}
                         hide={hide}
+                        isSelected={selected.includes(card.id)}
                         browseOnly={browseOnly}
                         onTap={() => onCardClick(card.id)}
                         onLongPress={() => !hide && setDetailCard(card)}
@@ -178,11 +191,12 @@ const CardItem = styled.div`
     user-select: none;
 `;
 
-const CardImg = styled.img<{ color: string }>`
+const CardImg = styled.img<{ color: string; isSelected: boolean }>`
     width: 100%;
     aspect-ratio: 4/5;
     border-radius: 8px;
-    border: 2px solid ${p => p.color};
+    border: 2px solid ${p => p.isSelected ? '#4CAF50' : p.color};
+    box-shadow: ${p => p.isSelected ? '0 0 8px 2px rgba(76,175,80,0.9)' : 'none'};
     object-fit: cover;
     display: block;
 `;

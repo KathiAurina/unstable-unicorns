@@ -1,10 +1,10 @@
 # Game Rules
 
-> **Status (2026-11-17).** Sections 1–6 describe the game **as it is implemented today**. They were checked against the source on branch `select_extensions` (`d571b99`); the base-game rules are identical on `master` (`800c931`). They were read from the code, not play-tested.
+> **Status (2026-11-17).** Sections 1–5 describe the game **as it is implemented today** (the new engine with the legacy rule preset). They were checked against the source on branch `select_extensions` (`d571b99`); the base-game rules are identical on `master` (`800c931`). They were read from the code, not play-tested.
 >
 > Section 7 lists rule changes that are **decided but not implemented yet**. Until a change is implemented, sections 1–6 are what the game does. Section 7 is also the list of behaviours a future *legacy mode* has to preserve.
 >
-> Reference for all rules and card texts: the **English** 2nd Edition wording (cards: `description.en` in `src/game/card.ts`; rules: the Unstable Games Wiki, see `expansion-plan.md` Appendix B).
+> Reference for all rules and card texts: the **English** 2nd Edition wording (cards: `src/game/cards/i18n/en.ts`; rules: the Unstable Games Wiki, see `expansion-plan.md` Appendix B).
 
 ## 1. Overview
 
@@ -125,7 +125,7 @@ All unicorns of the affected player (types `unicorn` and `narwhal`; not babies, 
 
 ### Blinding Light + Pandamonium together
 
-Pandamonium takes priority: the unicorns are Pandas, not Basic Unicorns, and **keep** their abilities (`isCardBasicDueToEffect` in `effect.ts`).
+Pandamonium takes priority: the unicorns are Pandas, not Basic Unicorns, and **keep** their abilities (rule option R1, `blindingBeatsMasquerade`).
 
 ### Tiny Stable
 
@@ -137,22 +137,24 @@ When a card enters the stable of a player with Tiny Stable and that player then 
 - **Magical Kittencorn**: cannot be destroyed by Magic cards.
 - **Broken Stable**: the player cannot play Upgrade cards (they can still receive them).
 
-## 6. Known issues in the current implementation
+## 6. Known issues of the old implementation
 
-Found while reading the code on 2026-11-17. Not rule decisions — things that look unintended.
+Found while reading the old code on 2026-11-17. The new engine (`src/game/engine/`, stage 3) fixes the
+unintended ones; those that are rule decisions are kept in the **legacy** preset as rule options so the
+game behaves as before until stage 4 switches them.
 
-| # | Issue | Where |
+| # | Issue | Status in the new engine |
 |---|---|---|
-| I1 | A stable that holds 7 cards accepts no further card (`canEnter` returns false). Normally unreachable because 7 unicorns win, but it blocks a player with Pandamonium. | `operations/enter.ts:187` |
-| I2 | A unicorn entering under Blinding Light returns early from `enter()`, which also skips Barbed Wire and the Tiny Stable check for that entry. | `operations/enter.ts:126` |
-| I3 | Continuous effects (`add_effect`) are only added when a card enters. A unicorn that entered while Blinding Light was active never gets its effect, even after Blinding Light is gone. | `operations/enter.ts` |
-| I4 | Drawing for the turn (`drawAndAdvance`, `drawAndEnd`) does not reshuffle and does not check for an empty draw pile. | `game.ts:283`, `game.ts:492` |
-| I5 | When both piles are empty at turn start the code switches to a phase named `end`, which is not defined. | `game.ts:180` |
-| I6 | Drawing for the turn clears the scenes of **all** players, including mandatory steps other players still owe. | `game.ts:289` |
-| I7 | The Great Narwhal's search matches cards whose type is exactly `narwhal`; the basic Narwhal (type `["basic","narwhal"]`) and Baby Narwhal are not found. | `operations/search.ts` |
-| I8 | Destroy effects do not exclude the acting player's own stable. | `operations/destroy.ts:62` |
-| I9 | Hornswoggler Unicorn, Salty Seadogicorn, Fearless Unicorn and Zombie Unicorn do not do what their English text says (see `cards.md`). | `card.ts` |
-| I10 | The full game state, including all hands and the deck order, is sent to every client (no `playerView`). | `game.ts` |
+| I1 | A stable that holds 7 cards accepts no further card. Normally unreachable because 7 unicorns win, but it blocks a player with Pandamonium. | Kept in legacy as option R8 (`stableLimit: 7`, counts Unicorn cards). |
+| I2 | A unicorn entering under Blinding Light skipped Barbed Wire and the Tiny Stable check for that entry. | Fixed (test in `engine.cards.other.test.ts`). |
+| I3 | Continuous effects of a unicorn that entered while blinded never became active, even after Blinding Light was gone. | Kept in legacy as option R13 (`blindingRestoresEffects: false`). |
+| I4 | Drawing for the turn did not reshuffle and did not check for an empty draw pile. | Fixed (`engine.turn.test.ts`). |
+| I5 | With both piles empty at turn start the code switched to an undefined phase. | Fixed: the game ends (R20, most unicorns win). |
+| I6 | Drawing for the turn cleared the open steps of **all** players. | Fixed: every decision is a prompt of its own player. |
+| I7 | The Great Narwhal's search did not find the basic Narwhal or Baby Narwhal. | Fixed (`engine.cards.unicorns.test.ts`). |
+| I8 | Destroy effects do not exclude the acting player's own stable. | Kept in legacy as option R11 (`destroyOwnStable: true`). |
+| I9 | Hornswoggler Unicorn, Salty Seadogicorn, Fearless Unicorn and Zombie Unicorn did not do what their English text says. | Hornswoggler, Salty Seadogicorn and Fearless fixed; Zombie Unicorn kept in legacy as `zombie_unicorn@legacy` (R17). |
+| I10 | The full game state, including all hands and the deck order, is sent to every client (no `playerView`). | **Still open** (stage 1). |
 
 ## 7. Decided rule changes (not implemented yet)
 

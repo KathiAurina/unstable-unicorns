@@ -1,18 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
-import type { UnstableUnicornsGame, Ctx } from '../game/state';
-import type { Moves } from '../game/types';
-import { Cards, hasType } from '../game/card';
-import type { CardDefinition } from '../game/card';
-import { CONSTANTS } from '../game/constants';
-import { KNOWN_EFFECTS } from '../game/effect';
-import type { Effect } from '../game/effect';
+import type { Ctx, Moves } from '../game/game';
+import type { GameState } from '../game/engine';
+import { HAND_SIZE_AT_START, activeStatics } from '../game/engine';
+import { ALL_DEFS, getDef, hasDef } from '../game/cards/registry';
+import type { CardDef } from '../game/cards/types';
 import ImageLoader from '../assets/card/imageLoader';
-import { serializeSandboxSnapshot } from '../game/sandbox/sandboxMoves';
+import { serializeSandboxSnapshot } from '../game/sandbox/cheats';
+import { cardName, cardView, typeLabel } from '../view/cards';
 import { useSandboxControl } from './sandboxContext';
 
 type Props = {
-    G: UnstableUnicornsGame;
+    G: GameState;
     ctx: Ctx;
     moves: Moves;
     playerID: string;
@@ -40,8 +39,9 @@ function fuzzyMatch(query: string, title: string): boolean {
 
 const LS_AUTO_SKIP = "sandbox_autoSkip";
 const LS_EXPANDED = "sandbox_expanded";
-const LS_RECENT = "sandbox_recentPicks";
-const LS_SLOTS = "sandbox_slots";
+// Keys changed with the engine rewrite: older entries hold card indices and snapshots of the old state.
+const LS_RECENT = "sandbox_recentDefs";
+const LS_SLOTS = "sandbox_slots_v2";
 
 function loadBool(key: string, def: boolean): boolean {
     try { const v = localStorage.getItem(key); return v === null ? def : v === "true"; } catch { return def; }
@@ -66,12 +66,10 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
 
     // Search state
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchResults, setSearchResults] = useState<{ def: CardDefinition; defIndex: number }[]>([]);
-    const [selectedResult, setSelectedResult] = useState<{ def: CardDefinition; defIndex: number } | null>(null);
-    const [recentPicks, setRecentPicks] = useState<number[]>(() => loadJSON(LS_RECENT, []));
-
-    // Effects
-    const [selectedEffect, setSelectedEffect] = useState<Effect["key"]>(KNOWN_EFFECTS[0]);
+    const [searchResults, setSearchResults] = useState<CardDef[]>([]);
+    const [selectedResult, setSelectedResult] = useState<CardDef | null>(null);
+    const [recentPicks, setRecentPicks] = useState<string[]>(() =>
+        loadJSON<unknown[]>(LS_RECENT, []).filter((id): id is string => typeof id === 'string' && hasDef(id)));
 
     // Inspect
     const [showRawG, setShowRawG] = useState(false);
@@ -86,30 +84,19 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
     // Auto-skip dummy turns
     const autoSkipRef = useRef(autoSkip);
     autoSkipRef.current = autoSkip;
+    const turnPlayer = G.turn.player;
+    const busy = G.prompts.length > 0 || G.round !== undefined || G.chain.length > 0;
     useEffect(() => {
         if (!autoSkipRef.current) return;
-        if (ctx.currentPlayer === playerID) return;
+        if (turnPlayer === playerID) return;
         if (playerID !== G.owner) return; // only owner panel drives auto-skip
-        if (G.neighDiscussion) return;
-        const pendingScenes = G.script?.scenes?.filter(s =>
-            s.actions.some(a => a.instructions.some(i => i.protagonist === ctx.currentPlayer && (i.state === "open" || i.state === "in_progress")))
-        );
-        if (pendingScenes && pendingScenes.length > 0) return;
+        if (busy || G.gameOver) return;   // a dummy has to decide something: switch seats or use "Answer open decision"
         const timer = setTimeout(() => {
-            if (autoSkipRef.current && ctx.currentPlayer !== playerID) {
-                moves.sandboxForceEndTurn();
-            }
+            if (autoSkipRef.current) moves.sandboxForceEndTurn();
         }, 200);
         return () => clearTimeout(timer);
-    }, [ctx.currentPlayer, ctx.turn, G.neighDiscussion, G.script]);
-
-    // Belt-and-braces: auto-resolve any neigh discussion that sneaks through when skipNeigh is on
-    useEffect(() => {
-        if (playerID !== G.owner) return; // only owner panel resolves neigh
-        if (!G.neighDiscussion) return;
-        if (!G.sandboxSettings?.skipNeigh) return;
-        moves.sandboxResolveNeighAsPlayed();
-    }, [G.neighDiscussion]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [turnPlayer, G.turn.number, busy]);
 
     // Keyboard shortcut
     useEffect(() => {
@@ -126,49 +113,49 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
             setSearchResults([]);
             return;
         }
-        const results: { def: CardDefinition; defIndex: number }[] = [];
+        const results: CardDef[] = [];
         const seen = new Set<string>();
-        Cards.forEach((def, idx) => {
-            if (seen.has(def.title)) return;
-            if (fuzzyMatch(searchQuery, def.title) || fuzzyMatch(searchQuery, Array.isArray(def.type) ? def.type.join(' ') : def.type)) {
-                seen.add(def.title);
-                results.push({ def, defIndex: idx });
+        ALL_DEFS.forEach(def => {
+            if (seen.has(def.name)) return;
+            if (fuzzyMatch(searchQuery, def.name) || fuzzyMatch(searchQuery, typeLabel(def.type))) {
+                seen.add(def.name);
+                results.push(def);
             }
         });
         setSearchResults(results.slice(0, 12));
     }, [searchQuery]);
 
-    const addRecentPick = useCallback((defIndex: number) => {
+    const addRecentPick = useCallback((def: string) => {
         setRecentPicks(prev => {
-            const next = [defIndex, ...prev.filter(i => i !== defIndex)].slice(0, 8);
+            const next = [def, ...prev.filter(i => i !== def)].slice(0, 8);
             saveJSON(LS_RECENT, next);
             return next;
         });
     }, []);
 
     // Quick-action helpers
-    const randomDefOf = (filter: (d: CardDefinition) => boolean): number | null => {
-        const candidates = Cards.reduce<number[]>((acc, d, i) => { if (filter(d)) acc.push(i); return acc; }, []);
+    const randomDefOf = (filter: (d: CardDef) => boolean): string | null => {
+        const candidates = ALL_DEFS.filter(d => filter(d) && !d.id.includes('@'));
         if (!candidates.length) return null;
-        return candidates[Math.floor(Math.random() * candidates.length)];
+        return candidates[Math.floor(Math.random() * candidates.length)].id;
     };
 
     const drawToHandSize = (pid: string) => {
-        const count = Math.max(0, CONSTANTS.numberOfHandCardsAtStart - G.hand[pid].length);
+        const count = Math.max(0, HAND_SIZE_AT_START - G.zones.hand[pid].length);
         if (count > 0) moves.sandboxDraw(pid, count);
     };
 
     // Destination picker for search results
     type Dest = "hand" | "stable_enter" | "stable_silent" | "discard" | "deck_top" | "nursery";
-    const dispatchToDestination = (defIndex: number, dest: Dest, pid: TargetPlayer) => {
-        addRecentPick(defIndex);
+    const dispatchToDestination = (def: string, dest: Dest, pid: TargetPlayer) => {
+        addRecentPick(def);
         switch (dest) {
-            case "hand": moves.sandboxAddToHand(pid, defIndex); break;
-            case "stable_enter": moves.sandboxAddToStable(pid, defIndex, true); break;
-            case "stable_silent": moves.sandboxAddToStable(pid, defIndex, false); break;
-            case "discard": moves.sandboxAddToDiscard(defIndex); break;
-            case "deck_top": moves.sandboxAddToDeckTop(defIndex); break;
-            case "nursery": moves.sandboxAddToNursery(defIndex); break;
+            case "hand": moves.sandboxAddToHand(pid, def); break;
+            case "stable_enter": moves.sandboxAddToStable(pid, def, true); break;
+            case "stable_silent": moves.sandboxAddToStable(pid, def, false); break;
+            case "discard": moves.sandboxAddToDiscard(def); break;
+            case "deck_top": moves.sandboxAddToDeckTop(def); break;
+            case "nursery": moves.sandboxAddToNursery(def); break;
         }
         setSelectedResult(null);
         setSearchQuery("");
@@ -267,15 +254,15 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
                             <SectionTitle>Quick Actions — {PLAYER_LABELS[targetPlayer]}</SectionTitle>
                             <ButtonGrid>
                                 <CheatBtn onClick={() => {
-                                    const i = randomDefOf(d => hasType({ type: d.type }, 'basic'));
+                                    const i = randomDefOf(d => d.type === 'basic');
                                     if (i != null) moves.sandboxAddToStable(targetPlayer, i, false);
                                 }}>+ Basic Unicorn (silent)</CheatBtn>
                                 <CheatBtn onClick={() => {
-                                    const i = randomDefOf(d => hasType({ type: d.type }, 'unicorn') && !hasType({ type: d.type }, 'baby'));
+                                    const i = randomDefOf(d => d.type === 'magical');
                                     if (i != null) moves.sandboxAddToStable(targetPlayer, i, false);
                                 }}>+ Magical Unicorn (silent)</CheatBtn>
                                 <CheatBtn onClick={() => {
-                                    const i = randomDefOf(d => hasType({ type: d.type }, 'unicorn') && !hasType({ type: d.type }, 'baby'));
+                                    const i = randomDefOf(d => d.type === 'magical');
                                     if (i != null) moves.sandboxAddToStable(targetPlayer, i, true);
                                 }}>+ Magical Unicorn (enter)</CheatBtn>
                                 <CheatBtn onClick={() => moves.sandboxDraw(targetPlayer, 1)}>Draw 1</CheatBtn>
@@ -310,7 +297,7 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
                                 <ActionActiveBox>
                                     {sandboxAction.type === 'steal' && sandboxAction.step === 'pick_target' && (
                                         <>
-                                            <ActionLabel>Steal "{G.deck[sandboxAction.cardID]?.title}" → move to:</ActionLabel>
+                                            <ActionLabel>Steal "{cardName(G, sandboxAction.cardID)}" → move to:</ActionLabel>
                                             <ButtonGrid>
                                                 {(["0", "1", "2"] as TargetPlayer[]).map(pid => (
                                                     <SmallCheatBtn key={pid} onClick={() => {
@@ -325,7 +312,7 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
                                     )}
                                     {sandboxAction.type === 'move_to_stable' && sandboxAction.step === 'pick_stable' && (
                                         <>
-                                            <ActionLabel>Place "{G.deck[sandboxAction.cardID]?.title}" into:</ActionLabel>
+                                            <ActionLabel>Place "{cardName(G, sandboxAction.cardID)}" into:</ActionLabel>
                                             <ButtonGrid>
                                                 {(["0", "1", "2"] as TargetPlayer[]).map(pid => (
                                                     <SmallCheatBtn key={pid} onClick={() => {
@@ -342,9 +329,8 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
                                         <>
                                             <ActionLabel>Pick a card from {PLAYER_LABELS[sandboxAction.playerID as TargetPlayer]}'s hand to discard:</ActionLabel>
                                             <HandPickerList>
-                                                {G.hand[sandboxAction.playerID]?.map(cardID => {
-                                                    const card = G.deck[cardID];
-                                                    if (!card) return null;
+                                                {(G.zones.hand[sandboxAction.playerID] ?? []).map(cardID => {
+                                                    const card = cardView(G, cardID);
                                                     return (
                                                         <ResultItem key={cardID} onClick={() => {
                                                             if (sandboxAction.type === 'force_discard') {
@@ -355,12 +341,12 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
                                                             <ResultThumb src={ImageLoader.load(card.image)} alt={card.title} />
                                                             <ResultInfo>
                                                                 <ResultTitle>{card.title}</ResultTitle>
-                                                                <ResultType>{Array.isArray(card.type) ? card.type.join(', ') : card.type}</ResultType>
+                                                                <ResultType>{typeLabel(card.type)}</ResultType>
                                                             </ResultInfo>
                                                         </ResultItem>
                                                     );
                                                 })}
-                                                {(!G.hand[sandboxAction.playerID] || G.hand[sandboxAction.playerID].length === 0) && (
+                                                {(G.zones.hand[sandboxAction.playerID] ?? []).length === 0 && (
                                                     <EmptyChips>Hand is empty</EmptyChips>
                                                 )}
                                             </HandPickerList>
@@ -395,15 +381,14 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
                                 <>
                                     <SmallLabel>Recent</SmallLabel>
                                     <ResultList>
-                                        {recentPicks.map(idx => {
-                                            const def = Cards[idx];
-                                            if (!def) return null;
+                                        {recentPicks.map(id => {
+                                            const def = getDef(id);
                                             return (
-                                                <ResultItem key={idx} onClick={() => setSelectedResult({ def, defIndex: idx })}>
-                                                    <ResultThumb src={ImageLoader.load(def.image)} alt={def.title} />
+                                                <ResultItem key={id} onClick={() => setSelectedResult(def)}>
+                                                    <ResultThumb src={ImageLoader.load(def.image)} alt={def.name} />
                                                     <ResultInfo>
-                                                        <ResultTitle>{def.title}</ResultTitle>
-                                                        <ResultType>{Array.isArray(def.type) ? def.type.join(', ') : def.type}</ResultType>
+                                                        <ResultTitle>{def.name}</ResultTitle>
+                                                        <ResultType>{typeLabel(def.type)}</ResultType>
                                                     </ResultInfo>
                                                 </ResultItem>
                                             );
@@ -415,12 +400,12 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
                             {/* Search results */}
                             {searchResults.length > 0 && (
                                 <ResultList>
-                                    {searchResults.map(({ def, defIndex }) => (
-                                        <ResultItem key={defIndex} onClick={() => setSelectedResult({ def, defIndex })}>
-                                            <ResultThumb src={ImageLoader.load(def.image)} alt={def.title} />
+                                    {searchResults.map(def => (
+                                        <ResultItem key={def.id} onClick={() => setSelectedResult(def)}>
+                                            <ResultThumb src={ImageLoader.load(def.image)} alt={def.name} />
                                             <ResultInfo>
-                                                <ResultTitle>{def.title}</ResultTitle>
-                                                <ResultType>{Array.isArray(def.type) ? def.type.join(', ') : def.type}</ResultType>
+                                                <ResultTitle>{def.name}</ResultTitle>
+                                                <ResultType>{typeLabel(def.type)}</ResultType>
                                             </ResultInfo>
                                         </ResultItem>
                                     ))}
@@ -430,21 +415,21 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
                             {/* Destination picker */}
                             {selectedResult && (
                                 <DestPicker>
-                                    <DestTitle>"{selectedResult.def.title}" → where?</DestTitle>
+                                    <DestTitle>"{selectedResult.name}" → where?</DestTitle>
                                     <DestGrid>
                                         {(["0", "1", "2"] as TargetPlayer[]).map(pid => (
                                             <DestGroup key={pid}>
                                                 <DestGroupLabel>{PLAYER_LABELS[pid]}</DestGroupLabel>
-                                                <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.defIndex, "hand", pid)}>Hand</SmallCheatBtn>
-                                                <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.defIndex, "stable_enter", pid)}>Stable (enter)</SmallCheatBtn>
-                                                <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.defIndex, "stable_silent", pid)}>Stable (silent)</SmallCheatBtn>
+                                                <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.id, "hand", pid)}>Hand</SmallCheatBtn>
+                                                <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.id, "stable_enter", pid)}>Stable (enter)</SmallCheatBtn>
+                                                <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.id, "stable_silent", pid)}>Stable (silent)</SmallCheatBtn>
                                             </DestGroup>
                                         ))}
                                         <DestGroup>
                                             <DestGroupLabel>Zones</DestGroupLabel>
-                                            <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.defIndex, "discard", targetPlayer)}>Discard</SmallCheatBtn>
-                                            <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.defIndex, "deck_top", targetPlayer)}>Top of Deck</SmallCheatBtn>
-                                            <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.defIndex, "nursery", targetPlayer)}>Nursery</SmallCheatBtn>
+                                            <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.id, "discard", targetPlayer)}>Discard</SmallCheatBtn>
+                                            <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.id, "deck_top", targetPlayer)}>Top of Deck</SmallCheatBtn>
+                                            <SmallCheatBtn onClick={() => dispatchToDestination(selectedResult.id, "nursery", targetPlayer)}>Nursery</SmallCheatBtn>
                                         </DestGroup>
                                     </DestGrid>
                                     <CancelBtn onClick={() => setSelectedResult(null)}>Cancel</CancelBtn>
@@ -454,48 +439,40 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
 
                         {/* ── Effects ── */}
                         <Section>
-                            <SectionTitle>Effects</SectionTitle>
-                            {(["0", "1", "2"] as TargetPlayer[]).map(pid => (
-                                <div key={pid} style={{ marginBottom: 8 }}>
-                                    <SmallLabel>{PLAYER_LABELS[pid]}</SmallLabel>
-                                    <EffectChips>
-                                        {G.playerEffects[pid]?.map((e, idx) => (
-                                            <EffectChip key={idx}>
-                                                {e.effect.key}
-                                                <ChipRemove onClick={() => moves.sandboxRemoveEffect(pid, idx)}>✕</ChipRemove>
-                                            </EffectChip>
-                                        ))}
-                                        {(!G.playerEffects[pid] || G.playerEffects[pid].length === 0) && (
-                                            <EmptyChips>none</EmptyChips>
-                                        )}
-                                    </EffectChips>
-                                </div>
-                            ))}
-                            <EffectAddRow>
-                                <EffectSelect value={selectedEffect} onChange={e => setSelectedEffect(e.target.value as Effect["key"])}>
-                                    {KNOWN_EFFECTS.map(k => <option key={k} value={k}>{k}</option>)}
-                                </EffectSelect>
-                                <SmallCheatBtn onClick={() => moves.sandboxAddEffect(targetPlayer, selectedEffect)}>
-                                    Add to {PLAYER_LABELS[targetPlayer]}
-                                </SmallCheatBtn>
-                            </EffectAddRow>
-                            <DangerBtn onClick={() => moves.sandboxClearAllEffects()} style={{ marginTop: 6 }}>
-                                Clear all effects
-                            </DangerBtn>
+                            <SectionTitle>Continuous effects</SectionTitle>
+                            {(["0", "1", "2"] as TargetPlayer[]).map(pid => {
+                                const statics = activeStatics(G).filter(st => st.owner === pid);
+                                return (
+                                    <div key={pid} style={{ marginBottom: 8 }}>
+                                        <SmallLabel>{PLAYER_LABELS[pid]}</SmallLabel>
+                                        <EffectChips>
+                                            {statics.map((st, idx) => (
+                                                <EffectChip key={idx} title={cardName(G, st.card)}>
+                                                    {st.rule.kind} · {cardName(G, st.card)}
+                                                </EffectChip>
+                                            ))}
+                                            {statics.length === 0 && <EmptyChips>none</EmptyChips>}
+                                        </EffectChips>
+                                    </div>
+                                );
+                            })}
+                            <InfoLine>Effects come from the cards in the stables: add or remove the card to change them.</InfoLine>
                         </Section>
 
                         {/* ── Flow ── */}
                         <Section>
                             <SectionTitle>Flow</SectionTitle>
                             <ButtonGrid>
-                                <CheatBtn onClick={() => moves.sandboxCancelNeigh()}>Cancel Neigh</CheatBtn>
-                                <DangerBtn onClick={() => moves.sandboxClearSceneQueue()} title="May strand cards mid-resolution">
-                                    Clear scene queue
+                                <CheatBtn onClick={() => moves.forceAnswer()} disabled={G.prompts.length === 0} title="Answers the oldest open decision with its default (decline, pass or a random legal choice)">
+                                    Answer open decision
+                                </CheatBtn>
+                                <DangerBtn onClick={() => moves.sandboxClearPending()} title="Drops everything that is resolving; cards being played go to the discard pile">
+                                    Clear pending
                                 </DangerBtn>
                             </ButtonGrid>
-                            <InfoLine>Turn: {ctx.turn} | Current: {G.players[parseInt(ctx.currentPlayer)]?.name ?? ctx.currentPlayer}</InfoLine>
-                            <InfoLine>Stage: {ctx.activePlayers ? Object.values(ctx.activePlayers)[0] ?? '—' : '—'}</InfoLine>
-                            <InfoLine>Scenes: {G.script?.scenes?.length ?? 0}</InfoLine>
+                            <InfoLine>Turn: {G.turn.number} (boardgame.io {ctx.turn}) | Current: {G.players.find(p => p.id === G.turn.player)?.name ?? G.turn.player}</InfoLine>
+                            <InfoLine>Phase: {G.turn.phase} | played {G.turn.played}{G.turn.mustEnd ? ' | must end' : ''}</InfoLine>
+                            <InfoLine>Open: {G.prompts.length} prompt(s), {G.chain.length} effect(s){G.round ? ', response round' : ''}</InfoLine>
                         </Section>
 
                         {/* ── Inspect ── */}
@@ -507,14 +484,15 @@ const SandboxPanel = ({ G, ctx, moves, playerID }: Props) => {
                             {showRawG && (
                                 <RawG>
                                     {JSON.stringify({
-                                        hand: G.hand,
-                                        stable: G.stable,
-                                        upgradeDowngradeStable: G.upgradeDowngradeStable,
-                                        playerEffects: G.playerEffects,
-                                        script: G.script,
-                                        neighDiscussion: G.neighDiscussion,
-                                        drawPile: G.drawPile.length + ' cards',
-                                        discardPile: G.discardPile.length + ' cards',
+                                        hand: G.zones.hand,
+                                        stable: G.zones.stable,
+                                        pile: G.zones.pile,
+                                        turn: G.turn,
+                                        prompts: G.prompts,
+                                        chain: G.chain,
+                                        round: G.round,
+                                        deck: G.zones.deck.length + ' cards',
+                                        discard: G.zones.discard.length + ' cards',
                                     }, null, 2)}
                                 </RawG>
                             )}
@@ -834,38 +812,10 @@ const EffectChip = styled.span`
     gap: 4px;
 `;
 
-const ChipRemove = styled.button`
-    background: none;
-    border: none;
-    color: #ff8080;
-    cursor: pointer;
-    padding: 0;
-    font-size: 10px;
-    line-height: 1;
-`;
-
 const EmptyChips = styled.span`
     color: #4a3570;
     font-size: 10px;
     font-style: italic;
-`;
-
-const EffectAddRow = styled.div`
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    flex-wrap: wrap;
-`;
-
-const EffectSelect = styled.select`
-    flex: 1;
-    min-width: 0;
-    background: #12092a;
-    border: 1px solid #4a3570;
-    border-radius: 5px;
-    color: #c9b8f0;
-    font-size: 10px;
-    padding: 3px 5px;
 `;
 
 const InfoLine = styled.div`

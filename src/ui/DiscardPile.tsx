@@ -1,18 +1,18 @@
 import _ from 'underscore';
+import type { CardView } from '../view/cards';
+import { cardDescription } from '../view/cards';
 import styled from 'styled-components';
-import type { Card } from "../game/card";
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from './util';
 import  { useContext, useState } from 'react';
 import CardHover from './CardHover';
 import useSound from 'use-sound';
 import { LanguageContext } from '../LanguageContextProvider';
-import { cardDescription } from '../BoardUtil';
 const HubMouseOverSound = require('../assets/sound/Hub_Mouseover.ogg');
 
 
 type Props = {
-    cards: Card[];
+    cards: CardView[];
     onClick: () => void;
 }
 

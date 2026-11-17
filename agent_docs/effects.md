@@ -1,220 +1,204 @@
 # Effects & Mechanics
 
-> **Status (2026-11-17).** Documents the internal mechanics **as implemented today** (checked against
-> `src/game/` on branch `select_extensions`, `d571b99`): persistent effects, passives, Do operations,
-> trigger types, and the Script/Scene/Action/Instruction resolution model.
+> **Status (2026-11-17).** Documents the internal mechanics of the **rules engine** in `src/game/engine/`
+> and the **card registry** in `src/game/cards/` (stage 3 of `expansion-plan.md`). The Script / Scene /
+> Instruction model, `G.playerEffects`, the `Do` operations and `BoardStateManager` no longer exist.
 >
-> This model is planned to be replaced by the card registry + effect language + prompt engine described in
-> `expansion-plan.md` section 5. Until that happens, this file is the reference for how the code works.
+> The game runs with the **legacy** rule preset: the rules of `rules.md` sections 1–5. The rule changes
+> of `rules.md` section 7 exist as options (`engine/options.ts`) and are switched on in stage 4.
 
-## Persistent Effects (playerEffects)
+## 1. Where things live
 
-Effects are stored per-player in `G.playerEffects[playerID]`. Each entry has an `effect.key` and optionally a `cardID` linking it to the card that created it. When the source card leaves the stable, its effects are automatically removed.
+| Path | Content |
+|---|---|
+| `cards/types.ts` | Card definitions, sets, and the **effect language** (plain data, no functions) |
+| `cards/dsl.ts` | Helpers that keep a definition close to the printed text (`onEnter(may(steal(1, UPGRADE)))`) |
+| `cards/defs/*.ts` | One definition per card design |
+| `cards/sets/index.ts` | Set inventories: which definitions, how many copies, which babies |
+| `cards/i18n/en.ts`, `de.ts` | Card texts by definition id (English required, German optional) |
+| `cards/registry.ts` | Lookups: `getDef`, `getSet`, `buildDeck`, `getCardDescription` |
+| `engine/state.ts` | `GameState`: zones, turn, effect chain, prompts, response round, log |
+| `engine/rules.ts` | Pure questions about a state: `canPlay`, `canEnter`, `canBeAffected`, `unicornCount`, … |
+| `engine/events.ts` | `moveCard`: the only code that moves a card between zones |
+| `engine/effects.ts` | The interpreter of the effect language; creates prompts |
+| `engine/play.ts` | Playing cards and response rounds (Neigh voting) |
+| `engine/turn.ts` | Phases, the main loop `advance`, win check |
+| `engine/index.ts` | Public API: `createGame`, `startGame`, `respond`, `playCard`, `drawForTurn`, `drawForAction`, `useBotAbility`, `endTurn`, `forceEndTurn`, `freeActions` |
+| `game.ts` | boardgame.io wiring: phases, moves, turn sync |
+| `src/view/` | What a player sees and may click, derived from the state (frontend only) |
 
-| Effect Key | Meaning | Source Cards |
-|-----------|---------|-------------|
-| `double_dutch` | Can play 2 cards during action phase this turn | Double Dutch (upgrade) |
-| `your_cards_cannot_be_neighed` | Cards you play skip Neigh voting entirely | Yay (upgrade, x2) |
-| `you_cannot_play_neigh` | Cannot play Neigh or Super Neigh cards | Slowdown (downgrade), Ginormous Unicorn |
-| `you_cannot_play_upgrades` | Cannot play Upgrade cards | Broken Stable (downgrade) |
-| `your_unicorns_cannot_be_destroyed` | Your unicorns are immune to destroy effects | Rainbow Aura (upgrade) |
-| `my_unicorns_are_basic` | All your unicorns lose special abilities, treated as basic | Blinding Light (downgrade) |
-| `basic_unicorns_can_only_join_your_stable` | No other player can have Basic Unicorns enter their stable | Queen Bee Unicorn |
-| `pandamonium` | All your unicorns are Pandas, immune to unicorn-targeting effects, cannot win | Pandamonium (downgrade) |
-| `count_as_two` | This unicorn counts as 2 for the win condition | Ginormous Unicorn |
-| `tiny_stable` | Must sacrifice a unicorn if you have more than 5 | Tiny Stable (downgrade) |
-| `save_mate_by_sacrifice` | A destroy aimed at a card of this player does nothing (checked in `executeDo.ts`) | no card adds it (sandbox only) |
-| `your_hand_is_visible` | The UI shows this player's hand to everyone (`OverlayManager`, `MobileBoard`) | no card adds it (sandbox only) |
-| `change_of_luck` | Temporary: added when the 3rd card of Change of Luck is discarded, removed at end of turn, grants an extra turn | Change of Luck (magic) |
-| `can_play_two_cards` | Unused key (Double Dutch uses `double_dutch`) | — |
+The state stores **no derived facts**. `G.cards[id].def` is a definition id; whether a player may play
+Upgrades, whether a card is protected or how many unicorns count is computed from the cards that are
+in the stables at that moment. There is nothing to add or remove when a card enters or leaves.
 
-Notes:
+## 2. Abilities
 
-- `double_dutch` is added by a `begin_of_turn` trigger, not on enter — a Double Dutch that enters during your turn does nothing until your next turn.
-- Effects are only **added** when their trigger fires and are removed when the source card leaves. They are not re-evaluated: a unicorn that entered under Blinding Light never gets its effect (see `rules.md` issue I3).
+A card definition has a list of abilities. Baby and Basic Unicorns have none.
 
-### Passives
+| Kind | Meaning | DSL |
+|---|---|---|
+| `spell` | Magic card: resolves when the card is played, then the card is discarded | `spell(effect)` |
+| `triggered` | "When / if / each time …", see triggers below | `onEnter`, `onBeginOfTurn`, … |
+| `static` | A continuous rule while the card is in a stable | `rule({ kind: … })` |
+| `instant` | Instant card: may be played in a response round | `neigh()` |
 
-A second, separate mechanism: `passive` on the card definition, read directly where it matters.
+### Triggers
 
-| Passive | Meaning | Card | Checked in |
-|---|---|---|---|
-| `cannot_be_destroyed_by_magic` | Not a legal target for a destroy whose source is a Magic card | Magical Kittencorn | `findDestroyTargets` |
-| `basic_unicorns_cannot_enter` | Basic Unicorns cannot enter the stable this card is in | Extreme Adventurer Unicorn | `canEnter` |
-| `count_as_two` | Declared in the type, not used (Ginormous uses the effect key) | — | — |
+| Trigger | DSL | Fires when |
+|---|---|---|
+| `enter` | `onEnter` | this card enters a stable (played, brought, stolen or moved) |
+| `bot` | `onBeginOfTurn` | the card was in the stable when its owner's turn began |
+| `sd` | `onSacrificedOrDestroyed` | this card is sacrificed or destroyed (`flyer()` = return it to hand) |
+| `unicornEnters` | `wheneverUnicornEnters` | another Unicorn card enters the stable this card is in (Barbed Wire) |
+| `unicornLeaves` | `wheneverUnicornLeaves` | a Unicorn card leaves that stable (Barbed Wire) |
+| `state` | `stateCheck(check, effect)` | "if at any time …" (Tiny Stable: more than 5 unicorns) |
 
-### Effect Interactions
+A blinded unicorn has no triggered abilities. Abilities that trigger on the same event are put on the
+chain as one group: mandatory ones resolve first.
 
-- **`my_unicorns_are_basic` + `pandamonium`**: If both are active, Pandamonium wins — unicorns are Pandas and KEEP their special abilities. See `isCardBasicDueToEffect()`. (Decided to change: `rules.md` R1.)
-- **`pandamonium` + destroy**: `destroy` with `type: "unicorn"` cannot target the player's unicorns; `type: "any"` can.
-- **`pandamonium` + sacrifice**: the player's unicorns are not legal targets, neither for `type: "unicorn"` nor for `type: "any"`.
-- **`pandamonium` + steal / returnToHand / backKick**: no check — the unicorns can be chosen.
-- **`pandamonium` + unicornSwap1**: the player cannot give a unicorn away.
-- **`tiny_stable` + `pandamonium`**: Tiny Stable is inert while Pandamonium is active.
-- **`tiny_stable` + `count_as_two`**: The threshold drops from 5 to 4 unicorns when Ginormous is present.
+### Static rules
 
-The decided target behaviour for Pandamonium (effects that name a "Unicorn card" cannot affect them, effects on "a card" can) is `rules.md` R4.
+| Rule | Meaning | Cards |
+|---|---|---|
+| `cannotPlay { filter }` | The owner cannot play matching cards | Broken Stable (Upgrades); Slowdown, Ginormous Unicorn (Neigh cards) |
+| `cannotEnter { filter, stables }` | Matching cards cannot enter this stable (`yours`) or every other stable (`othersThanYours`) | Extreme Adventurer Unicorn (Basic, yours); Queen Bee Unicorn (Basic, others) |
+| `protect { cards, verbs, bySourceType? }` | The card itself or the owner's unicorns cannot be affected by these verbs | Rainbow Aura (your unicorns, destroy); Magical Kittencorn (self, destroy by Magic cards) |
+| `blind` | The Unicorn cards in this stable have no effects | Blinding Light |
+| `masquerade` | The Unicorn cards in this stable are Pandas; the owner cannot win | Pandamonium |
+| `countsAs { n }` | This card counts as `n` unicorns | Ginormous Unicorn |
+| `yourPlaysCannotBeNeighed` | Cards the owner plays cannot be Neigh'd | Yay |
+| `cannotBeNeighed` | This card cannot be Neigh'd while it is being played | Super Neigh |
+| `extraPlays { n, ifInStableAtTurnStart }` | The owner may play `n` more cards in the Action phase | Double Dutch |
 
----
+Static rules of a blinded unicorn are off; `blind` and `masquerade` themselves are never switched off.
+Which of the two wins when both are in a stable is rule option R1 (legacy: masquerade wins).
 
-## Do Operations
+## 3. The effect language
 
-A `Do` is the atomic unit of game action. Each has a `key` that dispatches to a function in `operations/`. Card definitions embed Do objects in their triggers.
+An effect is a tree of **combinators** over **steps**.
 
-### Important: Cost-Then-Effect Pattern
+### Combinators — this is where "cost, then effect" and "choice" are decided
 
-When a card has two sequential Actions in a Scene, the first is a **cost** and the second is the **reward**. The player must complete the cost before the reward executes. This is NOT a choice — it's a sequence.
+| Combinator | Card wording | Behaviour |
+|---|---|---|
+| `then(a, b)` | "A, then B" | B only happens if A was performed completely. A is the **cost**. |
+| `ifYouDo(a, b)` | "You may A. If you do, B." | Optional; A is the cost. |
+| `may(e)` | "You may …" | Optional. |
+| `oneOf(a, b, …)` | "A **or** B" | The player picks exactly one mode that is possible; impossible modes are shown greyed out. |
+| `all(a, b, …)` | "A and B" | Every part that is possible is done. |
+| `forEach(players, e)` | "Each player …", "another player …" | One instance per player; their decisions are open at the same time. |
+| `when(cond, e)` | "If it is a …, …" | Looks at cards bound by an earlier step (`bind` / `ref`). |
 
-Example: Stable Artillery has actions `[{discard 2}, {destroy unicorn}]`. The player discards 2 cards FIRST, then gets to destroy a unicorn.
+Do not confuse `then` with `oneOf`: Unfair Bargain-style "discard, then steal" is a cost followed by an
+effect, never a choice between the two.
 
-Contrast with a **choice**: when multiple Instructions are in the SAME Action for the same protagonist, the player picks exactly one.
+### Steps
 
-### Operations by Category
+`draw`, `discard`, `sacrifice`, `destroy`, `steal`, `returnToHand`, `move`, `bring` (into the stable
+from hand / discard pile / Nursery, not a play — cannot be Neigh'd), `addToHand` (from the discard
+pile, or the card itself), `search`, `takeFromHand` (`random` = pull, `look` = look at the hand and
+choose), `tradeHands`, `shuffleIntoDeck`, `turn` (`extraTurn`, `endTurn`).
 
-**Drawing:**
-| Key | Parameters | Description |
-|-----|-----------|-------------|
-| `draw` | `count: number` | Draw cards from the draw pile into hand |
-| `search` | `type: "any" \| "unicorn" \| "upgrade" \| "downgrade" \| "narwhal"` | Search the deck for a card of the given type, add to hand, shuffle deck. `"narwhal"` matches cards whose type is exactly `narwhal` (not the basic Narwhal). The found card is not revealed to other players |
-| `stowawaydraw` | — | Stowaway Unicorn only: draw the top card; a unicorn, Upgrade or Downgrade enters the stable directly, anything else goes to hand |
+Steps take a `CardFilter` (`types`, `unicorn`, `nameIncludes`). "A Unicorn card" is `{ unicorn: true }`;
+"a Neigh card" matches by name, so Super Neigh counts.
 
-**Discarding:**
-| Key | Parameters | Description |
-|-----|-----------|-------------|
-| `discard` | `count: number, type: "any" \| "unicorn", changeOfLuck?: boolean` | Discard cards from hand. Count decrements one at a time. If `changeOfLuck` is true, adds the `change_of_luck` effect after final discard |
-| `makeSomeoneDiscard` | — | Choose another player; they must discard a card |
+### Adding a card
 
-**Stealing / Pulling:**
-| Key | Parameters | Description |
-|-----|-----------|-------------|
-| `steal` | `type: "unicorn" \| "upgrade" \| "baby", unicornSwap?: boolean` | Take a card from another player's stable into yours. Only cards that may enter your stable are legal targets |
-| `pull` | — | Internal helper: move the card at a given hand index from one player to another |
-| `pullRandom` | — | Take a random card from another player's hand |
-| `blatantThievery1` | — | Look at another player's hand and take a card (Fisherman Unicorn) |
+Add the definition in `cards/defs/`, the English text in `cards/i18n/en.ts`, the inventory line in
+`cards/sets/index.ts`, the image in `src/assets/card/square/`, and a scenario test. **No UI or log code
+is needed**: prompt titles, button labels and log lines are generated from the effect tree
+(`engine/describe.ts`, `src/view/`). If a primitive is missing, add it to the effect language with its
+own tests — never special-case a card in the engine.
 
-**Destroying:**
-| Key | Parameters | Description |
-|-----|-----------|-------------|
-| `destroy` | `type: "unicorn" \| "upgrade" \| "any" \| "my_downgrade_other_upgrade", count?: number` | Move a card from a stable to the discard pile. The target finder does **not** exclude the acting player's own stable (`rules.md` issue I8). Respects `your_unicorns_cannot_be_destroyed` and `cannot_be_destroyed_by_magic` for unicorns; `pandamonium` only for `type: "unicorn"`. The special type `my_downgrade_other_upgrade` allows sacrificing your own downgrade OR destroying an upgrade (used by Chainsaw Unicorn / Targeted Destruction). With `count`, targets are chosen and destroyed one at a time |
+## 4. Resolution
 
-**Sacrificing:**
-| Key | Parameters | Description |
-|-----|-----------|-------------|
-| `sacrifice` | `type: "unicorn" \| "downgrade" \| "this" \| "any"` | Remove your own card from your stable to discard. Triggers `this_destroyed_or_sacrificed` on the sacrificed card |
+### Effect chain
 
-**Reviving:**
-| Key | Parameters | Description |
-|-----|-----------|-------------|
-| `revive` | `type: "unicorn" \| "basic_unicorn"` | Bring a unicorn from the discard pile into your stable |
-| `reviveFromNursery` | — | Bring a Baby Unicorn from the nursery into your stable |
-| `addFromDiscardPileToHand` | `type: "magic" \| "unicorn" \| "neigh"` | Take a card of the given type from discard pile into your hand. `"neigh"` matches type `neigh` only (not Super Neigh) |
-| `returnSelf` | — | Bungee Jumping Unicorn only: move the source card from the discard pile back to its owner's hand |
+`G.chain` is a stack of **links**; a link is one ability instance (or an engine rule such as the turn
+draw or the hand limit). `advance` (in `turn.ts`) runs after every move: it resolves the top link until
+a decision is needed, and when the chain is empty it lets the turn continue. The interpreter is
+**resumable**: its memory per effect node is stored in the link (`link.mem`), so a link can wait for an
+answer and continue later. An ability that triggers while another one resolves goes on top and resolves
+first.
 
-**Moving / Returning:**
-| Key | Parameters | Description |
-|-----|-----------|-------------|
-| `returnToHand` | `who: "another"` | Return a card in another player's stable to their hand |
-| `bringToStable` | `type: "basic_unicorn"` | Play a Basic Unicorn from your hand into your stable |
-| `move` | `type: "upgradeAndDowngrade"` | Step 1 of a move: take an Upgrade/Downgrade out of a stable and remember it in `G.clipboard.move` (Pillaging Pirate Unicorn) |
-| `move2` | — | Step 2: choose the destination player (not the previous owner, not yourself); the remembered card enters that stable. Only satisfiable while `G.clipboard.move` is set |
-| `backKick` | — | Return a card from another player's stable to their hand, then that player discards a card |
+### Prompts
 
-**Swapping / Shuffling:**
-| Key | Parameters | Description |
-|-----|-----------|-------------|
-| `swapHands` | — | Swap your entire hand with another player |
-| `shakeUp` | — | Shuffle your hand, this card, and discard pile into the deck, then draw 5 |
-| `reset` | — | All players sacrifice all Upgrades and Downgrades. Shuffle discard into deck |
-| `shuffleDiscardPileIntoDrawPile` | — | Shuffle the discard pile into the draw pile |
-| `unicornSwap1` / `unicornSwap2` | — | Two-step unicorn swap between players |
-| `blatantThievery1` | — | Steal operation variant |
+Every decision is a **prompt** in `G.prompts` (`engine/state.ts`, `Prompt`):
 
----
+| Kind | Asked for |
+|---|---|
+| `chooseCards` | cards in a hand, a stable, the discard pile, the Nursery or the deck (`min` / `max`) |
+| `choosePlayers`, `chooseStable` | a player / the destination stable of a moved card |
+| `chooseMode` | "A or B" |
+| `confirm` | "you may …" for effects that have no other choice to decline |
+| `respond` | a response round: play an Instant or pass |
 
-## Trigger Types
+A prompt names its `source` card, the `verb`, a generated `title` ("DISCARD 2 cards"), whether it is
+`optional` (then `{ skip: true }` is a legal answer), its `role` (`cost` / `effect`), a `preview` of
+what follows, and `disabled` options with the reason. `respond(G, rng, player, promptId, answer)` is
+the single move for every decision. Several players can have prompts at the same time.
 
-Cards can have `on` triggers that fire at specific moments:
+Anything that is not a prompt is a **free action** of the turn player (`freeActions`): use a
+begin-of-turn ability, draw for the turn, play a card, draw for the action, end the turn. They are only
+available while nothing is resolving.
 
-| Trigger | When It Fires | Typical Use |
-|---------|--------------|-------------|
-| `enter` | When the card enters a player's stable (after Neigh voting resolves) | Most unicorn abilities, upgrade/downgrade effects |
-| `begin_of_turn` | At the start of the card owner's turn | Recurring upgrade abilities (Stable Artillery, Claw Machine, etc.) |
-| `this_destroyed_or_sacrificed` | When this specific card is destroyed or sacrificed | "Flying Unicorn" return-to-hand effects, revenge triggers |
-| `unicorn_enters_your_stable` | When any unicorn enters the card owner's stable | Barbed Wire (discard on enter) |
-| `unicorn_leaves_your_stable` | When any unicorn leaves the card owner's stable | Barbed Wire (discard on leave) |
+### Impossible effects
 
-### Trigger Do Types
+Before an optional ability is offered and before a mode is listed, the interpreter checks whether it is
+possible (`possible` in `effects.ts`). An impossible mandatory step **fizzles**: nothing happens, a log
+entry with `outcome: 'fizzled'` and the reason is written, and for `then` / `ifYouDo` the rest does not
+happen. The game never waits for a decision nobody can make; the random-play test
+(`engine.random.test.ts`) guards this.
 
-Each trigger's `do` field specifies what happens:
+### The event pipeline
 
-| Do Type | Description |
-|---------|-------------|
-| `add_scene` | Creates a new Scene in the script queue with actions/instructions |
-| `add_effect` | Adds a persistent effect to the player |
-| `remove_effect` | Removes a persistent effect from the player |
-| `auto` | Executes immediately without player interaction (e.g., `sacrifice_all_downgrades`) |
-| `return_to_hand` | Returns the card to the owner's hand instead of discarding it |
-| `inject_action` | Injects an action into the current scene (used by reactive triggers like Barbed Wire) |
+Every zone change goes through `moveCard` (`events.ts`), in this order: restrictions (protection and
+entry rules — an illegal move does nothing and is logged as `prevented`) → apply (a Baby Unicorn that
+would go to a hand, the deck or the discard pile goes to the Nursery) → log → triggers
+(`unicornLeaves`, `sd`, `unicornEnters`, `state`, `enter`) → state checks.
 
----
+### Playing a card and response rounds
 
-## Script / Scene / Action / Instruction Model
+`playCard` puts the card on `G.zones.pile` and opens a **response round**: every player who is allowed
+to play a card that could answer gets a `respond` prompt — whether or not they hold one. The first
+Instant closes the round, goes on the pile and gets a round of its own. When everybody has passed, the
+pile resolves from the top down: each Neigh stops the entry below it. If the original card survives, a
+Unicorn / Upgrade / Downgrade enters the declared stable (its `enter` abilities trigger) and a Magic
+card resolves its `spell` and is discarded afterwards. A Neigh'd card counts as played for the turn.
 
-This is the queue-based effect resolution system. Understanding it is essential for working on game logic.
+### Turn machine
 
-```
-G.script: Script
-  └── scenes: Scene[]          ← queue of scenes, processed in order
-        └── Scene
-              ├── id: string
-              ├── mandatory: boolean       ← must resolve before turn advances
-              ├── endTurnImmediately: boolean  ← skip remaining phases after this
-              └── actions: Action[]        ← sequential steps within the scene
-                    └── Action
-                          └── instructions: Instruction[]  ← for one or more players
-                                └── Instruction
-                                      ├── id: string
-                                      ├── protagonist: PlayerID
-                                      ├── state: "open" | "in_progress" | "executed"
-                                      ├── do: Do           ← the operation
-                                      └── ui: CardUI       ← how the player interacts
-```
+`G.turn.phase`: `bot` (beginning of turn) → `draw` → `action` → `eot`. Mandatory begin-of-turn abilities
+resolve on their own; optional ones wait until the player uses them (`useBotAbility`) or draws for the
+turn, which forfeits them. `eot` enforces the hand limit, then the next turn starts (an extra turn
+first). A win is checked after every move (legacy, R7).
 
-### Resolution Rules
+## 5. Log
 
-1. **Scenes** are processed in order. A scene's first action must be resolved before proceeding to the second action.
-2. **Actions within a scene** are sequential — action 1 must complete before action 2 begins. This is how cost-then-effect works.
-3. **Instructions within an action**: If multiple instructions in the same action have the same protagonist, the protagonist must choose **exactly one** to execute (this creates a choice, e.g., Chainsaw Unicorn: destroy upgrade OR sacrifice downgrade).
-4. If `protagonist` is `"all"`, an instruction is created for every player.
-5. **Mandatory scenes** (`mandatory: true`) block the turn from advancing. The player must resolve them.
-6. **Optional scenes** (`mandatory: false`) can be skipped. The player declines via `skipExecuteDo`, which marks **all** remaining steps of that scene as executed for that player, or opts in via `commit`, which makes the scene mandatory.
-7. **`endTurnImmediately: true`**: If the player commits to this scene, their turn ends after resolving it. They don't get to draw or play cards.
-8. Instructions transition: `"open"` → `"in_progress"` (when `executeDo` is called) → `"executed"` (when the operation completes).
-9. For multi-count operations like `discard {count: 2}`, the count decrements with each execution. The instruction stays `"in_progress"` until count reaches 1 on the final execution.
+`G.log` holds one entry per event, decision or turn marker (`LogEntry` in `state.ts`): verb, actor,
+source card, affected cards and zones, `role`, `outcome` (`done`, `prevented`, `fizzled`, `declined`,
+`neighed`), a `parent` entry (the log is a tree) and a `visibility` (a drawn card is visible to its
+owner only). Entries are written by the event pipeline, the interpreter and the turn machine — never by
+a card definition. `src/view/log.ts` turns them into text.
 
-### Automatic fizzling
+## 6. Rule options
 
-`autoFizzleUnsatisfiable` (`operations/canSatisfy.ts`) runs at the start of a turn, after every `enter`, after a unicorn leaves a stable, and after every `executeDo`. It marks instructions as executed when they cannot be carried out:
+`engine/options.ts` lists every decided rule change of `rules.md` section 7 as a named option, read
+only inside the engine. `LEGACY_RULES` is the behaviour before the rewrite and the only preset today.
+Card-level changes (R6 Mermaid Unicorn, R17 Zombie Unicorn) are alternative definitions
+(`mermaid_unicorn@legacy`); the preset decides which one a set resolves to.
 
-- **Mandatory scene**: per player, as soon as their instruction in the current action has no legal target.
-- **Optional scene**: per player, only when *all* of their alternatives in the current action are impossible.
+## 7. The UI contract (`src/view/`)
 
-`canSatisfyDo` decides this per operation (at least one target for discard / destroy / sacrifice / steal / revive / search / …; `draw`, `swapHands`, `pullRandom` and similar always count as possible). If the last action of a Magic card's scene fizzles, the card is moved from the temporary stable to the discard pile.
+Both boards render the same derived model; there is no per-card UI code.
 
-### Action Injection
+| File | Content |
+|---|---|
+| `cards.ts` | `CardView` (name, type, image, text) from the registry |
+| `model.ts` | `getBoardModel`: my prompt, my vote, the response round, my free actions; `cardMarks` (which cards a click does something on); click functions that return the move to send |
+| `describe.ts` | `getPanels` (who asks, what, buttons) and `infoText` — the **one** source of "what should the player do now", with "Click on …" for desktop and "Tap …" for mobile |
+| `log.ts` | Log entries as text |
+| `useBoard.ts` | The hook both boards use: model + local selection state + handlers |
 
-Reactive triggers (`unicorn_enters_your_stable`, `unicorn_leaves_your_stable`) use `inject_action` to insert new actions into the current scene. If an instruction is in progress, the new action is injected *before* it. If no instruction is in progress, a new mandatory scene is created.
-
-### Magic Card Lifecycle
-
-When a Magic card is played and enters the stable:
-1. It goes into `temporaryStable[playerID]` (not the normal stable or upgrade/downgrade stable).
-2. Its `enter` trigger fires, creating scenes.
-3. After the last action of its scene resolves, the card moves from `temporaryStable` to the `discardPile`.
-4. Exception: Shake Up — the card is NOT placed in the discard pile (it was shuffled into the deck).
-
-### Finding Open Scenes
-
-`_findOpenScenesWithProtagonist(G, playerID)` scans scenes to find the next unresolved instruction for a player. It walks each scene's actions in order and returns the first action that has open/in-progress instructions for that player.
-
-`_findInProgressScenesWithProtagonist(G, playerID)` finds scenes where the player has already started (action 1 is complete, action 2 is open) — these are scenes where the cost has been paid and the effect is pending.
+Tests: `src/game/__tests__/engine.*.test.ts` (scenario builder in `src/game/testing/scenario.ts`) and
+`src/view/__tests__/view.test.ts`.

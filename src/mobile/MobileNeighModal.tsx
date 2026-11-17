@@ -1,15 +1,15 @@
 import React, { useContext } from 'react';
+import type { CardView } from '../view/cards';
+import { cardDescription } from '../view/cards';
 import styled, { keyframes } from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from '../game/card';
+import { motion } from 'framer-motion';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from '../ui/util';
 import { NeighLabelRole } from '../ui/NeighLabel';
-import { cardDescription } from '../BoardUtil';
 import { LanguageContext } from '../LanguageContextProvider';
 
 type Props = {
-    card: Card;
+    card: CardView;
     role: NeighLabelRole;
     originalInitiatorName: string;
     newInitiatorName?: string;

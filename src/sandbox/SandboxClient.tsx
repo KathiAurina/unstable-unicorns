@@ -1,24 +1,16 @@
 import { useState } from 'react';
 import { Client } from 'boardgame.io/react';
 import { Local } from 'boardgame.io/multiplayer';
-import type { Ctx } from 'boardgame.io';
 import Board from '../Board';
 import UnstableUnicorns from '../game/game';
 import { SandboxControlContext } from './sandboxContext';
 import type { SandboxAction } from './sandboxContext';
 
+// The sandbox is the normal game, set up without a pregame and with the cheat moves switched on.
 const SandboxGame = {
     ...UnstableUnicorns,
-    setup: (ctx: Ctx) =>
-        (UnstableUnicorns as any).setup(ctx, { sandbox: true, ownerPlayerID: "0" }),
-    turn: {
-        ...(UnstableUnicorns as any).turn,
-        order: {
-            playOrder: () => ["0", "1", "2"],
-            first: () => 0,
-            next: (_G: any, ctx: any) => (ctx.playOrderPos + 1) % ctx.numPlayers,
-        },
-    },
+    setup: (ctx: Parameters<NonNullable<typeof UnstableUnicorns.setup>>[0]) =>
+        UnstableUnicorns.setup!(ctx, { sandbox: true, ownerPlayerID: "0" }),
 };
 
 const SandboxBoardgameClient = Client({

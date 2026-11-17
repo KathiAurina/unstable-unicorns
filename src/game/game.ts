@@ -1,570 +1,255 @@
-import type { Ctx } from 'boardgame.io';
-import { INVALID_MOVE } from 'boardgame.io/core';
-import type { Player, PlayerID } from './player';
-import type { CardID, OnEnterAddEffect } from './card';
-import { canEnter, enter } from './operations';
-import { executeDo, autoFizzleUnsatisfiable } from './operations';
-import { initializeDeck, hasType } from './card';
-import { CONSTANTS } from './constants';
-import { Effect, isCardBasicDueToEffect } from './effect';
-import _ from 'underscore';
-import type { SetupData } from './types';
-import { sandboxStageMoves } from './sandbox/registerStages';
-import { sandboxBypassActionLimit, sandboxSkipNeigh } from './sandbox/sandboxOverrides';
-import {
-    UnstableUnicornsGame,
-    Scene,
-    _addSceneFromDo,
-    _findOpenScenesWithProtagonist,
-    _findInProgressScenesWithProtagonist,
-    _findInstruction,
-} from './state';
-import { pushLog } from './log';
+// boardgame.io wiring for the rules engine (expansion-plan.md 5.8).
+//
+// The engine (engine/) knows nothing about boardgame.io. This file maps it onto a Game object:
+//   - two phases: `pregame` (pick a Baby Unicorn, get ready) and `main`
+//   - every player is active all the time; the engine decides who may do what (prompts, free actions)
+//   - boardgame.io turns follow `G.turn`: when the engine starts a new turn, `endTurn` is called and
+//     the turn order reads the next player from `G.turn.player` (extra turns included)
+//   - the game ends when the engine sets `G.gameOver`
+//   - randomness comes from boardgame.io's seeded `ctx.random`
+//
+// Moves take the acting player from `ctx.playerID` (verified by the server), never from an argument.
+
+import type { Ctx, Game } from 'boardgame.io';
+import { ActivePlayers, INVALID_MOVE } from 'boardgame.io/core';
+import * as engine from './engine';
+import type { Answer, CardID, GameState, PlayerID, Rng } from './engine';
+import { getDef } from './cards/registry';
+import { sandboxCheats } from './sandbox/cheats';
+import type { SandboxSnapshot, SandboxSettingKey } from './sandbox/cheats';
 
 export type { Ctx };
-export type { UnstableUnicornsGame, Scene, Action, Instruction } from './state';
-export { _findInstruction, _findOpenScenesWithProtagonist, _findInProgressScenesWithProtagonist, _addSceneFromDo } from './state';
+export type { GameState };
 
+/** Passed to `setup` by the lobby (`setupData` of the match). */
+export type SetupData = {
+    matchName?: string;
+    ownerPlayerID?: PlayerID;
+    /** Set ids: one base set plus expansions. Ids from before the registry are accepted. */
+    expansions?: string[];
+    sandbox?: boolean;
+} | undefined;
 
+/** How long the owner may be silent in the pregame before anyone may cancel the match. */
+export const OWNER_TIMEOUT_MS = 60000;
+const MAX_NAME_LENGTH = 24;
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const UnstableUnicorns = {
-    name: "unstable_unicorns",
-    setup: (ctx: Ctx, setupData: SetupData): UnstableUnicornsGame => {
-        const sandboxMode = setupData?.sandbox === true;
+function rngOf(ctx: Ctx): Rng {
+    return {
+        shuffle: items => ctx.random!.Shuffle(items),
+        int: n => (n <= 1 ? 0 : ctx.random!.Die(n) - 1),
+    };
+}
 
-        const sandboxNames = ["player", "dummy_1", "dummy_2"];
-        const players: Player[] = Array.from({ length: ctx.numPlayers }, (val, idx) => {
-            return {
-                id: `${idx}`,
-                name: sandboxMode ? (sandboxNames[idx] ?? `dummy_${idx}`) : `Player ${idx}`,
-            };
+function actor(ctx: Ctx): PlayerID {
+    return ctx.playerID ?? ctx.currentPlayer;
+}
+
+/** Lets boardgame.io's turn follow the engine's turn. */
+function syncTurn(G: GameState, ctx: Ctx, turnBefore: number): void {
+    if (ctx.phase === 'main' && G.turn.number !== turnBefore && !G.gameOver) ctx.events!.endTurn!();
+}
+
+type MoveFn = (G: GameState, ctx: Ctx, ...args: any[]) => unknown;
+
+/** A move of the main phase: runs on the server only, since it may need hidden cards and randomness. */
+function serverMove(run: (G: GameState, rng: Rng, player: PlayerID, ...args: any[]) => string | undefined | void) {
+    const move: MoveFn = (G, ctx, ...args) => {
+        const turnBefore = G.turn.number;
+        const error = run(G, rngOf(ctx), actor(ctx), ...args);
+        if (error) return INVALID_MOVE;
+        syncTurn(G, ctx, turnBefore);
+        return undefined;
+    };
+    return { move, client: false };
+}
+
+function seat(G: GameState, ctx: Ctx): number {
+    return Math.max(0, ctx.playOrder.indexOf(G.turn.player));
+}
+
+function abort(G: GameState): void {
+    G.gameOver = { winners: [], reason: 'aborted', aborted: true };
+}
+
+// ─── Pregame moves ────────────────────────────────────────────────────────────
+
+const changeName: MoveFn = (G, ctx, name: string) => {
+    const player = G.players.find(p => p.id === actor(ctx));
+    if (!player || typeof name !== 'string') return INVALID_MOVE;
+    player.name = name.slice(0, MAX_NAME_LENGTH);
+    return undefined;
+};
+
+const selectBaby: MoveFn = (G, ctx, cardID: CardID) => {
+    const me = actor(ctx);
+    if (!G.zones.nursery.includes(cardID) || getDef(G.cards[cardID].def).type !== 'baby') return INVALID_MOVE;
+    if (G.babyStarter.some(s => s.cardID === cardID && s.owner !== me)) return INVALID_MOVE;
+    G.babyStarter = G.babyStarter.filter(s => s.owner !== me);
+    G.babyStarter.push({ cardID, owner: me });
+    G.ready[me] = false;
+    return undefined;
+};
+
+const deselectBaby: MoveFn = (G, ctx) => {
+    const me = actor(ctx);
+    G.babyStarter = G.babyStarter.filter(s => s.owner !== me);
+    G.ready[me] = false;
+};
+
+const ready = {
+    client: false,
+    move: ((G, ctx) => {
+        const me = actor(ctx);
+        const mine = G.babyStarter.find(s => s.owner === me);
+        if (!mine) return INVALID_MOVE;
+        if (G.babyStarter.some(s => s.cardID === mine.cardID && s.owner !== me)) return INVALID_MOVE;
+        G.ready[me] = true;
+        // The pregame phase ends (endIf) as soon as the engine has started the first turn.
+        if (G.players.every(p => G.ready[p.id])) engine.startGame(G, rngOf(ctx));
+        return undefined;
+    }) as MoveFn,
+};
+
+const abolishGame: MoveFn = (G, ctx) => {
+    if (actor(ctx) !== G.owner) return INVALID_MOVE;
+    abort(G);
+    return undefined;
+};
+
+const heartbeat: MoveFn = (G, ctx) => {
+    G.lastHeartbeat[actor(ctx)] = Date.now();
+};
+
+const cancelAbandonedGame: MoveFn = (G) => {
+    if (Date.now() - G.lastHeartbeat[G.owner] <= OWNER_TIMEOUT_MS) return INVALID_MOVE;
+    abort(G);
+    return undefined;
+};
+
+// ─── Main moves ───────────────────────────────────────────────────────────────
+
+const mainMoves = {
+    /** Answers a prompt: the single move for every decision. */
+    respond: serverMove((G, rng, player, promptId: string, answer: Answer) => engine.respond(G, rng, player, promptId, answer)),
+    /** Plays a card from hand; `target` is the destination stable of an Upgrade or Downgrade card. */
+    playCard: serverMove((G, rng, player, card: CardID, target?: PlayerID) => engine.playCard(G, rng, player, card, target ?? undefined)),
+    drawForTurn: serverMove((G, rng, player) => engine.drawForTurn(G, rng, player)),
+    drawForAction: serverMove((G, rng, player) => engine.drawForAction(G, rng, player)),
+    useBotAbility: serverMove((G, rng, player, index: number) => engine.useBotAbility(G, rng, player, index)),
+    endTurn: serverMove((G, rng, player) => engine.endTurn(G, rng, player)),
+    /** Owner override for players who are away: default answers for everything open, then the turn ends. */
+    forceEndTurn: serverMove((G, rng, player) => {
+        if (player !== G.owner) return 'notOwner';
+        engine.forceEndTurn(G, rng);
+        return undefined;
+    }),
+    /** Owner override: answers the oldest open decision with its default (decline, pass, or a random legal choice). */
+    forceAnswer: serverMove((G, rng, player) => {
+        if (player !== G.owner) return 'notOwner';
+        const prompt = G.prompts[0];
+        if (!prompt) return 'nothingOpen';
+        return engine.respond(G, rng, prompt.player, prompt.id, engine.defaultAnswer(prompt, rng));
+    }),
+    abolishGame,
+    heartbeat,
+};
+
+const sandboxMoves = Object.fromEntries(
+    Object.entries(sandboxCheats).map(([name, cheat]) => [
+        name,
+        serverMove((G, rng, _player, ...args: any[]) => {
+            if (!G.sandbox) return 'notASandbox';
+            return (cheat as (G: GameState, rng: Rng, ...a: any[]) => string | undefined | void)(G, rng, ...args) ?? undefined;
+        }),
+    ]),
+);
+
+// ─── Game ─────────────────────────────────────────────────────────────────────
+
+const UnstableUnicorns: Game<GameState, Ctx, SetupData> = {
+    name: 'unstable_unicorns',
+
+    setup: (ctx, setupData) => {
+        const rng = rngOf(ctx);
+        const G = engine.createGame(rng, ctx.numPlayers, {
+            sets: setupData?.expansions,
+            ownerPlayerID: setupData?.ownerPlayerID,
+            sandbox: setupData?.sandbox === true,
         });
-        
-        const selectedExpansions = setupData?.expansions && setupData.expansions.length > 0 
-            ? setupData.expansions 
-            : ["base_game"];
-
-        const deck = initializeDeck(selectedExpansions);
-        const discardPile: CardID[] = [];
-        let nursery: CardID[] = [];
-        let drawPile = _.shuffle(deck).filter(c => !hasType(c, "baby")).map(c => c.id);
-        let hand: { [key: string]: CardID[] } = {};
-        let stable: { [key: string]: CardID[] } = {};
-        let temporaryStable: { [key: string]: CardID[] } = {};
-        let upgradeDowngradeStable: { [key: string]: CardID[] } = {};
-        let playerEffects: { [key: string]: { cardID: CardID, effect: Effect }[] } = {};
-        let ready: {[key: string]: boolean} = {};
-        let lastHeartbeat: { [key: string]: number } = {};
-
-        players.forEach(pl => {
-            ready[pl.id] = false;
-            hand[pl.id] = _.first(drawPile, CONSTANTS.numberOfHandCardsAtStart);
-            drawPile = _.rest(drawPile, CONSTANTS.numberOfHandCardsAtStart);
-            stable[pl.id] = [];
-            temporaryStable[pl.id] = [];
-            upgradeDowngradeStable[pl.id] = [];
-            playerEffects[pl.id] = [];
-            lastHeartbeat[pl.id] = Date.now();
-        });
-
-        let babyStarter: { cardID: CardID, owner: PlayerID }[] = [];
-
-        if (sandboxMode) {
-            // Pre-assign one random baby unicorn per player; remaining go to nursery.
-            const babyIDs = deck.filter(c => hasType(c, "baby")).map(c => c.id);
-            const shuffledBabies = _.shuffle(babyIDs);
-            players.forEach((pl, idx) => {
-                const babyID = shuffledBabies[idx];
-                stable[pl.id] = [babyID];
-                babyStarter.push({ cardID: babyID, owner: pl.id });
-                ready[pl.id] = true;
-            });
-            nursery = shuffledBabies.slice(players.length);
-        }
-
-        return {
-            players,
-            deck,
-            drawPile,
-            nursery,
-            discardPile,
-            hand,
-            stable,
-            temporaryStable,
-            upgradeDowngradeStable,
-            script: { scenes: [] },
-            playerEffects,
-            mustEndTurnImmediately: false,
-            countPlayedCardsInActionPhase: 0,
-            clipboard: {},
-            endGame: false,
-            babyStarter,
-            ready,
-            lastNeighResult: undefined,
-            owner: setupData?.ownerPlayerID ?? "0",
-            lastHeartbeat,
-            deckWasReshuffled: false,
-            gameLog: [],
-            sandbox: sandboxMode || undefined,
-            sandboxSettings: sandboxMode ? { infiniteActions: true, skipNeigh: true } : undefined,
-        };
+        const now = Date.now();
+        G.players.forEach(p => { G.lastHeartbeat[p.id] = now; });
+        // The sandbox has no pregame: Baby Unicorns are assigned and the first turn begins at once.
+        if (G.sandbox) engine.startGame(G, rng);
+        return G;
     },
+
     phases: {
         pregame: {
             start: true,
-            onBegin: (G: UnstableUnicornsGame, ctx: Ctx) => {
-                if (G.sandbox) {
-                    ctx.events?.setPhase!("main");
-                    return;
-                }
-                ctx.events?.setActivePlayers!({all: "pregame"})
-            }
+            next: 'main',
+            endIf: G => G.turn.number > 0,
+            turn: { activePlayers: ActivePlayers.ALL },
+            moves: { ready, selectBaby, deselectBaby, changeName, abolishGame, heartbeat, cancelAbandonedGame },
         },
         main: {
-            //start: true,
-            onBegin: (G: UnstableUnicornsGame, ctx: Ctx) => {
-
-            }
-        }
-    },
-    turn: {
-        onBegin: (G: UnstableUnicornsGame, ctx: Ctx) => {
-            if (ctx.phase === "pregame") {
-                return;
-            }
-
-            G.deckWasReshuffled = false;
-
-            // this is run whenever a new player starts its turn
-            // perfect for placing players in a stage
-            if (G.drawPile.length === 0 && G.discardPile.length > 0) {
-                G.drawPile = _.shuffle(G.discardPile);
-                G.discardPile = [];
-                G.deckWasReshuffled = true;
-            }
-
-            if (G.drawPile.length > 0) {
-                G.script = { scenes: [] };
-                G.countPlayedCardsInActionPhase = 0;
-                G.mustEndTurnImmediately = false;
-
-                // begin of turn: add scene
-                [...G.stable[ctx.currentPlayer], ...G.upgradeDowngradeStable[ctx.currentPlayer]].forEach(c => _addSceneFromDo(G, ctx, c, ctx.currentPlayer, "begin_of_turn"));
-
-                // begin of turn: add effect
-                [...G.stable[ctx.currentPlayer], ...G.upgradeDowngradeStable[ctx.currentPlayer]].forEach(c => {
-                    const card = G.deck[c];
-                    const cardOnBegin = card.on?.filter(c => c.trigger === "begin_of_turn");
-                    // all unicorns are basic — trigger no effect
-                    if (isCardBasicDueToEffect(G.playerEffects[ctx.currentPlayer], card)) return;
-
-                    if (cardOnBegin) {
-                        cardOnBegin.filter(on => on.do.type === "add_effect").forEach(on => {
-                            const doAddEffect = <OnEnterAddEffect>on.do;
-                            // check if effect has already been added
-                            if (G.playerEffects[ctx.currentPlayer].filter(s => s.cardID === c).length === 0) {
-                                G.playerEffects[ctx.currentPlayer] = [...G.playerEffects[ctx.currentPlayer], { cardID: c, effect: doAddEffect.info }];
-                            }
-                        });
-                    }
-                });
-
-
-                autoFizzleUnsatisfiable(G, ctx);
-
-                ctx.events?.setActivePlayers!({ all: "beginning" });
-            } else {
-                // no cards to draw
-                // need to end the game
-                ctx.events?.setPhase!("end");
-            }
-        },
-        stages: {
-            pregame: {
-                moves: { ready, selectBaby, deselectBaby, changeName, abolishGame, heartbeat, cancelAbandonedGame }
-            },
-            beginning: {
-                moves: {
-                    drawAndAdvance, executeDo, end, commit, skipExecuteDo, abolishGame,
-                    ...sandboxStageMoves,
-                }
-            },
-            action_phase: {
-                moves: {
-                    commit, executeDo, end, drawAndEnd, playCard, playUpgradeDowngradeCard, playNeigh, playSuperNeigh, dontPlayNeigh, skipExecuteDo, abolishGame,
-                    ...sandboxStageMoves,
-                }
-            }
-        }
-    },
-    endIf: (G: UnstableUnicornsGame, ctx: Ctx) => {
-        for (const player of G.players) {
-            // Check for Pandamonium
-            const hasPandamonium = G.playerEffects[player.id].some(e => e.effect.key === "pandamonium");
-            if (hasPandamonium) {
-                // Cannot win if all unicorns are pandas
-                continue;
-            }
-
-            let unicornCount = G.stable[player.id].length;
-
-            // Check for Ginormous Unicorn (counts as 2)
-            const hasGinormous = G.playerEffects[player.id].some(e => e.effect.key === "count_as_two");
-            if (hasGinormous) {
-                unicornCount += 1; // It's already counted once in length
-            }
-
-            if (unicornCount >= CONSTANTS.stableSeats) {
-                return { winner: player.id };
-            }
-        }
-    }
-}
-
-function initializeGame(G: UnstableUnicornsGame, ctx: Ctx) {
-    let babyIds = G.deck.filter(c => c.type === "baby").map(c => c.id);
-
-    G.babyStarter.forEach(({cardID, owner}) => {
-        G.stable[owner].push(cardID);
-        babyIds = _.without(babyIds, cardID);
-    });
-
-    babyIds.forEach(cardId => {
-        G.nursery.push(cardId);
-    });
-}
-
-function changeName(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, name: string) {
-    G.players[parseInt(protagonist)].name = name;
-}
-
-function ready(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
-    const myBaby = G.babyStarter.find(s => s.owner === protagonist);
-    if (!myBaby) return INVALID_MOVE;
-    if (G.babyStarter.some(s => s.cardID === myBaby.cardID && s.owner !== protagonist)) return INVALID_MOVE;
-    G.ready[protagonist] = true;
-
-    if (_.every(_.values(G.ready), bo => bo)) {
-        initializeGame(G, ctx);
-        ctx.events?.setPhase!("main");
-    }
-}
-
-function selectBaby(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, cardID: CardID) {
-    if (G.babyStarter.some(s => s.cardID === cardID && s.owner !== protagonist)) return INVALID_MOVE;
-    G.babyStarter = G.babyStarter.filter(s => s.owner !== protagonist);
-    G.babyStarter.push({ cardID, owner: protagonist });
-    G.ready[protagonist] = false;
-}
-
-function deselectBaby(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
-    G.babyStarter = G.babyStarter.filter(s => s.owner !== protagonist);
-    G.ready[protagonist] = false;
-}
-
-function abolishGame(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
-    if (ctx.playerID !== protagonist) return INVALID_MOVE;
-    if (G.owner === protagonist) {
-        ctx.events?.endGame!({ aborted: true });
-    }
-}
-
-function heartbeat(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
-    G.lastHeartbeat[protagonist] = Date.now();
-}
-
-function cancelAbandonedGame(G: UnstableUnicornsGame, ctx: Ctx) {
-    if (Date.now() - G.lastHeartbeat[G.owner] > 60000) {
-        ctx.events?.endGame!({ aborted: true });
-    }
-}
-
-function drawAndAdvance(G: UnstableUnicornsGame, ctx: Ctx) {
-    G.hand[ctx.currentPlayer].push(_.first(G.drawPile)!);
-    G.drawPile = _.rest(G.drawPile, 1);
-    pushLog(G, ctx, { actor: ctx.currentPlayer, kind: 'draw', count: 1 });
-    ctx.events?.setActivePlayers!({ all: "action_phase" });
-
-    G.script = { scenes: [] };
-}
-
-export function canPlayCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, cardID: CardID) {
-    if (ctx.currentPlayer !== protagonist || ctx.activePlayers![protagonist] !== "action_phase") return false;
-    const card = G.deck[cardID];
-    if (hasType(card, "upgrade") && G.playerEffects[protagonist].find(s => s.effect.key === "you_cannot_play_upgrades")) return false;
-    if (sandboxBypassActionLimit(G)) return canEnter(G, ctx, { playerID: protagonist, cardID });
-    if (G.countPlayedCardsInActionPhase === 0 || (G.countPlayedCardsInActionPhase === 1 && G.playerEffects[protagonist].find(c => c.effect.key === "double_dutch"))) {
-        return canEnter(G, ctx, { playerID: protagonist, cardID });
-    }
-    return false;
-}
-
-function playCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, cardID: CardID) {
-    G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
-    G.hand[protagonist] = _.without(G.hand[protagonist], cardID);
-
-    pushLog(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID });
-
-    if (sandboxSkipNeigh(G) || G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
-        enter(G, ctx, { playerID: protagonist, cardID });
-    } else {
-        // resolve neigh
-        G.neighDiscussion = {
-            cardID, protagonist, rounds: [{
-                state: "open",
-                playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }])))
-            }],
-            target: protagonist,
-        };
-    }
-}
-
-function initialNeighVote(G: UnstableUnicornsGame, playerID: PlayerID, protagonist: PlayerID): "no_neigh" | "undecided" {
-    if (playerID === protagonist) return "no_neigh";
-    if (G.playerEffects[playerID].find(e => e.effect.key === "you_cannot_play_neigh")) return "no_neigh";
-    return "undecided";
-}
-
-function playUpgradeDowngradeCard(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, targetPlayer: PlayerID, cardID: CardID) {
-    G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
-    G.hand[protagonist] = _.without(G.hand[protagonist], cardID);
-
-    pushLog(G, ctx, { actor: protagonist, kind: 'play', sourceCardID: cardID, targetPlayer });
-
-    if (sandboxSkipNeigh(G) || G.playerEffects[protagonist].findIndex(f => f.effect.key === "your_cards_cannot_be_neighed") > -1) {
-        enter(G, ctx, { playerID: targetPlayer, cardID });
-    } else {
-        // resolve neigh
-        G.neighDiscussion = {
-            cardID, protagonist, rounds: [{
-                state: "open",
-                playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }]))),
-            }],
-            target: targetPlayer,
-        };
-    }
-}
-
-function playNeigh(G: UnstableUnicornsGame, ctx: Ctx, cardID: CardID, protagonist: PlayerID, roundIndex: number) {
-    if (G.playerEffects[protagonist].find(e => e.effect.key === "you_cannot_play_neigh")) return;
-    if (G.neighDiscussion) {
-        G.hand[protagonist] = _.without(G.hand[protagonist], cardID);
-        G.discardPile = [...G.discardPile, cardID];
-
-        const round = G.neighDiscussion.rounds[roundIndex];
-        // check if there was already a neigh vote during this round
-        // if yes do nothing
-        if (round.state !== "open") {
-            return;
-        }
-        // there was no neigh round yet
-        // hence neigh the round and add a next round
-        round.playerState[protagonist] = { vote: "neigh" };
-        round.state = "neigh";
-        round.neighCardID = cardID;
-        round.neighedBy = protagonist;
-
-        // determine the neigh target: round 0 = original card, otherwise = previous round's neigh card
-        let targetCardID: CardID;
-        let targetPlayer: PlayerID;
-        if (roundIndex === 0) {
-            targetCardID = G.neighDiscussion.cardID;
-            targetPlayer = G.neighDiscussion.protagonist;
-        } else {
-            const prev = G.neighDiscussion.rounds[roundIndex - 1];
-            targetCardID = prev.neighCardID!;
-            targetPlayer = prev.neighedBy!;
-        }
-        pushLog(G, ctx, { actor: protagonist, kind: 'play_neigh', sourceCardID: cardID, targetCardID, targetPlayer });
-
-        G.neighDiscussion.rounds.push({
-            state: "open",
-            playerState: Object.fromEntries(G.players.map(pl => ([pl.id, { vote: initialNeighVote(G, pl.id, protagonist) }])))
-        });
-    }
-}
-
-function playSuperNeigh(G: UnstableUnicornsGame, ctx: Ctx, cardID: CardID, protagonist: PlayerID, roundIndex: number) {
-    if (G.playerEffects[protagonist].find(e => e.effect.key === "you_cannot_play_neigh")) return;
-    if (G.neighDiscussion) {
-        G.hand[protagonist] = _.without(G.hand[protagonist], cardID);
-        G.discardPile = [...G.discardPile, cardID];
-
-        const round = G.neighDiscussion.rounds[roundIndex];
-        // check if there was already a neigh vote during this round
-        // if yes do nothing
-        if (round.state !== "open") {
-            return;
-        }
-        // there was no neigh round yet
-        // hence neigh the round and add a next round
-        round.playerState[protagonist] = { vote: "neigh" };
-        round.state = "neigh";
-        round.neighCardID = cardID;
-        round.neighedBy = protagonist;
-
-        const superNeighOrigCard = G.neighDiscussion.cardID;
-        const superNeighOrigPlayer = G.neighDiscussion.protagonist;
-
-        // determine super-neigh target: round 0 = original card, otherwise = previous round's neigh card
-        let targetCardID: CardID;
-        let targetPlayer: PlayerID;
-        if (roundIndex === 0) {
-            targetCardID = superNeighOrigCard;
-            targetPlayer = superNeighOrigPlayer;
-        } else {
-            const prev = G.neighDiscussion.rounds[roundIndex - 1];
-            targetCardID = prev.neighCardID!;
-            targetPlayer = prev.neighedBy!;
-        }
-        pushLog(G, ctx, { actor: protagonist, kind: 'play_super_neigh', sourceCardID: cardID, targetCardID, targetPlayer });
-
-        const cardWasNeighed = (G.neighDiscussion.rounds.length+1) % 2 === 0;
-        if (cardWasNeighed) {
-            G.discardPile.push(G.neighDiscussion.cardID);
-            G.lastNeighResult = {id: _.uniqueId(), result: "cardWasNeighed"};
-            pushLog(G, ctx, { actor: superNeighOrigPlayer, kind: 'card_neighed', sourceCardID: superNeighOrigCard });
-        } else {
-            enter(G, ctx, { playerID: G.neighDiscussion.protagonist, cardID: G.neighDiscussion.cardID })
-            G.lastNeighResult = {id: _.uniqueId(), result: "cardWasPlayed"};
-        }
-        G.neighDiscussion = undefined;
-    }
-}
-
-function dontPlayNeigh(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, roundIndex: number) {
-    // end
-    if (G.neighDiscussion) {
-        const round = G.neighDiscussion.rounds[roundIndex];
-        round.playerState[protagonist] = { vote: "no_neigh" };
-
-        if (_.findKey(round.playerState, val => val.vote === "undecided") === undefined) {
-            // everyone has voted => advance the game
-            const cardWasNeighed = G.neighDiscussion.rounds.length % 2 === 0;
-            const resolvedCardID = G.neighDiscussion.cardID;
-            const resolvedProtagonist = G.neighDiscussion.protagonist;
-            const resolvedTarget = G.neighDiscussion.target;
-            if (cardWasNeighed) {
-                G.discardPile.push(G.neighDiscussion.cardID);
-                G.lastNeighResult = {id: _.uniqueId(), result: "cardWasNeighed"};
-                pushLog(G, ctx, { actor: resolvedProtagonist, kind: 'card_neighed', sourceCardID: resolvedCardID });
-            } else {
-                enter(G, ctx, { playerID: resolvedTarget, cardID: resolvedCardID })
-                G.lastNeighResult = {id: _.uniqueId(), result: "cardWasPlayed"};
-            }
-            G.neighDiscussion = undefined;
-        }
-    }
-}
-
-export function canDraw(G: UnstableUnicornsGame, ctx: Ctx) {
-    if (sandboxBypassActionLimit(G)) {
-        const stage = ctx.activePlayers?.[ctx.currentPlayer];
-        return stage === "action_phase" || stage === "beginning";
-    }
-
-    if (G.mustEndTurnImmediately === true) {
-        return false;
-    }
-
-    if (ctx.activePlayers![ctx.currentPlayer] === "beginning") {
-        // if there is a mandatory scene => one cannot draw
-        if (_findOpenScenesWithProtagonist(G, ctx.currentPlayer!).find(([instr, sc]) => sc.mandatory === true)) {
-            return false;
-        }
-
-        // if there is an ongoing scene => one cannot draw
-        if (_findInProgressScenesWithProtagonist(G, ctx.currentPlayer).length > 0) {
-            return false;
-        }
-
-        return true;
-    }
-
-    if (ctx.activePlayers![ctx.currentPlayer] === "action_phase") {
-        return G.countPlayedCardsInActionPhase === 0;
-    }
-
-    return false;
-}
-
-function drawAndEnd(G: UnstableUnicornsGame, ctx: Ctx) {
-    if (sandboxBypassActionLimit(G)) {
-        G.hand[ctx.currentPlayer].push(_.first(G.drawPile)!);
-        G.drawPile = _.rest(G.drawPile, 1);
-        return;
-    }
-    G.script = { scenes: [] };
-    G.hand[ctx.currentPlayer].push(_.first(G.drawPile)!);
-    G.drawPile = _.rest(G.drawPile, 1);
-    G.countPlayedCardsInActionPhase = G.countPlayedCardsInActionPhase + 1;
-}
-
-function _createDiscardOverLimitScene(G: UnstableUnicornsGame, protagonist: PlayerID): void {
-    const newScene: Scene = {
-        id: _.uniqueId(),
-        mandatory: true,
-        endTurnImmediately: false,
-        actions: [{
-            type: "action",
-            instructions: [{
-                id: _.uniqueId(),
-                protagonist,
-                state: "open",
-                do: {
-                    key: "discard",
-                    info: { count: G.hand[protagonist].length - 7, type: "any" }
+            turn: {
+                activePlayers: ActivePlayers.ALL,
+                order: {
+                    first: (G, ctx) => seat(G, ctx),
+                    next: (G, ctx) => seat(G, ctx),
                 },
-                ui: { type: "click_on_own_card_in_hand" }
-            }]
-        }]
-    };
-    G.script.scenes = [...G.script.scenes, newScene];
-}
+            },
+            moves: { ...mainMoves, ...sandboxMoves },
+        },
+    },
 
-function end(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID) {
-    if (ctx.playerID !== protagonist && ctx.playerID !== G.owner) return INVALID_MOVE;
-    const changeOfLuckEffect = G.playerEffects[protagonist].find(o => o.effect.key === "change_of_luck");
-    if (changeOfLuckEffect) {
-        G.playerEffects[protagonist] = G.playerEffects[protagonist].filter(o => o.effect.key !== "change_of_luck");
-        pushLog(G, ctx, { actor: protagonist, kind: 'extra_turn', sourceCardID: changeOfLuckEffect.cardID });
-
-        if (G.hand[protagonist].length > 7) {
-            _createDiscardOverLimitScene(G, protagonist);
-        } else {
-            ctx.events?.endTurn!({next: protagonist});
-        }
-    } else {
-        if (G.hand[protagonist].length > 7) {
-            _createDiscardOverLimitScene(G, protagonist);
-        } else {
-            ctx.events?.endTurn!();
-        }
-    }
-}
-
-function commit(G: UnstableUnicornsGame, ctx: Ctx, sceneID: string) {
-    G.script.scenes.find(sc => sc.id === sceneID)!.mandatory = true;
-}
-
-function skipExecuteDo(G: UnstableUnicornsGame, ctx: Ctx, protagonist: PlayerID, instructionID: string) {
-    if (ctx.playerID !== protagonist && ctx.playerID !== G.owner) return INVALID_MOVE;
-    const found = _findInstruction(G, instructionID);
-    if (found !== undefined) {
-        // Mark current action's instructions for this protagonist as executed
-        found.action.instructions.filter((ins) => ins.protagonist === protagonist).forEach((ins) => ins.state = "executed");
-        // For non-mandatory (opt-in) scenes, skip ALL remaining actions too —
-        // the player declined the whole optional sequence, not just one step.
-        if (!found.scene.mandatory) {
-            found.scene.actions.forEach(action => {
-                action.instructions
-                    .filter((ins) => ins.protagonist === protagonist)
-                    .forEach((ins) => ins.state = "executed");
-            });
-        }
-    }
-}
+    endIf: G => G.gameOver,
+};
 
 export default UnstableUnicorns;
 
+// ─── Types for the UI ─────────────────────────────────────────────────────────
+
+/** The `moves` object boardgame.io hands to the board. */
+export interface Moves {
+    // pregame
+    ready: () => void;
+    selectBaby: (cardID: CardID) => void;
+    deselectBaby: () => void;
+    changeName: (name: string) => void;
+    cancelAbandonedGame: () => void;
+    // both phases
+    abolishGame: () => void;
+    heartbeat: () => void;
+    // main
+    respond: (promptId: string, answer: Answer) => void;
+    playCard: (card: CardID, target?: PlayerID) => void;
+    drawForTurn: () => void;
+    drawForAction: () => void;
+    useBotAbility: (index: number) => void;
+    endTurn: () => void;
+    forceEndTurn: () => void;
+    forceAnswer: () => void;
+    // sandbox cheats (only when G.sandbox)
+    sandboxAddToHand: (player: PlayerID, def: string) => void;
+    sandboxAddToStable: (player: PlayerID, def: string, withEnter: boolean) => void;
+    sandboxAddToDiscard: (def: string) => void;
+    sandboxAddToDeckTop: (def: string) => void;
+    sandboxAddToNursery: (def: string) => void;
+    sandboxDraw: (player: PlayerID, count: number) => void;
+    sandboxDiscardRandom: (player: PlayerID) => void;
+    sandboxEmptyHand: (player: PlayerID) => void;
+    sandboxForceEndTurn: () => void;
+    sandboxReshuffleDiscard: () => void;
+    sandboxClearPending: () => void;
+    sandboxSetSetting: (key: SandboxSettingKey, value: boolean) => void;
+    sandboxBounceCard: (card: CardID) => void;
+    sandboxDestroyCard: (card: CardID) => void;
+    sandboxStealCard: (card: CardID, to: PlayerID) => void;
+    sandboxHandToStable: (card: CardID, to: PlayerID) => void;
+    sandboxForceDiscardCard: (player: PlayerID, card: CardID) => void;
+    sandboxLoadState: (snapshot: SandboxSnapshot) => void;
+}

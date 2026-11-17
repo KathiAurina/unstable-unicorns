@@ -1,30 +1,30 @@
 import React, { useRef, useState } from 'react';
 import styled from 'styled-components';
-import type { UnstableUnicornsGame, Ctx } from '../game/state';
-import type { CardID } from '../game/card';
-import type { CardInteraction } from '../BoardUtil';
-import { Card } from '../game/card';
+import type { CardID, GameState, PlayerID } from '../game/engine';
+import type { CardView } from '../view/cards';
+import { cardViews, stableUnicorns, stableUpgrades } from '../view/cards';
 import MobileStable from './MobileStable';
 
 type Props = {
-    G: UnstableUnicornsGame;
-    ctx: Ctx;
+    G: GameState;
     playerID: string;               // local player
-    boardStates: any[];
-    cardInteraction: CardInteraction | undefined;
+    /** Whose turn it is. */
+    turnPlayer: PlayerID;
+    /** Cards a tap does something on (board.marks). */
     glowingCardIDs: CardID[];
     highlightMode: CardID[] | undefined;
+    /** Players a tap does something on (board.targets). */
+    targetPlayers: PlayerID[];
     isTargetMode: boolean;
     onCardTap: (cardID: CardID) => void;
     onPlayerTap: (targetPlayerID: string) => void;
-    onCardLongPress: (card: Card) => void;
+    onCardLongPress: (card: CardView) => void;
 };
 
 const PLAYERS_PER_PAGE = 4;
 
 const MobilePlayerField = ({
-    G, ctx, playerID, boardStates, cardInteraction,
-    glowingCardIDs, highlightMode, isTargetMode,
+    G, playerID, turnPlayer, glowingCardIDs, highlightMode, targetPlayers, isTargetMode,
     onCardTap, onPlayerTap, onCardLongPress,
 }: Props) => {
     const [page, setPage] = useState(0);
@@ -36,21 +36,6 @@ const MobilePlayerField = ({
     // Current page of 4 players
     const startIdx = page * PLAYERS_PER_PAGE;
     const pagePlayers = allPlayers.slice(startIdx, startIdx + PLAYERS_PER_PAGE);
-
-    // Always ensure own player is on first page if possible; if not, adjust
-    const ownOnCurrentPage = pagePlayers.some(pl => pl.id === playerID);
-
-    // Determine if a player box is a valid card-to-player target
-    const isValidPlayerTarget = (plID: string): boolean => {
-        if (!cardInteraction) return false;
-        if (cardInteraction.key === 'card_to_player') {
-            return cardInteraction.info.targets.some(t => t.playerID === plID);
-        }
-        if (cardInteraction.key === 'play_upgradeDowngradeCardFromHand__choose_target') {
-            return true; // all players are valid targets for upgrade/downgrade
-        }
-        return false;
-    };
 
     return (
         <Container>
@@ -76,16 +61,11 @@ const MobilePlayerField = ({
                 }}
             >
                 {pagePlayers.map(pl => {
-                    const stableCards = [
-                        ...(G.stable[pl.id] ?? []),
-                        ...(G.temporaryStable[pl.id] ?? []),
-                    ].map(c => G.deck[c]).filter(Boolean);
-
-                    const upgradeDowngradeCards = (G.upgradeDowngradeStable[pl.id] ?? [])
-                        .map(c => G.deck[c]).filter(Boolean);
+                    const stableCards = cardViews(G, stableUnicorns(G, pl.id));
+                    const upgradeDowngradeCards = cardViews(G, stableUpgrades(G, pl.id));
 
                     const isOwn = pl.id === playerID;
-                    const isValidTarget = isValidPlayerTarget(pl.id);
+                    const isValidTarget = targetPlayers.includes(pl.id);
 
                     return (
                         <PlayerCell
@@ -107,8 +87,8 @@ const MobilePlayerField = ({
                             }}
                         >
                             <PlayerHeader>
-                                <PlayerName isCurrent={pl.id === ctx.currentPlayer}>{isOwn ? 'You' : pl.name}</PlayerName>
-                                <HandCount>{G.hand[pl.id]?.length ?? 0} cards</HandCount>
+                                <PlayerName isCurrent={pl.id === turnPlayer}>{isOwn ? 'You' : pl.name}</PlayerName>
+                                <HandCount>{G.zones.hand[pl.id]?.length ?? 0} cards</HandCount>
                             </PlayerHeader>
                             <MobileStable
                                 cards={stableCards}
@@ -118,7 +98,7 @@ const MobilePlayerField = ({
                                 isOwnStable={isOwn}
                                 playerID={pl.id}
                                 label={isOwn ? 'Your Stable' : `${pl.name}'s Stable`}
-                                isCurrentPlayer={pl.id === ctx.currentPlayer}
+                                isCurrentPlayer={pl.id === turnPlayer}
                                 isTargetMode={isTargetMode}
                                 onCardTap={onCardTap}
                                 onCardLongPress={onCardLongPress}

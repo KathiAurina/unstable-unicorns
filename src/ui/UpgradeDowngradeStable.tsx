@@ -1,10 +1,10 @@
 import styled from 'styled-components';
-import type { Card } from "../game/card";
+import type { CardView } from '../view/cards';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from './util';
 
 type Props = {
-    cards: Card[];
+    cards: CardView[];
 }
 
 const UpgradeDowngradeStable = (props: Props) => {

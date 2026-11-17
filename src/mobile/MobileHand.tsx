@@ -1,11 +1,10 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import type { CardView, CardID } from '../view/cards';
+import { cardDescription, typeLabel } from '../view/cards';
 import styled, { css, keyframes } from 'styled-components';
-import { Card, CardID, getPrimaryType } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from '../ui/util';
-import { cardDescription } from '../BoardUtil';
 import { LanguageContext } from '../LanguageContextProvider';
-import { typeLabel } from './MobileCardDetail';
 
 export type DragResult = {
     cardID: CardID;
@@ -14,10 +13,10 @@ export type DragResult = {
 };
 
 type Props = {
-    cards: Card[];
+    cards: CardView[];
     glowingCards: CardID[];
     onDragEnd: (result: DragResult) => void;
-    onCardLongPress: (card: Card) => void;
+    onCardLongPress: (card: CardView) => void;
 };
 
 // Layout constants
@@ -36,7 +35,7 @@ type HandState = 'tucked' | 'expanded' | 'dragging';
 
 type GestureState = {
     cardID: CardID;
-    card: Card;
+    card: CardView;
     cardIdx: number;
     startX: number;
     startY: number;
@@ -93,7 +92,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
         if (tooltipTimerRef.current) clearTimeout(tooltipTimerRef.current);
     }, []);
 
-    const createGhost = useCallback((card: Card, x: number, y: number): HTMLDivElement => {
+    const createGhost = useCallback((card: CardView, x: number, y: number): HTMLDivElement => {
         const ghost = document.createElement('div');
         ghost.style.cssText = `
             position: fixed;
@@ -163,7 +162,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
         }
     };
 
-    const handleTouchStart = useCallback((e: React.TouchEvent, card: Card, idx: number) => {
+    const handleTouchStart = useCallback((e: React.TouchEvent, card: CardView, idx: number) => {
         e.stopPropagation();
         const t = e.touches[0];
         const timer = setTimeout(() => {
@@ -248,7 +247,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
         }
     }, [createGhost]);
 
-    const handleTouchEnd = useCallback((e: React.TouchEvent, card: Card, idx: number) => {
+    const handleTouchEnd = useCallback((e: React.TouchEvent, card: CardView, idx: number) => {
         if (!gestureRef.current) return;
         e.preventDefault();
         e.stopPropagation();
@@ -360,7 +359,7 @@ const MobileHand = ({ cards, glowingCards, onDragEnd, onCardLongPress }: Props) 
                                 {showTooltip && (
                                     <CardTooltip color={_typeToColor(card.type)} side={x < 0 ? 'right' : 'left'}>
                                         <TooltipTitle>{card.title}</TooltipTitle>
-                                        <TooltipType>{getPrimaryType(card).replace('_', ' ')}</TooltipType>
+                                        <TooltipType>{typeLabel(card.type)}</TooltipType>
                                         <TooltipDesc>{cardDescription(card, lang)}</TooltipDesc>
                                     </CardTooltip>
                                 )}

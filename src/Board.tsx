@@ -1,26 +1,24 @@
 import styled from 'styled-components';
-import _ from 'underscore';
 import HiddenHand from './ui/HiddenHand';
 import { StableHandle } from './ui/Stable';
 import PlayerField, { PlayerFieldHandle } from './ui/PlayerField';
 import { motion, AnimateSharedLayout, AnimatePresence } from "framer-motion";
 // game
-import type { UnstableUnicornsGame, Ctx, Instruction, Scene } from './game/state';
-import { _findInProgressScenesWithProtagonist, _findOpenScenesWithProtagonist } from './game/state';
+import type { Ctx, Moves } from './game/game';
+import type { CardID, GameOver, GameState } from './game/engine';
+import { candidateCards, locate } from './game/engine';
+// view
+import { cardViews, playerName, stableUnicorns, stableUpgrades } from './view/cards';
+import type { CardView } from './view/cards';
+import { useBoard } from './view/useBoard';
 // assets
 import BG from './assets/ui/board-background.jpg';
 import DrawPile from './ui/DrawPile';
 import Nursery from './ui/Nursery';
 import DiscardPile from './ui/DiscardPile';
-import { CardID } from './game/card';
 import { useContext, useEffect, useRef, useState } from 'react';
-import { CardInteraction, HoverTarget } from './BoardUtil';
 import EndTurnButton from './ui/button/EndTurnButton';
-import { PlayerID } from './game/player';
-import { BoardState, getBoardState } from './BoardStateManager';
-import type { Moves } from './game/types';
 import GameLabel from './ui/GameLabel';
-import type { SearchTarget } from './game/operations';
 import CharacterSelectionPage from './components/pregame/CharacterSelectionPage';
 import EscapeMenu from './components/EscapeMenu';
 import React from 'react';
@@ -29,6 +27,7 @@ import { useSoundEffects } from './hooks/useSoundEffects';
 import NeighPanel from './components/NeighPanel';
 import ActionPanel from './components/ActionPanel';
 import OverlayManager from './components/OverlayManager';
+import type { Browse } from './components/OverlayManager';
 import StableSection from './components/StableSection';
 import GameLogPanel from './components/GameLogPanel';
 import { useMobile } from './hooks/useMobile';
@@ -39,8 +38,8 @@ import SandboxPanel from './sandbox/SandboxPanel';
 import SandboxActionBanner from './sandbox/SandboxActionBanner';
 import { useSandboxControl } from './sandbox/sandboxContext';
 
-type Props = {
-    G: UnstableUnicornsGame;
+export type BoardProps = {
+    G: GameState;
     ctx: Ctx;
     playerID: string;
     moves: Moves;
@@ -48,100 +47,67 @@ type Props = {
 }
 
 // Top-level Board: routes between mobile and desktop based on device detection.
-const Board = (props: Props) => {
+const Board = (props: BoardProps) => {
     const isMobile = useMobile();
     if (isMobile) return <MobileBoard {...props} />;
     return <DesktopBoard {...props} />;
 };
 
-const DesktopBoard = (props: Props) => {
+/** The headline of the game-over overlay. */
+export function gameOverMessage(G: GameState, gameover: GameOver): string {
+    if (gameover.aborted) return 'Game was ended by host';
+    const names = gameover.winners.map(p => `"${playerName(G, p)}"`);
+    const why = gameover.reason === 'deckOut' ? ' The deck and the discard pile ran out.' : '';
+    if (names.length === 0) return `The game is over.${why}`;
+    if (names.length === 1) return `Player ${names[0]} wins!${why}`;
+    return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} share the win!${why}`;
+}
+
+const DesktopBoard = (props: BoardProps) => {
     const { G, ctx, playerID, moves } = props;
 
-    const { playDrawCardSound, playEndTurnButtonSound, playHubMouseOverSound, playExecuteDoSound } = useSoundEffects(G, ctx, playerID);
+    const { playDrawCardSound, playEndTurnButtonSound, playHubMouseOverSound, playVerbSound } = useSoundEffects(G, playerID);
     const { sandboxAction, setSandboxAction } = useSandboxControl();
+    const board = useBoard(G, playerID, moves, 'desktop', (outcome, prompt) => {
+        if (outcome.move === 'respond') playVerbSound(prompt?.verb);
+    });
+    const { model } = board;
 
-    const [showDeckFinder, setShowDeckFinder] = useState<SearchTarget[] | undefined>(undefined);
-    const [showPlayerHand, setShowPlayerHand] = useState<PlayerID | undefined>(undefined);
-    const [showBlatantThievery, setShowBlatantThievery] = useState<PlayerID | undefined>(undefined);
-    const [showDiscardFinder, setShowDiscardFinder] = useState<{ cardID: CardID }[] | undefined>(undefined);
-    const [showNurseryFinder, setShowNurseryFinder] = useState(false);
+    const [browse, setBrowse] = useState<Browse>(undefined);
     const [isHoveringOverHandCard, setHoveringOverHandCard] = useState(false);
     const stableRef = useRef<StableHandle>(null);
     const playerFieldRef = useRef<PlayerFieldHandle>(null);
-    const [hoverTargets, setHoverTargets] = useState<{ sourceCardID: CardID, targets: HoverTarget[] }>();
-    const [cardInteraction, setCardInteraction] = useState<CardInteraction | undefined>(undefined);
     useContext(LanguageContext);
-    let openScenes: Array<[Instruction, Scene]> = _findInProgressScenesWithProtagonist(G, playerID);
-    if (openScenes.length === 0) {
-        openScenes = _findOpenScenesWithProtagonist(G, playerID);
-    }
-    const glowingCardIDs = openScenes.map(([instr]) => instr.ui.info?.source).filter(c => c !== undefined) as number[];
 
+    // An arrow follows the mouse while a hand card waits for its destination stable.
+    const mouseRef = useRef({ x: 0, y: 0 });
+    const [arrow, setArrow] = useState<{ from: { x: number; y: number }; to: { x: number; y: number } } | undefined>(undefined);
+    const pendingPlay = board.ui.pendingPlay;
+    useEffect(() => {
+        setArrow(pendingPlay !== undefined ? { from: { ...mouseRef.current }, to: { ...mouseRef.current } } : undefined);
+    }, [pendingPlay]);
     const wrapperOnMouseMove = (evt: React.MouseEvent<HTMLDivElement>) => {
-        // track mouse movement for card to card interaction
-        if (cardInteraction?.key === "card_to_card") {
-            setCardInteraction({
-                key: "card_to_card",
-                info: {
-                    ...cardInteraction.info,
-                    currentMousePosition: { x: evt.clientX, y: evt.clientY }
-                }
-            });
-        }
-
-        if (cardInteraction?.key === "card_to_player") {
-            setCardInteraction({
-                key: "card_to_player",
-                info: {
-                    ...cardInteraction.info,
-                    currentMousePosition: { x: evt.clientX, y: evt.clientY }
-                }
-            });
-        }
-
-        if (cardInteraction?.key === "play_upgradeDowngradeCardFromHand__choose_target") {
-            setCardInteraction({
-                key: "play_upgradeDowngradeCardFromHand__choose_target",
-                info: {
-                    ...cardInteraction.info,
-                    currentMousePosition: { x: evt.clientX, y: evt.clientY }
-                }
-            });
-        }
+        const at = { x: evt.clientX, y: evt.clientY };
+        mouseRef.current = at;
+        if (pendingPlay !== undefined) setArrow(a => (a ? { from: a.from, to: at } : a));
     };
 
-    // Highlight from hover OR from an active click_on_other_stable_card interaction
-    const hoverHighlights = hoverTargets?.targets.filter(s => s.type === "stable_card").map(s => s.info.cardID).concat([hoverTargets.sourceCardID]);
-    const interactionHighlights =
-        !hoverHighlights && cardInteraction?.key === 'click_on_other_stable_card'
-            ? cardInteraction.info.targets.map((t) => t.cardID)
-            : undefined;
-    const stableHighlightMode = hoverHighlights ?? interactionHighlights;
+    // While a prompt asks for a card in a stable, everything that cannot be chosen is dimmed.
+    const stableCandidates = model.prompt && model.prompt.kind === 'chooseCards'
+        ? candidateCards(model.prompt).filter(c => locate(G, c)?.zone === 'stable')
+        : [];
+    const stableHighlightMode: CardID[] | undefined = stableCandidates.length > 0
+        ? [...stableCandidates, ...(model.prompt?.source ? [model.prompt.source.card] : [])]
+        : undefined;
 
-    const boardStates = getBoardState(G, ctx, playerID);
-    if (boardStates.find(s => s.type === "destroy__click_on_card_in_stable" || s.type === "sacrifice__clickOnCardInStable")) {
-        const boardState = boardStates.find(s => s.type === "destroy__click_on_card_in_stable" || s.type === "sacrifice__clickOnCardInStable")!;
-        // only update if the card interaction is different
-        // prevents the client from rendering indefinitely
-        if (cardInteraction?.info?.instructionID !== boardState.info!.instructionID) {
-            setCardInteraction({
-                key: "click_on_other_stable_card", info: {
-                    targets: boardState.info!.targets!,
-                    instructionID: boardState.info!.instructionID,
-                }
-            });
-        }
-    }
-
-    const [C2CArrow] = useState<{ fromX: number, fromY: number, toX: number, toY: number } | undefined>(undefined);
     const [escapeMenuOpen, setEscapeMenuOpen] = useState(false);
     const [gameoverDismissed, setGameoverDismissed] = useState(false);
     const { autoEndTurn, setAutoEndTurn, autoDontNeigh, setAutoDontNeigh } = useGameSettings();
     const isSandboxDummy = G.sandbox === true && playerID !== G.owner;
-    useAutoActions(G, ctx, playerID, moves, {
+    useAutoActions(board, {
         autoEndTurn: isSandboxDummy ? false : autoEndTurn,
         autoDontNeigh: isSandboxDummy ? false : autoDontNeigh,
-    }, boardStates);
+    });
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -158,10 +124,8 @@ const DesktopBoard = (props: Props) => {
             isOpen={escapeMenuOpen}
             onClose={() => setEscapeMenuOpen(false)}
             isOwner={G.owner === playerID}
-            isCurrentPlayer={ctx.currentPlayer === playerID}
             playerID={playerID}
             G={G}
-            ctx={ctx}
             moves={moves}
             autoEndTurn={autoEndTurn}
             setAutoEndTurn={setAutoEndTurn}
@@ -170,37 +134,56 @@ const DesktopBoard = (props: Props) => {
         />
     );
 
-    const gameoverOverlay = ctx.gameover && !gameoverDismissed ? (() => {
-        const isAborted = (ctx.gameover as any).aborted;
-        const message = isAborted
-            ? 'Game was ended by host'
-            : `Player "${G.players[parseInt((ctx.gameover as any).winner)]?.name ?? (ctx.gameover as any).winner}" wins!`;
-        return (
-            <GameOverOverlay>
-                <GameOverCard>
-                    <GameOverMessage>{message}</GameOverMessage>
-                    <ReturnButton onClick={() => { window.location.href = '/lobby'; }}>
-                        Return to Lobby
-                    </ReturnButton>
-                    {!isAborted && (
-                        <DismissButton onClick={() => setGameoverDismissed(true)}>
-                            View Board
-                        </DismissButton>
-                    )}
-                </GameOverCard>
-            </GameOverOverlay>
-        );
-    })() : null;
+    const gameover = ctx.gameover as GameOver | undefined;
+    const gameoverOverlay = gameover && !gameoverDismissed ? (
+        <GameOverOverlay>
+            <GameOverCard>
+                <GameOverMessage>{gameOverMessage(G, gameover)}</GameOverMessage>
+                <ReturnButton onClick={() => { window.location.href = '/lobby'; }}>
+                    Return to Lobby
+                </ReturnButton>
+                {!gameover.aborted && (
+                    <DismissButton onClick={() => setGameoverDismissed(true)}>
+                        View Board
+                    </DismissButton>
+                )}
+            </GameOverCard>
+        </GameOverOverlay>
+    ) : null;
 
     if (ctx.phase === "pregame") {
         return (
             <>
                 {escapeMenu}
                 {gameoverOverlay}
-                <CharacterSelectionPage G={G} babyCards={G.deck.filter(c => c.type === "baby")} playerID={playerID} moves={moves} />
+                <CharacterSelectionPage G={G} babyCards={cardViews(G, G.zones.nursery)} playerID={playerID} moves={moves} />
             </>
         );
     }
+
+    const others = G.players.filter(pl => pl.id !== playerID);
+    const byPlayer = (pick: (player: string) => CardID[]): { [key: string]: CardView[] } =>
+        Object.fromEntries(G.players.map(pl => [pl.id, cardViews(G, pick(pl.id))]));
+
+    const onOtherStableCardClick = (cardID: CardID) => {
+        if (sandboxAction) {
+            if (sandboxAction.type === 'bounce') {
+                moves.sandboxBounceCard(cardID);
+                setSandboxAction(null);
+            } else if (sandboxAction.type === 'destroy') {
+                moves.sandboxDestroyCard(cardID);
+                setSandboxAction(null);
+            } else if (sandboxAction.type === 'steal' && sandboxAction.step === 'pick_card') {
+                setSandboxAction({ type: 'steal', step: 'pick_target', cardID });
+            }
+            return;
+        }
+        board.clickCard(cardID);
+    };
+
+    const topText = model.round
+        ? "It's neigh time! Other players may neigh your card. Waiting for others..."
+        : "It's your turn";
 
     return (
         <>
@@ -211,212 +194,83 @@ const DesktopBoard = (props: Props) => {
         </MenuToggleButton>
         <AnimateSharedLayout>
             <Wrapper layout onMouseMove={wrapperOnMouseMove}>
-                <OverlayManager
-                    G={G}
-                    boardStates={boardStates}
-                    moves={moves}
-                    playerID={playerID}
-                    cardInteraction={cardInteraction}
-                    setCardInteraction={setCardInteraction}
-                    showDeckFinder={showDeckFinder}
-                    setShowDeckFinder={setShowDeckFinder}
-                    showDiscardFinder={showDiscardFinder}
-                    setShowDiscardFinder={setShowDiscardFinder}
-                    showNurseryFinder={showNurseryFinder}
-                    setShowNurseryFinder={setShowNurseryFinder}
-                    showPlayerHand={showPlayerHand}
-                    setShowPlayerHand={setShowPlayerHand}
-                    showBlatantThievery={showBlatantThievery}
-                    setShowBlatantThievery={setShowBlatantThievery}
-                    C2CArrow={C2CArrow}
-                />
+                <OverlayManager G={G} board={board} browse={browse} setBrowse={setBrowse} arrow={arrow} />
 
                 <Top>
-                    {renderTop(G, ctx, ctx.currentPlayer === playerID, boardStates)}
+                    {model.isMyTurn
+                        ? <div style={{ display: "flex", alignItems: "center" }}><GameLabel text={topText} /></div>
+                        : <HiddenHand count={(G.zones.hand[model.turnPlayer] ?? []).length} />}
                 </Top>
                 <Main>
                     <PlayerField
                         ref={playerFieldRef}
-                        players={G.players.filter(pl => pl.id !== playerID)}
-                        currentPlayer={ctx.currentPlayer}
-                        stable={_.mapObject(_.mapObject(G.stable, (val, key) => [...val, ...G.temporaryStable[key]]), c => c.map(d => G.deck[d]))}
-                        handCount={G.players.map(pl => G.hand[pl.id].length)}
-                        upgradeDowngradeStable={_.mapObject(G.upgradeDowngradeStable, c => c.map(d => G.deck[d]))}
+                        players={others}
+                        currentPlayer={model.turnPlayer}
+                        stable={byPlayer(p => stableUnicorns(G, p))}
+                        handCount={G.players.map(pl => G.zones.hand[pl.id].length)}
+                        upgradeDowngradeStable={byPlayer(p => stableUpgrades(G, p))}
                         highlightMode={stableHighlightMode}
-                        onHandClick={playerID => setShowPlayerHand(playerID)}
-                        onStableCardClick={cardID => {
-                            if (sandboxAction) {
-                                if (sandboxAction.type === 'bounce') {
-                                    moves.sandboxBounceCard(cardID);
-                                    setSandboxAction(null);
-                                } else if (sandboxAction.type === 'destroy') {
-                                    moves.sandboxDestroyCard(cardID);
-                                    setSandboxAction(null);
-                                } else if (sandboxAction.type === 'steal' && sandboxAction.step === 'pick_card') {
-                                    setSandboxAction({ type: 'steal', step: 'pick_target', cardID });
-                                }
-                                return;
-                            }
-                            if (cardInteraction?.key === "click_on_other_stable_card" || cardInteraction?.key === "card_to_card") {
-                                console.log("Detected click for cardInteraction with key <click_on_other_stable_card | card_to_card>");
-                                // is clicked card a valid target?
-                                if (cardInteraction.info.targets.find(s => s.cardID === cardID)) {
-                                    console.log(`Clicked card is a valid target. Execute instruction with id <${cardInteraction.info.instructionID}>`);
-                                    const bsType = boardStates.find(s => s.info?.instructionID === cardInteraction.info.instructionID)?.type;
-                                    playExecuteDoSound(bsType);
-                                    moves.executeDo(cardInteraction.info.instructionID, {
-                                        protagonist: playerID, cardID
-                                    });
-                                    setCardInteraction(undefined);
-                                }
-                            }
-                        }}
-                        onStableCardMouseEnter={cardID => { }}
-                        onStableCardMouseLeave={cardID => { }}
-                        onPlayerClick={plid => {
-                            if (cardInteraction?.key === "card_to_player") {
-                                console.log("Detected click for cardInteraction with key <card_to_player>");
-
-                                const bsType = boardStates.find(s => s.info?.instructionID === cardInteraction.info.instructionID)?.type;
-                                if (bsType === "blatantThievery1") {
-                                    setShowBlatantThievery(plid);
-                                    return;
-                                }
-
-                                // is clicked card a valid target?
-                                if (cardInteraction.info.targets.find(s => s.playerID === plid)) {
-                                    console.log(`Clicked player is a valid target. Execute instruction with id <${cardInteraction.info.instructionID}>`);
-                                    moves.executeDo(cardInteraction.info.instructionID, {
-                                        protagonist: playerID, playerID: plid
-                                    });
-                                    setCardInteraction(undefined);
-                                }
-                            } else if (cardInteraction?.key === "play_upgradeDowngradeCardFromHand__choose_target") {
-                                moves.playUpgradeDowngradeCard(playerID, plid, cardInteraction.info.cardID);
-                                setCardInteraction(undefined);
-                            }
-                        }}
+                        targets={board.targets}
+                        onHandClick={player => setBrowse({ zone: 'hand', player })}
+                        onStableCardClick={onOtherStableCardClick}
+                        onStableCardMouseEnter={() => undefined}
+                        onStableCardMouseLeave={() => undefined}
+                        onPlayerClick={player => { board.clickPlayer(player); }}
                     />
                 </Main>
                 <Middle>
                     <DrawPileWrapper zIndexFocus={isHoveringOverHandCard}>
-                        {renderEndTurnButton(moves, playerID, () => playEndTurnButtonSound(), boardStates)}
+                        {board.canEndTurn && (
+                            <EndTurnButtonWrapper>
+                                <EndTurnButton onClick={() => { playEndTurnButtonSound(); board.endTurn(); }}>End turn</EndTurnButton>
+                            </EndTurnButtonWrapper>
+                        )}
                         <MiddleLabel>Deck</MiddleLabel>
-                        <DrawPile onClick={() => {
-                            if (boardStates.find(s => s.type === "drawCard")) {
-                                if (ctx.activePlayers![playerID] === "beginning") {
-                                    playDrawCardSound();
-                                    moves.drawAndAdvance();
-                                } else if (ctx.activePlayers![playerID] === "action_phase") {
-                                    playDrawCardSound();
-                                    moves.drawAndEnd(playerID);
-                                }
-                            } else if (boardStates.find(s => s.type === "draw__clickOnDrawPile")) {
-                                playDrawCardSound();
-                                const boardState = boardStates.find(s => s.type === "draw__clickOnDrawPile")!;
-                                moves.executeDo(boardState.info!.instructionID, {
-                                    protagonist: playerID, count: boardState.info!.count
-                                });
-                            }
-                        }} isGlowing={boardStates.find(s => s.type === "drawCard" || s.type === "draw__clickOnDrawPile") !== undefined} count={G.drawPile.length} />
+                        <DrawPile
+                            onClick={() => { if (board.clickDeck()) playDrawCardSound(); }}
+                            isGlowing={board.deck !== undefined}
+                            count={G.zones.deck.length}
+                        />
                     </DrawPileWrapper>
                     <AnimatePresence>
-                        <NeighPanel G={G} ctx={ctx} moves={moves} playerID={playerID} />
+                        <NeighPanel G={G} model={model} onPlayNeigh={() => { board.playInstant(); }} onPass={() => { board.pass(); }} />
                     </AnimatePresence>
 
-                    <ActionPanel
-                        G={G}
-                        ctx={ctx}
-                        playerID={playerID}
-                        moves={moves}
-                        boardStates={boardStates}
-                        cardInteraction={cardInteraction}
-                        setCardInteraction={setCardInteraction}
-                        setShowDeckFinder={setShowDeckFinder}
-                        setShowDiscardFinder={setShowDiscardFinder}
-                        setShowNurseryFinder={setShowNurseryFinder}
-                    />
+                    <ActionPanel G={G} panels={board.finder ? [] : board.panels} onPress={board.press} />
                     <MiddleLeftWrapper zIndexFocus={isHoveringOverHandCard}>
                         <div>
                             <MiddleLabel>Nursery</MiddleLabel>
-                            <Nursery cards={G.nursery.map(c => G.deck[c])} onClick={() => {
-                                setShowNurseryFinder(true);
-                            }} />
+                            <Nursery cards={cardViews(G, G.zones.nursery)} onClick={() => setBrowse({ zone: 'nursery' })} />
                         </div>
                         <div style={{ marginTop: "1em" }}>
                             <MiddleLabel>Discard pile</MiddleLabel>
-                            <DiscardPile cards={G.discardPile.map(c => G.deck[c])} onClick={() => {
-                                setShowDiscardFinder(G.discardPile.map(c => ({ cardID: c })));
-                            }} />
+                            <DiscardPile cards={cardViews(G, G.zones.discard)} onClick={() => setBrowse({ zone: 'discard' })} />
                         </div>
                     </MiddleLeftWrapper>
                 </Middle>
                 <Bottom>
                     <StableSection
                         G={G}
-                        ctx={ctx}
                         playerID={playerID}
                         moves={moves}
-                        boardStates={boardStates}
+                        board={board}
                         stableRef={stableRef}
-                        cardInteraction={cardInteraction}
-                        setCardInteraction={setCardInteraction}
-                        hoverTargets={hoverTargets}
-                        setHoverTargets={setHoverTargets}
-                        openScenes={openScenes}
-                        glowingCardIDs={glowingCardIDs}
                         stableHighlightMode={stableHighlightMode}
-                        isHoveringOverHandCard={isHoveringOverHandCard}
                         setHoveringOverHandCard={setHoveringOverHandCard}
                         playHubMouseOverSound={playHubMouseOverSound}
-                        playExecuteDoSound={playExecuteDoSound}
                     />
                 </Bottom>
             </Wrapper>
             </AnimateSharedLayout>
-            <GameLogPanel gameLog={G.gameLog ?? []} players={G.players} deck={G.deck} />
+            <GameLogPanel G={G} playerID={playerID} />
             {G.sandbox && (
                 <>
                     <SandboxActionBanner />
-                    <SandboxPanel G={G} ctx={ctx} moves={moves as any} playerID={playerID} />
+                    <SandboxPanel G={G} ctx={ctx} moves={moves} playerID={playerID} />
                 </>
             )}
         </>
     );
-}
-
-////////////////////////////////
-
-const renderTop = (G: UnstableUnicornsGame, ctx: Ctx, isCurrentPlayer: boolean, boardStates: BoardState[]) => {
-    if (isCurrentPlayer) {
-        let text: string = "It's your turn";
-        if (boardStates.find(s => s.type === "neigh__wait")) {
-            text = "It's neigh time! Other players may neigh your card. Waiting for others..."
-        }
-        return (
-            <div style={{ display: "flex", alignItems: "center" }}>
-                <GameLabel text={text} />
-            </div>
-        );
-    } else {
-        return (
-            <HiddenHand
-                count={G.hand[ctx.currentPlayer].length}
-            />
-        );
-    }
-};
-
-const renderEndTurnButton = (moves: Moves, playerID: PlayerID, playEndTurnButtonSound: () => void, boardStates: BoardState[]) => {
-    if (boardStates.find(s => s.type === "endTurn")) {
-        return (
-            <EndTurnButtonWrapper>
-                <EndTurnButton onClick={() => { playEndTurnButtonSound(); moves.end(playerID); }}>End turn</EndTurnButton>
-            </EndTurnButtonWrapper>
-        );
-    }
-
-    return undefined;
 }
 
 ////////////////////////////////

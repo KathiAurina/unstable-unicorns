@@ -1,18 +1,18 @@
 import React, { useContext, useState } from 'react';
+import type { CardView, CardID } from '../view/cards';
+import { cardDescription } from '../view/cards';
 import styled, { keyframes } from 'styled-components';
 import ImageLoader from '../assets/card/imageLoader';
-import { Card, CardID } from '../game/card';
 import CardHover from './CardHover';
 import { motion } from 'framer-motion';
 import { _typeToColor } from './util';
 import useSound from 'use-sound';
 import { LanguageContext } from '../LanguageContextProvider';
-import { cardDescription } from '../BoardUtil';
 const MouseClickSound = require('../assets/sound/UI_MouseClick_01.ogg');
 const HubMouseOverSound = require('../assets/sound/Hub_Mouseover.ogg');
 
 type Props = {
-    card: Card;
+    card: CardView;
     role: NeighLabelRole;
     originalInitiatorName: string;
     newInitiatorName?: string;

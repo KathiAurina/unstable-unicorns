@@ -1,4 +1,4 @@
-import { CardType, getPrimaryType } from '../../game/card';
+import type { CardType } from '../../game/cards/types';
 import BACK from './UU-Back-Main.png';
 import NeighIcon from './neigh-icon.png';
 import MagicIcon from './star-icon.png';
@@ -17,24 +17,18 @@ const ImageLoader = {
         }
         return require(`./square/${key}.png`);
     },
-    icon: (type: CardType | CardType[]) => {
-        switch(getPrimaryType({ type })) {
-            case "baby":
-            case "basic":
-            case "narwhal":
-            case "unicorn":
-                return UnicornIcon;
+    icon: (type: CardType) => {
+        switch (type) {
             case "magic":
                 return MagicIcon;
             case "upgrade":
                 return UpgradeIcon;
             case "downgrade":
                 return DowngradeIcon;
-            case "neigh":
-            case "super_neigh":
+            case "instant":
                 return NeighIcon;
             default:
-                return undefined;
+                return UnicornIcon;
         }
     }
 };

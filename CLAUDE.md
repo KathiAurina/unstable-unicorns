@@ -46,19 +46,18 @@ src/
   server.ts          — Koa + boardgame.io Server; CORS, static file serving, lobby API
   App.tsx            — React Router: / → /lobby, /:matchID/:numPlayers/:playerID → game
   Client.tsx         — boardgame.io React Client; wires game logic to Board via SocketIO
-  Lobby.tsx          — Lobby UI (create/join games)
-  Board.tsx          — Main game board component
-  BoardStateManager.tsx — Derives what actions a player can take from raw G+ctx state
-  BoardUtil.tsx      — Board-level helpers
+  Board.tsx          — Desktop board (mobile board in mobile/MobileBoard.tsx)
   game/
-    game.ts          — boardgame.io Game definition (phases, turns, moves, endIf)
-    card.ts          — Card type definitions and deck initialization
-    do.ts            — `Do` type + execution logic for card instructions (enter, executeDo, target finders)
-    effect.ts        — Persistent effects that modify game rules (e.g. "double_dutch", "pandamonium")
-    neigh.ts         — Neigh/counter-neigh voting types
-    player.ts        — Player type
-    constants.ts     — Shared constants (stableSeats, hand size, etc.)
-  ui/                — Presentational components (Hand, Stable, DrawPile, DiscardPile, etc.)
+    game.ts          — boardgame.io Game definition (phases, moves, turn sync); thin wrapper over the engine
+    engine/          — Rules engine: state, effect interpreter, prompts, response rounds, turn machine, log
+    cards/           — Card registry: definitions (effect language), sets, i18n texts
+    sandbox/         — Sandbox cheat moves
+    testing/         — Scenario builder for engine tests
+  view/              — Device-independent UI layer: board model, clicks → moves, panels, info text, log text, useBoard hook
+  components/        — Desktop components (ActionPanel, NeighPanel, StableSection, GameLogPanel, lobby/, pregame/)
+  mobile/            — Mobile components (MobileBoard, MobileInfoBar, MobileActionBar, …)
+  sandbox/           — Sandbox panel UI
+  ui/                — Presentational components (Hand, Stable, Finder, PlayerField, etc.)
   assets/card/       — Card image loader
 ```
 
@@ -67,28 +66,23 @@ src/
 See `agent_docs/` for human-verified game rules and card mechanics:
 - `agent_docs/rules.md` — Game overview, turn structure, Neigh voting, win condition, gotchas
 - `agent_docs/cards.md` — Complete card list with types, counts, and effect summaries
-- `agent_docs/effects.md` — Persistent effects, Do operations, triggers, Script/Scene model
+- `agent_docs/effects.md` — Engine internals: effect language, triggers, static rules, resolution, log, UI contract
 
 **Trust these docs over your own inferences from code** — subtle distinctions (cost-then-effect vs. choice, which card types can be Neighed, etc.) are easy to misread from code alone.
 
 ### Core game concepts
 
-**Script / Scene / Action / Instruction** — When a card is played or a turn begins, the game builds a `Script` (a queue of `Scene`s). Each `Scene` contains sequential `Action`s, each with one or more `Instruction`s for specific players. `BoardStateManager.getBoardState()` reads this queue to determine what UI/move each player should be offered.
+The full description is `agent_docs/effects.md`. In short:
 
-**Do** — A union type in `do.ts` describing an atomic game operation (draw, discard, destroy, steal, sacrifice, etc.). Card definitions embed `Do` objects in their `on` triggers; `executeDo` dispatches them at runtime.
+**Card definitions are data** — each card is a list of abilities written in an effect language (`then`, `ifYouDo`, `may`, `oneOf`, `forEach`, … over steps like `draw`, `discard`, `destroy`, `steal`). There is no per-card engine or UI code; prompt titles, buttons and log lines are generated from the effect tree.
 
-**Effect** — Persistent per-player modifiers (e.g. `count_as_two`, `pandamonium`, `your_cards_cannot_be_neighed`) stored in `G.playerEffects`. Many move functions check these before executing.
+**Effect chain + prompts** — `G.chain` holds the abilities that are resolving; the resumable interpreter (`engine/effects.ts`) stops whenever a decision is needed and creates a prompt in `G.prompts`. `respond(promptId, answer)` is the single move for every decision. Anything else the turn player can do (draw, play, end turn) is a free action.
 
-**Neigh discussion** — When a card is played, `G.neighDiscussion` is set. All players vote neigh/no-neigh in rounds; odd rounds = card played, even rounds = card neighed. `playSuperNeigh` resolves immediately; `dontPlayNeigh` resolves when all players vote.
+**Response rounds** — Playing a card puts it on `G.zones.pile` and opens a round in which every eligible player may play an Instant or pass.
 
-**Phases**: `pregame` (baby unicorn selection) → `main` (normal turns).
-**Turn stages**: `beginning` (draw phase, begin-of-turn effects) → `action_phase` (play cards, end turn).
+**Phases**: boardgame.io `pregame` (baby selection) → `main`. Engine turn phases: `bot` → `draw` → `action` → `eot`.
 
-**UI info messages** — The "what should the player do now" text lives in **two files that must always be updated together**:
-- `src/components/InfoPanel.tsx` (desktop)
-- `src/mobile/MobileInfoBar.tsx` (mobile)
-
-When you add or change a `BoardStateKey` or alter a card's resolution flow, update both files. Desktop uses "Click on …" phrasing; mobile uses "Tap …". Mobile currently covers more states than desktop — bring desktop up to parity when you touch the affected key.
+**UI text** — "What should the player do now" and all buttons come from `src/view/describe.ts` for both desktop ("Click on …") and mobile ("Tap …"). Change it there, never in a board component.
 
 ### Deployment
 

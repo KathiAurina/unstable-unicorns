@@ -1,6 +1,13 @@
 import React from 'react';
 import styled from 'styled-components';
-import { EXPANSION_LABELS, type Expansion } from '../../game/card';
+import { getSet } from '../../game/cards/registry';
+
+type Expansion = string;
+
+/** Label of a set id; ids from before the registry are accepted, unknown ones are shown as they are. */
+function setLabel(id: string): string {
+    try { return getSet(id).label; } catch { return id; }
+}
 
 interface Match {
     gameID: string;
@@ -36,9 +43,9 @@ const GameListItem = ({ match, onJoin }: Props) => {
                 <ExpansionRow>
                     {(match.setupData?.expansions && match.setupData.expansions.length > 0
                         ? match.setupData.expansions
-                        : ["base_game"] as Expansion[]
+                        : ["base_2e"] as Expansion[]
                     ).map(exp => (
-                        <ExpansionTag key={exp}>{EXPANSION_LABELS[exp]}</ExpansionTag>
+                        <ExpansionTag key={exp}>{setLabel(exp)}</ExpansionTag>
                     ))}
                 </ExpansionRow>
                 <ButtonRow>

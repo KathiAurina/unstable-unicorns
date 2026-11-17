@@ -1,15 +1,15 @@
 import React from 'react';
+import type { CardView, CardID } from '../view/cards';
 import styled, { css, keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import { Card, CardID } from '../game/card';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from '../ui/util';
 import { useLongPress } from '../hooks/useLongPress';
 
 type Props = {
     // Cards in the stable (unicorns + temporaryStable)
-    cards: Card[];
-    upgradeDowngradeCards: Card[];
+    cards: CardView[];
+    upgradeDowngradeCards: CardView[];
     glowingCardIDs: CardID[];
     highlightMode?: CardID[];
     isOwnStable: boolean;
@@ -18,12 +18,12 @@ type Props = {
     isCurrentPlayer: boolean;
     isTargetMode: boolean;    // true when player must select a target card
     onCardTap: (cardID: CardID) => void;
-    onCardLongPress: (card: Card) => void;
+    onCardLongPress: (card: CardView) => void;
     // Drop target - data attributes placed on stable container
 };
 
 const CardItem = ({ card, isGlowing, isTranslucent, isTargetMode, onTap, onLongPress }: {
-    card: Card;
+    card: CardView;
     isGlowing: boolean;
     isTranslucent: boolean;
     isTargetMode: boolean;

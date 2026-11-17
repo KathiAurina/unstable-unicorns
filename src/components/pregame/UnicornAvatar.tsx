@@ -1,10 +1,10 @@
 import React from 'react';
+import type { CardView } from '../../view/cards';
 import styled from 'styled-components';
 import ImageLoader from '../../assets/card/imageLoader';
-import { Card } from '../../game/card';
 
 interface Props {
-    card: Card;
+    card: CardView;
     isSelected: boolean;
     isTaken: boolean;
     onClick: () => void;

@@ -1,5 +1,6 @@
 import styled, { css, keyframes } from 'styled-components';
-import { Card, CardID, CardType, getPrimaryType } from '../game/card';
+import type { CardView, CardID, CardType } from '../view/cards';
+import { cardDescription, typeHint } from '../view/cards';
 import ImageLoader from '../assets/card/imageLoader';
 import { _typeToColor } from './util';
 import CardHover from './CardHover';
@@ -7,11 +8,10 @@ import { useContext, useState } from 'react';
 
 import useSound from 'use-sound';
 import { LanguageContext } from '../LanguageContextProvider';
-import { cardDescription } from '../BoardUtil';
 const HandOverSound = require('../assets/sound/collection_manager_card_mouse_over.ogg');
 
 type Props = {
-    cards: Card[];
+    cards: CardView[];
     glowingCards: CardID[];
     onClick: (evt: React.MouseEvent, cardID: CardID) => void;
     onMouseEnterHandCard: (index: number) => void;
@@ -41,28 +41,13 @@ const Hand = (props: Props) => {
                     setHoverCardID(undefined);
                 };
 
-                let typeText: string | undefined = undefined;
-                switch (getPrimaryType(card)) {
-                    case "upgrade": {
-                        typeText = "An upgrade card can be placed in any stable and grants the stable owner a positive effect.";
-                        break;
-                    }
-                    case "downgrade": {
-                        typeText = "A downgrade card can be placed in any stable and grants the stable owner a negative effect.";
-                        break;
-                    }
-                    case "neigh":
-                    case "super_neigh": {
-                        typeText = "This card can be played at any time any other players plays a card.";
-                        break;
-                    }
-                }
+                const typeText = typeHint(card.type);
 
                 return (
                     <CardWrapper key={card.id} borderColor={_typeToColor(card.type)} isGlowing={props.glowingCards.includes(card.id)} transform={_transformForCard(idx, props.cards.length)} onClick={(evt) => props.onClick(evt, card.id)} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} bringToForeground={hoverCardID === card.id}>
                         <Top>
                             <Type fontColor={_typeToColor(card.type)}>
-                                <img src={ImageLoader.icon(card.type)} width={"20px"}/>
+                                <img src={ImageLoader.icon(card.type)} width={"20px"} alt=""/>
                                 {_typeToString(card.type)}
                             </Type>
                             <Title>
@@ -148,45 +133,18 @@ const glow = keyframes`
     }
 `;
 
-function _typeToString(type: CardType | CardType[]): string {
-    type = Array.isArray(type) ? type[0] : type;
-    if (type === "baby") {
-        return "Baby";
+function _typeToString(type: CardType): string {
+    switch (type) {
+        case 'baby': return 'Baby';
+        case 'basic': return 'Basic';
+        case 'magical': return 'Unicorn';
+        case 'ultimate': return 'Ultimate';
+        case 'diamond': return 'Diamond';
+        case 'upgrade': return 'Upgrade';
+        case 'downgrade': return 'Downgrade';
+        case 'magic': return 'Magic';
+        case 'instant': return 'Instant';
     }
-
-    if (type === "basic") {
-        return "Basic"
-    }
-
-    if (type === "downgrade") {
-        return "Downgrade";
-    }
-
-    if (type === "upgrade") {
-        return "Upgrade";
-    }
-
-    if (type === "narwhal") {
-        return "Narwhal";
-    }
-
-    if (type === "neigh") {
-        return "Neigh";
-    }
-
-    if (type === "super_neigh") {
-        return "Super Neigh";
-    }
-
-    if (type === "magic") {
-        return "Magic";
-    }
-
-    if (type === "unicorn") {
-        return "Unicorn";
-    }
-
-    return "Undefined";
 }
 
 function _transformForCard(idx: number, countCards: number): { x: number, y: number, rotate: string } {

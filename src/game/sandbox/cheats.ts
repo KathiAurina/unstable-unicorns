@@ -3,7 +3,7 @@
 // Cheats place cards directly: no protection rules, no triggers, no log — except `sandboxAddToStable`
 // with `withEnter`, `sandboxDraw` and `sandboxForceEndTurn`, which go through the engine.
 // The functions take the engine state and a random source and return an error text when refused;
-// match.ts wraps them into boardgame.io moves.
+// game.ts wraps them into boardgame.io moves.
 
 import { hasDef, getDef, isStableType } from '../cards/registry';
 import * as engine from '../engine';
