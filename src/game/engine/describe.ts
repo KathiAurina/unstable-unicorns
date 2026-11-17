@@ -35,7 +35,8 @@ function plural(noun: string): string {
 }
 
 function withArticle(noun: string): string {
-    return /^[aeiou]/i.test(noun) ? `an ${noun}` : `a ${noun}`;
+    // "an Upgrade card", but "a Unicorn card"
+    return /^([aeio]|u(?!ni))/i.test(noun) ? `an ${noun}` : `a ${noun}`;
 }
 
 /** "a Unicorn card", "2 cards", "all Downgrade cards" */
