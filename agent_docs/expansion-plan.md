@@ -759,7 +759,7 @@ Stages 7–11 are independent of each other once stage 6 is done; reorder them b
 
 ### 9.1 Progress and handover (updated 2026-11-18)
 
-**Branch:** `select_extensions`. All work is committed **locally only**. As of 2026-11-18 the branch is 9 commits ahead of `origin/select_extensions` (`aacec03` … `f11ec03`); none of the stage 2–3 work has been pushed yet. Pushing is the user's decision.
+**Branch:** `select_extensions`. All work is committed **locally only**. As of 2026-11-18 the branch is 12 commits ahead of `origin/select_extensions` (`aacec03` onwards); none of the stage 2–3 work has been pushed yet. Pushing is the user's decision.
 
 | Stage | Status |
 |---|---|
@@ -785,7 +785,7 @@ Stages 7–11 are independent of each other once stage 6 is done; reorder them b
 - The decline button is labelled "Skip", except for deck searches ("Fail to Find").
 
 **Housekeeping still open:**
-- `server_build/` contains about 27 compiled files that are tracked in git although `.gitignore` lists the folder; they are stale (the Docker image builds the server itself). They were left out of the commits. Suggested fix: `git rm -r --cached server_build` (needs the user's OK).
+- ~~Stale tracked `server_build/` files~~ — done: untracked in `b45d315` (the folder is in `.gitignore`; Docker builds it).
 - The view layer has no German UI texts yet (card texts are bilingual through the registry; prompts, buttons and log lines are English only).
 
 **Useful commands:** `CI=true npx react-scripts test --watchAll=false --testPathPattern="engine\.|view"` (all engine + view tests; `engine.random` takes ~20 s), `npx tsc -p tsconfig.server.json --noEmit`, `npm run build:server` then `CORS_ORIGIN=http://localhost:8000 node server_build/server.js` to play at `http://localhost:8000` after `npm run build`.
