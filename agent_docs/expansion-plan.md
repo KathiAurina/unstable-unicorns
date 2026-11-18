@@ -759,7 +759,7 @@ Stages 7–11 are independent of each other once stage 6 is done; reorder them b
 
 ### 9.1 Progress and handover (updated 2026-11-18)
 
-**Branch:** `select_extensions`. All work is committed **locally only**. As of 2026-11-18 the branch is 12 commits ahead of `origin/select_extensions` (`aacec03` onwards); none of the stage 2–3 work has been pushed yet. Pushing is the user's decision.
+**Branch:** `select_extensions`. All stage 2–3 work is committed and **pushed to `origin/select_extensions`** (2026-11-18). Push only when the user asks.
 
 | Stage | Status |
 |---|---|
