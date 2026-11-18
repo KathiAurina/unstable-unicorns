@@ -1,6 +1,6 @@
 # Expansion Implementation Plan
 
-> **Status:** plan, written 2026-11-16 on branch `select_extensions`; decisions of 2026-11-17 are worked in (section 11). **Stages 2 and 3 are implemented** (card registry, rules engine with the legacy preset, `src/view` UI layer, old engine removed — commit `506225a`); stage 1 and stages 4+ are open.
+> **Status:** plan, written 2026-11-16 on branch `select_extensions`; decisions of 2026-11-17 are worked in (section 11). **Stages 2 and 3 are implemented** (card registry, rules engine with the legacy preset, `src/view` UI layer, old engine removed). **Where we left off and what comes next: section 9.1.**
 > `rules.md`, `cards.md` and `effects.md` describe the game as it is today. This file describes where it is going. Rule statements in section 3 come from the Unstable Games Wiki (Appendix B); which of them are adopted is decided in `rules.md` section 7 (IDs R1–R19, K1–K3), and this plan refers to those IDs.
 > Reference language is English: English card text and English rules.
 
@@ -15,6 +15,7 @@
 | the proposed structure for cards, effects, prompts and logs | 5, 6, 7 |
 | which engine feature each expansion needs | 8 |
 | the step-by-step roadmap | 9, 10 |
+| **where the work stands and how to continue** | **9.1** |
 | what was decided, and the few points still open | 11 (rule IDs: `rules.md` section 7) |
 
 ---
@@ -755,6 +756,39 @@ Each stage ends in a playable, deployable game. Sizes are relative (S / M / L / 
 Stage 3 is the only large jump. Three things keep it safe: the old tests describe the expected behaviour of the cards being ported, the legacy preset lets them run unchanged, and the registry of stage 2 means card *data* is already in its final place.
 
 Stages 7–11 are independent of each other once stage 6 is done; reorder them by which physical expansions you play with.
+
+### 9.1 Progress and handover (updated 2026-11-18)
+
+**Branch:** `select_extensions`. All work is committed **locally only**. As of 2026-11-18 the branch is 9 commits ahead of `origin/select_extensions` (`aacec03` … `f11ec03`); none of the stage 2–3 work has been pushed yet. Pushing is the user's decision.
+
+| Stage | Status |
+|---|---|
+| 0 — Decisions | ✅ done |
+| 1 — Safety | ◐ partly. Done as part of stage 3: server-only moves (`client: false` in `game.ts`), `ctx.random` passed to the engine as `Rng`, ids from `G.seq`. **Open:** `playerView` (issue I10, every client still receives all hands and the deck order); check whether `origin/tests-sandbox` is still worth merging (the sandbox was rewritten, so probably only ideas from its tests). |
+| 2 — Registry | ✅ done, except the **image pipeline** (5.11): new cards still need square art in `src/assets/card/square/`. |
+| 3 — Engine core | ✅ done (commits `7b44710` → `506225a`). Engine in `src/game/engine/`, cards in `src/game/cards/`, UI layer in `src/view/`, desktop + mobile boards, log panel, sandbox (`/sandbox`) on the new engine; old engine and old tests deleted. 351 tests green (1 todo: standard-preset R3). Played in the browser: sandbox flows on desktop, mobile layout via emulation, a real 2-player lobby match. |
+| 4 and later | ❌ not started. **Next step: stage 4** (or stage 1's `playerView` first, if the game is played online with people who might look at the network tab). |
+
+**How the code is laid out now:** see `effects.md` (engine, effect language, UI contract in section 7) and `CLAUDE.md`. Adding a card: section 10.1.
+
+**Rule options:** `src/game/engine/options.ts` lists which options already implement both the legacy and the standard value and which still only have the legacy value (`superNeigh`, `playRequirement`, `targetsBeforeVoting`, `twoPlayerRules`). Stage 4 = implement the remaining standard values, add a `STANDARD_RULES` preset, make it the default.
+
+**Deliberate behaviour changes of the rewrite, reported to the user and not yet confirmed:**
+- Pillaging Pirate only moves a Downgrade from the player's own stable.
+- "Steal an Upgrade" no longer takes Downgrades.
+- "Neigh card" matches by name, so Super Neigh counts.
+- Optional "you may" abilities are prompts with a Skip button that must be answered.
+- Double Dutch: drawing a card and then still playing one is no longer possible.
+- Targets are clicked directly (highlighted); the old "click source card, then target" arrow is gone (the arrow remains only while choosing the destination stable of a played Upgrade/Downgrade).
+- "Force End Turn" and "answer the open decision for a player" in the menu are owner-only.
+- The sandbox cannot add loose effects any more (effects come from cards).
+- The decline button is labelled "Skip", except for deck searches ("Fail to Find").
+
+**Housekeeping still open:**
+- `server_build/` contains about 27 compiled files that are tracked in git although `.gitignore` lists the folder; they are stale (the Docker image builds the server itself). They were left out of the commits. Suggested fix: `git rm -r --cached server_build` (needs the user's OK).
+- The view layer has no German UI texts yet (card texts are bilingual through the registry; prompts, buttons and log lines are English only).
+
+**Useful commands:** `CI=true npx react-scripts test --watchAll=false --testPathPattern="engine\.|view"` (all engine + view tests; `engine.random` takes ~20 s), `npx tsc -p tsconfig.server.json --noEmit`, `npm run build:server` then `CORS_ORIGIN=http://localhost:8000 node server_build/server.js` to play at `http://localhost:8000` after `npm run build`.
 
 ---
 
